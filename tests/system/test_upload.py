@@ -268,5 +268,4 @@ def test_resumable_upload_bad_chunk_size(authorized_transport, stream):
     # Reset the chunk size (and the stream) and verify the "resumable"
     # URL is unusable.
     upload._chunk_size = upload_mod.UPLOAD_CHUNK_SIZE
-    stream.seek(0)
     check_bad_chunk(upload, authorized_transport)
