@@ -384,14 +384,23 @@ class TestResumableUpload(object):
 
     def test__process_response_bad_status(self):
         upload = upload_mod.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        stream = io.BytesIO(b'data is here')
+        stream.seek(3)
+        upload._stream = stream
         response = self._mock_response(http_client.NOT_FOUND, {})
+
+        # Make sure stream is **past** ``bytes_uploaded``.
+        assert stream.tell() > upload.bytes_uploaded
         with pytest.raises(exceptions.InvalidResponse) as exc_info:
             upload._process_response(response)
 
+        # Check the error response.
         error = exc_info.value
         assert error.response is response
         assert len(error.args) == 3
         assert error.args[1] == response.status_code
+        # Make sure stream is reset **at** ``bytes_uploaded``.
+        assert stream.tell() == upload.bytes_uploaded
 
     def test__process_response_success(self):
         upload = upload_mod.ResumableUpload(RESUMABLE_URL, ONE_MB)
@@ -414,10 +423,24 @@ class TestResumableUpload(object):
             upload._process_response(response)
 
         # Then try with a "range" header that is unexpected.
+        stream = io.BytesIO(b'this is just to throw away')
+        stream.seek(3)
+        upload._stream = stream
+        # Make sure stream is **past** ``bytes_uploaded``.
+        assert stream.tell() > upload.bytes_uploaded
+
         headers = {u'range': u'nights 1-81'}
         response = self._mock_response(upload_mod.PERMANENT_REDIRECT, headers)
-        with pytest.raises(ValueError):
+        with pytest.raises(exceptions.InvalidResponse) as exc_info:
             upload._process_response(response)
+
+        # Check the error response.
+        error = exc_info.value
+        assert error.response is response
+        assert len(error.args) == 3
+        assert error.args[1] == headers[u'range']
+        # Make sure stream is reset **at** ``bytes_uploaded``.
+        assert stream.tell() == upload.bytes_uploaded
 
     def test__process_response_partial(self):
         upload = upload_mod.ResumableUpload(RESUMABLE_URL, ONE_MB)
