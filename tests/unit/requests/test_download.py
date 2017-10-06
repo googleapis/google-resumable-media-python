@@ -170,7 +170,7 @@ def _mock_response(status_code=http_client.OK, chunks=()):
     if chunks:
         response = mock.MagicMock(
             status_code=int(status_code),
-            spec=[u'__enter__', u'__exit__', u'iter_content', u'status_code'],
+            spec=[u'__enter__', u'__exit__', u'iter_content', u'status_code', u'headers'],
         )
         # i.e. context manager returns ``self``.
         response.__enter__.return_value = response

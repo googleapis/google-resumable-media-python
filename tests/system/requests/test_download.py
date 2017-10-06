@@ -18,6 +18,7 @@ import os
 import google.auth
 import google.auth.transport.requests as tr_requests
 import pytest
+from google.resumable_media.common import DataCorruption
 from six.moves import http_client
 
 from google import resumable_media
@@ -38,10 +39,45 @@ NO_BODY_ERR = (
     u'The content for this response was already consumed')
 
 
+class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
+    """A Requests Session class with credentials, which corrupts responses.
+
+    This class is used for testing checksum validation.
+
+    Args:
+        credentials (google.auth.credentials.Credentials): The credentials to
+            add to the request.
+        refresh_status_codes (Sequence[int]): Which HTTP status codes indicate
+            that credentials should be refreshed and the request should be
+            retried.
+        max_refresh_attempts (int): The maximum number of times to attempt to
+            refresh the credentials and retry the request.
+        kwargs: Additional arguments passed to the :class:`requests.Session`
+            constructor.
+    """
+
+    def request(self, method, url, data=None, headers=None, **kwargs):
+        """Implementation of Requests' request."""
+        # pylint: disable=arguments-differ
+        response = tr_requests.AuthorizedSession.request(
+            self, method, url, data=data, headers=headers)
+        # Populate MD5 for an empty buffer, which should not match the MD5 for
+        # the downloaded content.
+        response.headers['X-Goog-Hash'] = 'md5=1B2M2Y8AsgTpgAmY7PhCfg=='
+        return response
+
+
 @pytest.fixture(scope=u'module')
 def authorized_transport():
     credentials, _ = google.auth.default(scopes=(utils.GCS_RW_SCOPE,))
     yield tr_requests.AuthorizedSession(credentials)
+
+
+# Transport that returns corrupt data, so we can exercise checksum handling.
+@pytest.fixture(scope=u'module')
+def corrupting_transport():
+    credentials, _ = google.auth.default(scopes=(utils.GCS_RW_SCOPE,))
+    yield CorruptingAuthorizedSession(credentials)
 
 
 def delete_blob(transport, blob_name):
@@ -122,6 +158,22 @@ def test_download_to_stream(add_files, authorized_transport):
         assert response._content_consumed is True
         assert stream.getvalue() == actual_contents
         check_tombstoned(download, authorized_transport)
+
+
+def test_corrupt_download(add_files, corrupting_transport):
+    for img_file in IMG_FILES:
+        with open(img_file, u'rb') as file_obj:
+            actual_contents = file_obj.read()
+
+        blob_name = os.path.basename(img_file)
+
+        # Create the actual download object.
+        media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
+        stream = io.BytesIO()
+        download = resumable_requests.Download(media_url, stream=stream)
+        # Consume the resource.
+        with pytest.raises(DataCorruption) as exc_info:
+            response = download.consume(corrupting_transport)
 
 
 @pytest.fixture(scope=u'module')

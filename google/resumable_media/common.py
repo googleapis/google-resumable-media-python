@@ -76,6 +76,11 @@ class InvalidResponse(Exception):
         """object: The HTTP response object that caused the failure."""
 
 
+class DataCorruption(Exception):
+    """Error class for corrupt media transfers.
+    """
+
+
 class RetryStrategy(object):
     """Configuration class for retrying failed requests.
 

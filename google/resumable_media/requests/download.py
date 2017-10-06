@@ -14,8 +14,12 @@
 
 """Support for downloading media from Google APIs."""
 
+import base64
+import hashlib
+import logging
 
 from google.resumable_media import _download
+from google.resumable_media.common import DataCorruption
 from google.resumable_media.requests import _helpers
 
 
@@ -58,12 +62,42 @@ class Download(_helpers.RequestsMixin, _download.Download):
 
         Args:
             response (~requests.Response): The HTTP response object.
+
+        Raises:
+            DataCorruption: If the download's checksum doesn't agree with
+                server-computed checksum.
         """
+        md5_hash = hashlib.md5()
+        # TODO: Add support for validating CRC32C for composite objects. Note
+        # that this is somewhat painful in Python 2 because most OS distros of
+        # Python 2 don't include a compiled crcmod (and executing without a
+        # compiled crcmod is very slow; and installing a compiled crcmod will
+        # make getting google-cloud-python working well more difficult).
+        expected_md5_hash = None
+        if ('X-Goog-Hash' in response.headers
+            and len(response.headers['X-Goog-Hash']) != 0):
+            for checksum in response.headers['X-Goog-Hash'].split(','):
+                name, value = checksum.split('=', 1)
+                if name == 'md5':
+                    expected_md5_hash = value
+        if not expected_md5_hash:
+            logging.getLogger().info(
+                'No MD5 checksum was returned from the service while '
+                'downloading %s (which happens for composite objects), so '
+                'client-side content integrity checking is not being '
+                'performed.' % self.media_url)
         with response:
             body_iter = response.iter_content(
                 chunk_size=_SINGLE_GET_CHUNK_SIZE, decode_unicode=False)
             for chunk in body_iter:
                 self._stream.write(chunk)
+                md5_hash.update(chunk)
+        actual_md5_hash = base64.encodestring(md5_hash.digest()).rstrip('\n')
+        if expected_md5_hash and actual_md5_hash != expected_md5_hash:
+              raise DataCorruption('Checksum mismatch while downloading %s: '
+                                    'expected=%s, actual=%s' %
+                                    (self.media_url, expected_md5_hash,
+                                     actual_md5_hash))
 
     def consume(self, transport):
         """Consume the resource to be downloaded.
@@ -79,6 +113,8 @@ class Download(_helpers.RequestsMixin, _download.Download):
             ~requests.Response: The HTTP response returned by ``transport``.
 
         Raises:
+            DataCorruption: If the download's checksum doesn't agree with
+                server-computed checksum.
             ValueError: If the current :class:`Download` has already
                 finished.
         """
