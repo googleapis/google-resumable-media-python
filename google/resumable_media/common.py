@@ -78,7 +78,17 @@ class InvalidResponse(Exception):
 
 class DataCorruption(Exception):
     """Error class for corrupt media transfers.
+
+    Args:
+        response (object): The HTTP response which caused the failure.
+        args (tuple): The positional arguments typically passed to an
+            exception class.
     """
+
+    def __init__(self, response, *args):
+        super(DataCorruption, self).__init__(*args)
+        self.response = response
+        """object: The HTTP response object that caused the failure."""
 
 
 class RetryStrategy(object):

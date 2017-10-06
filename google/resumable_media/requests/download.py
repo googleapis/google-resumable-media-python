@@ -75,7 +75,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
         # make getting google-cloud-python working well more difficult).
         expected_md5_hash = None
         if ('X-Goog-Hash' in response.headers
-            and len(response.headers['X-Goog-Hash']) != 0):
+            and response.headers['X-Goog-Hash']):
             for checksum in response.headers['X-Goog-Hash'].split(','):
                 name, value = checksum.split('=', 1)
                 if name == 'md5':
@@ -94,7 +94,8 @@ class Download(_helpers.RequestsMixin, _download.Download):
                 md5_hash.update(chunk)
         actual_md5_hash = base64.encodestring(md5_hash.digest()).rstrip('\n')
         if expected_md5_hash and actual_md5_hash != expected_md5_hash:
-              raise DataCorruption('Checksum mismatch while downloading %s: '
+              raise DataCorruption(response,
+                                   'Checksum mismatch while downloading %s: '
                                     'expected=%s, actual=%s' %
                                     (self.media_url, expected_md5_hash,
                                      actual_md5_hash))
