@@ -16,7 +16,7 @@
 
 import base64
 import hashlib
-import logging
+import sys
 
 from google.resumable_media import _download
 from google.resumable_media.common import DataCorruption
@@ -68,11 +68,6 @@ class Download(_helpers.RequestsMixin, _download.Download):
                 server-computed checksum.
         """
         md5_hash = hashlib.md5()
-        # TODO: Add support for validating CRC32C for composite objects. Note
-        # that this is somewhat painful in Python 2 because most OS distros of
-        # Python 2 don't include a compiled crcmod (and executing without a
-        # compiled crcmod is very slow; and installing a compiled crcmod will
-        # make getting google-cloud-python working well more difficult).
         expected_md5_hash = None
         if ('X-Goog-Hash' in response.headers
             and response.headers['X-Goog-Hash']):
@@ -81,7 +76,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
                 if name == 'md5':
                     expected_md5_hash = value
         if not expected_md5_hash:
-            logging.getLogger().info(
+            self._logger.info(
                 'No MD5 checksum was returned from the service while '
                 'downloading %s (which happens for composite objects), so '
                 'client-side content integrity checking is not being '
@@ -92,7 +87,12 @@ class Download(_helpers.RequestsMixin, _download.Download):
             for chunk in body_iter:
                 self._stream.write(chunk)
                 md5_hash.update(chunk)
-        actual_md5_hash = base64.encodestring(md5_hash.digest()).rstrip('\n')
+        if sys.version_info[:3] < (3,):
+            actual_md5_hash = (base64.encodestring(md5_hash.digest())
+                               .rstrip('\n'))
+        else:
+            actual_md5_hash = (base64.encodebytes(bytes(md5_hash.digest(),
+                                                        'UTF-8')).rstrip('\n'))
         if expected_md5_hash and actual_md5_hash != expected_md5_hash:
               raise DataCorruption(response,
                                    'Checksum mismatch while downloading %s: '
