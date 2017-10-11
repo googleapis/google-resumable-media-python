@@ -12,6 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import base64
+import hashlib
 import io
 import os
 
@@ -23,6 +25,7 @@ from six.moves import http_client
 
 from google import resumable_media
 import google.resumable_media.requests as resumable_requests
+import google.resumable_media.requests.download as download_mod
 from tests.system import utils
 
 
@@ -56,13 +59,15 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
             constructor.
     """
 
+    EMPTY_HASH = base64.b64encode(
+        hashlib.md5(b'').digest()).decode(u'utf-8')
+
     def request(self, method, url, data=None, headers=None, **kwargs):
         """Implementation of Requests' request."""
         response = tr_requests.AuthorizedSession.request(
             self, method, url, data=data, headers=headers)
-        # Populate MD5 for an empty buffer, which should not match the MD5 for
-        # the downloaded content.
-        response.headers[u'x-goog-hash'] = u'md5=1B2M2Y8AsgTpgAmY7PhCfg=='
+        response.headers[download_mod._HASH_HEADER] = (
+            u'md5={}'.format(self.EMPTY_HASH))
         return response
 
 
@@ -160,6 +165,10 @@ def test_download_to_stream(add_files, authorized_transport):
 
 
 def test_corrupt_download(add_files, corrupting_transport):
+    actual_checksums = {
+        u'image1.jpg': u'1bsd83IYNug8hd+V1ING3Q==',
+        u'image2.jpg': u'gdLXJltiYAMP9WZZFEQI1Q==',
+    }
     for img_file in IMG_FILES:
         blob_name = os.path.basename(img_file)
 
@@ -168,8 +177,14 @@ def test_corrupt_download(add_files, corrupting_transport):
         stream = io.BytesIO()
         download = resumable_requests.Download(media_url, stream=stream)
         # Consume the resource.
-        with pytest.raises(common.DataCorruption):
+        with pytest.raises(common.DataCorruption) as exc_info:
             download.consume(corrupting_transport)
+
+        assert download.finished
+        msg = download_mod._CHECKSUM_MISMATCH.format(
+            download.media_url, CorruptingAuthorizedSession.EMPTY_HASH,
+            actual_checksums[blob_name])
+        assert exc_info.value.args == (msg,)
 
 
 @pytest.fixture(scope=u'module')
