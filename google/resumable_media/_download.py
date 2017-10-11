@@ -15,7 +15,6 @@
 """Virtual bases classes for downloading media from Google APIs."""
 
 
-import logging
 import re
 
 from six.moves import http_client
@@ -62,7 +61,6 @@ class DownloadBase(object):
         self._headers = headers
         self._finished = False
         self._retry_strategy = common.RetryStrategy()
-        self._logger = logging.getLogger()
 
     @property
     def finished(self):

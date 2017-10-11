@@ -18,7 +18,7 @@ import os
 import google.auth
 import google.auth.transport.requests as tr_requests
 import pytest
-from google.resumable_media.common import DataCorruption
+from google.resumable_media import common
 from six.moves import http_client
 
 from google import resumable_media
@@ -58,12 +58,11 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
 
     def request(self, method, url, data=None, headers=None, **kwargs):
         """Implementation of Requests' request."""
-        # pylint: disable=arguments-differ
         response = tr_requests.AuthorizedSession.request(
             self, method, url, data=data, headers=headers)
         # Populate MD5 for an empty buffer, which should not match the MD5 for
         # the downloaded content.
-        response.headers['X-Goog-Hash'] = 'md5=1B2M2Y8AsgTpgAmY7PhCfg=='
+        response.headers[u'x-goog-hash'] = u'md5=1B2M2Y8AsgTpgAmY7PhCfg=='
         return response
 
 
@@ -172,7 +171,7 @@ def test_corrupt_download(add_files, corrupting_transport):
         stream = io.BytesIO()
         download = resumable_requests.Download(media_url, stream=stream)
         # Consume the resource.
-        with pytest.raises(DataCorruption) as exc_info:
+        with pytest.raises(common.DataCorruption) as exc_info:
             response = download.consume(corrupting_transport)
 
 

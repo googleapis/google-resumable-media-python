@@ -16,14 +16,33 @@
 
 import base64
 import hashlib
-import sys
+import logging
 
 from google.resumable_media import _download
-from google.resumable_media.common import DataCorruption
+from google.resumable_media import common
 from google.resumable_media.requests import _helpers
 
 
+_LOGGER = logging.getLogger(__name__)
 _SINGLE_GET_CHUNK_SIZE = 8192
+_HASH_HEADER = u'x-goog-hash'
+_MISSING_MD5 = u"""\
+No MD5 checksum was returned from the service while downloading {}
+(which happens for composite objects), so client-side content integrity
+checking is not being performed."""
+_CHECKSUM_MISMATCH = u"""\
+Checksum mismatch while downloading:
+
+  {}
+
+The X-Goog-Hash header indicated an MD5 checksum of:
+
+  {}
+
+but the actual MD5 checksum of the downloaded contents was:
+
+  {}
+"""
 
 
 class Download(_helpers.RequestsMixin, _download.Download):
@@ -52,6 +71,26 @@ class Download(_helpers.RequestsMixin, _download.Download):
         end (Optional[int]): The last byte in a range to be downloaded.
     """
 
+    def _get_expected_md5(self, response):
+        """Get the expected MD5 hash from the response headers.
+
+        Args:
+            response (~requests.Response): The HTTP response object.
+
+        Returns:
+            Optional[str]: The expected MD5 hash of the response, if it
+            can be detected from the ``X-Goog-Hash`` header.
+        """
+        headers = self._get_headers(response)
+        expected_md5_hash = _parse_md5_header(
+            headers.get(_HASH_HEADER), response)
+
+        if expected_md5_hash is None:
+            msg = _MISSING_MD5.format(self.media_url)
+            _LOGGER.info(msg)
+
+        return expected_md5_hash
+
     def _write_to_stream(self, response):
         """Write response body to a write-able stream.
 
@@ -64,41 +103,33 @@ class Download(_helpers.RequestsMixin, _download.Download):
             response (~requests.Response): The HTTP response object.
 
         Raises:
-            DataCorruption: If the download's checksum doesn't agree with
-                server-computed checksum.
+            ~google.resumable_media.common.DataCorruption: If the download's
+                checksum doesn't agree with server-computed checksum.
         """
-        md5_hash = hashlib.md5()
-        expected_md5_hash = None
-        if ('X-Goog-Hash' in response.headers
-            and response.headers['X-Goog-Hash']):
-            for checksum in response.headers['X-Goog-Hash'].split(','):
-                name, value = checksum.split('=', 1)
-                if name == 'md5':
-                    expected_md5_hash = value
-        if not expected_md5_hash:
-            self._logger.info(
-                'No MD5 checksum was returned from the service while '
-                'downloading %s (which happens for composite objects), so '
-                'client-side content integrity checking is not being '
-                'performed.' % self.media_url)
+        expected_md5_hash = self._get_expected_md5(response)
+
+        if expected_md5_hash is None:
+            md5_hash = _DoNothingHash()
+        else:
+            md5_hash = hashlib.md5()
         with response:
             body_iter = response.iter_content(
                 chunk_size=_SINGLE_GET_CHUNK_SIZE, decode_unicode=False)
             for chunk in body_iter:
                 self._stream.write(chunk)
                 md5_hash.update(chunk)
-        if sys.version_info[:3] < (3,):
-            actual_md5_hash = (base64.encodestring(md5_hash.digest())
-                               .rstrip('\n'))
-        else:
-            actual_md5_hash = (base64.encodebytes(bytes(md5_hash.digest(),
-                                                        'UTF-8')).rstrip('\n'))
-        if expected_md5_hash and actual_md5_hash != expected_md5_hash:
-              raise DataCorruption(response,
-                                   'Checksum mismatch while downloading %s: '
-                                    'expected=%s, actual=%s' %
-                                    (self.media_url, expected_md5_hash,
-                                     actual_md5_hash))
+
+        if expected_md5_hash is None:
+            return
+
+        actual_md5_hash = base64.b64encode(md5_hash.digest())
+        # NOTE: ``b64encode`` returns ``bytes``, but ``expected_md5_hash``
+        #       came from a header, so it will be ``str``.
+        actual_md5_hash = actual_md5_hash.decode(u'utf-8')
+        if actual_md5_hash != expected_md5_hash:
+            msg = _CHECKSUM_MISMATCH.format(
+                self.media_url, expected_md5_hash, actual_md5_hash)
+            raise common.DataCorruption(response, msg)
 
     def consume(self, transport):
         """Consume the resource to be downloaded.
@@ -114,8 +145,8 @@ class Download(_helpers.RequestsMixin, _download.Download):
             ~requests.Response: The HTTP response returned by ``transport``.
 
         Raises:
-            DataCorruption: If the download's checksum doesn't agree with
-                server-computed checksum.
+            ~google.resumable_media.common.DataCorruption: If the download's
+                checksum doesn't agree with server-computed checksum.
             ValueError: If the current :class:`Download` has already
                 finished.
         """
@@ -188,3 +219,70 @@ class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
             retry_strategy=self._retry_strategy)
         self._process_response(result)
         return result
+
+
+def _parse_md5_header(header_value, response):
+    """Parses the MD5 header from an ``X-Goog-Hash`` value.
+
+    .. _header reference: https://cloud.google.com/storage/docs/\
+                          xml-api/reference-headers#xgooghash
+
+    Expects ``header_value`` (if not :data:`None`) to be in one of the three
+    following formats:
+
+    * ``crc32c=n03x6A==``
+    * ``md5=Ojk9c3dhfxgoKVVHYwFbHQ==``
+    * ``crc32c=n03x6A==,md5=Ojk9c3dhfxgoKVVHYwFbHQ==``
+
+    See the `header reference`_ for more information.
+
+    Args:
+        header_value (Optional[str]): The ``X-Goog-Hash`` header from
+            a download response.
+        response (~requests.Response): The HTTP response object.
+
+    Returns:
+        Optional[str]: The expected MD5 hash of the response, if it
+        can be detected from the ``X-Goog-Hash`` header.
+
+    Raises:
+        ~google.resumable_media.common.InvalidResponse: If there are
+            multiple ``md5`` checksums in ``header_value``.
+    """
+    if header_value is None:
+        return None
+
+    matches = []
+    for checksum in header_value.split(u','):
+        name, value = checksum.split(u'=', 1)
+        if name == u'md5':
+            matches.append(value)
+
+    if len(matches) == 0:
+        return None
+    elif len(matches) == 1:
+        return matches[0]
+    else:
+        raise common.InvalidResponse(
+            response,
+            u'X-Goog-Hash header had multiple ``md5`` values.',
+            header_value,
+            matches,
+        )
+
+
+class _DoNothingHash(object):
+    """Do-nothing hash object.
+
+    Intended as a stand-in for ``hashlib.md5`` in cases where it
+    isn't necessary to compute the hash.
+    """
+
+    def update(self, unused_chunk):
+        """Do-nothing ``update`` method.
+
+        Intended to match the interface of ``hashlib.md5``.
+
+        Args:
+            unused_chunk (bytes): A chunk of data.
+        """
