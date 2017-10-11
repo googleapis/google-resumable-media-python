@@ -161,9 +161,6 @@ def test_download_to_stream(add_files, authorized_transport):
 
 def test_corrupt_download(add_files, corrupting_transport):
     for img_file in IMG_FILES:
-        with open(img_file, u'rb') as file_obj:
-            actual_contents = file_obj.read()
-
         blob_name = os.path.basename(img_file)
 
         # Create the actual download object.
@@ -171,8 +168,8 @@ def test_corrupt_download(add_files, corrupting_transport):
         stream = io.BytesIO()
         download = resumable_requests.Download(media_url, stream=stream)
         # Consume the resource.
-        with pytest.raises(common.DataCorruption) as exc_info:
-            response = download.consume(corrupting_transport)
+        with pytest.raises(common.DataCorruption):
+            download.consume(corrupting_transport)
 
 
 @pytest.fixture(scope=u'module')
