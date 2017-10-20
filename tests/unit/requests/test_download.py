@@ -380,19 +380,19 @@ class Test__add_decoder(object):
 
         assert md5_hash is not mock.sentinel.md5_hash
         assert isinstance(md5_hash, download_mod._DoNothingHash)
-        assert isinstance(response_raw._decoder, download_mod.GzipDecoder)
+        assert isinstance(response_raw._decoder, download_mod._GzipDecoder)
         assert response_raw._decoder._md5_hash is mock.sentinel.md5_hash
 
 
-class TestGzipDecoder(object):
+class Test_GzipDecoder(object):
 
     def test_constructor(self):
-        decoder = download_mod.GzipDecoder(mock.sentinel.md5_hash)
+        decoder = download_mod._GzipDecoder(mock.sentinel.md5_hash)
         assert decoder._md5_hash is mock.sentinel.md5_hash
 
     def test_decompress(self):
         md5_hash = mock.Mock(spec=['update'])
-        decoder = download_mod.GzipDecoder(md5_hash)
+        decoder = download_mod._GzipDecoder(md5_hash)
 
         data = b'\x1f\x8b\x08\x08'
         result = decoder.decompress(data)

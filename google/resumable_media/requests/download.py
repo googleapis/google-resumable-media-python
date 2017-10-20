@@ -316,11 +316,11 @@ def _add_decoder(response_raw, md5_hash):
     if encoding != u'gzip':
         return md5_hash
 
-    response_raw._decoder = GzipDecoder(md5_hash)
+    response_raw._decoder = _GzipDecoder(md5_hash)
     return _DoNothingHash()
 
 
-class GzipDecoder(urllib3.response.GzipDecoder):
+class _GzipDecoder(urllib3.response.GzipDecoder):
     """Custom subclass of ``urllib3`` decoder for ``gzip``-ed bytes.
 
     Allows an MD5 hash function to see the compressed bytes before they are
@@ -332,7 +332,7 @@ class GzipDecoder(urllib3.response.GzipDecoder):
     """
 
     def __init__(self, md5_hash):
-        super(GzipDecoder, self).__init__()
+        super(_GzipDecoder, self).__init__()
         self._md5_hash = md5_hash
 
     def decompress(self, data):
@@ -345,4 +345,4 @@ class GzipDecoder(urllib3.response.GzipDecoder):
             bytes: The decompressed bytes from ``data``.
         """
         self._md5_hash.update(data)
-        return super(GzipDecoder, self).decompress(data)
+        return super(_GzipDecoder, self).decompress(data)
