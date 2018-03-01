@@ -22,7 +22,7 @@ _SLEEP_RETRY_ERROR_MSG = (
     u'At most one of `max_cumulative_retry` and `max_retries` '
     u'can be specified.')
 
-UPLOAD_CHUNK_SIZE = 262144  # 256 * 1024
+UPLOAD_CHUNK_SIZE = 104857600  # 100 * 1024 * 1024
 """int: Chunks in a resumable upload must come in multiples of 256 KB."""
 PERMANENT_REDIRECT = 308
 """int: Permanent redirect status code.
