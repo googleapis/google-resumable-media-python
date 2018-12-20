@@ -20,6 +20,8 @@
 - Updating generated static content in docs.
 
 ### Internal / Testing Changes
+- Modify file not found test to look for the correct error message
+- Harden tests so they can run with debug logging statements
 - Adding AppVeyor support.
 - Marking the version in `master` as `.dev1`.
 
