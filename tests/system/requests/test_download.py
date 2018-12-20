@@ -60,17 +60,16 @@ ALL_FILES = (
         u'content_type': PLAIN_TEXT,
         u'checksum': u'KHRs/+ZSrc/FuuR4qz/PZQ==',
         u'slices': (),
+    }, {
+        u'path': os.path.realpath(os.path.join(DATA_DIR, u'gzipped.txt.gz')),
+        u'uncompressed': os.path.realpath(os.path.join(DATA_DIR, u'gzipped.txt')),
+        u'content_type': PLAIN_TEXT,
+        u'checksum': u'KHRs/+ZSrc/FuuR4qz/PZQ==',
+        u'slices': (),
+        u'metadata': {
+            u'contentEncoding': u'gzip',
+        },
     },
-    # {
-    #     u'path': os.path.realpath(os.path.join(DATA_DIR, u'gzipped.txt.gz')),
-    #     u'uncompressed': os.path.realpath(os.path.join(DATA_DIR, u'gzipped.txt')),
-    #     u'content_type': PLAIN_TEXT,
-    #     u'checksum': u'KHRs/+ZSrc/FuuR4qz/PZQ==',
-    #     u'slices': (),
-    #     u'metadata': {
-    #         u'contentEncoding': u'gzip',
-    #     },
-    # },
 )
 ENCRYPTED_ERR = (
     b'The target object is encrypted by a customer-supplied encryption key.')
