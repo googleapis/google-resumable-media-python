@@ -259,7 +259,7 @@ def check_error_response(exc_info, status_code, message):
     error = exc_info.value
     response = error.response
     assert response.status_code == status_code
-    assert response.content == message
+    assert response.content.startswith(message)
     assert len(error.args) == 5
     assert error.args[1] == status_code
     assert error.args[3] == http_client.OK
