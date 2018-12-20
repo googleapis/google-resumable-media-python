@@ -70,6 +70,11 @@ ENCRYPTED_ERR = (
     b'The target object is encrypted by a customer-supplied encryption key.')
 NO_BODY_ERR = (
     u'The content for this response was already consumed')
+NOT_FOUND_ERR = (
+    b'No such object: ' +
+    bytes(os.environ['GOOGLE_RESUMABLE_MEDIA_BUCKET'], 'utf-8') +
+    b'/does-not-exist.txt'
+)
 
 
 class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
@@ -288,8 +293,7 @@ def test_non_existent_file(authorized_transport):
     # Try to consume the resource and fail.
     with pytest.raises(resumable_media.InvalidResponse) as exc_info:
         download.consume(authorized_transport)
-
-    check_error_response(exc_info, http_client.NOT_FOUND, b'Not Found')
+    check_error_response(exc_info, http_client.NOT_FOUND, NOT_FOUND_ERR)
     check_tombstoned(download, authorized_transport)
 
 
