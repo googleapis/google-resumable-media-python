@@ -76,9 +76,10 @@ ENCRYPTED_ERR = (
     b'The target object is encrypted by a customer-supplied encryption key.')
 NO_BODY_ERR = (
     u'The content for this response was already consumed')
+TEST_BUCKET = os.environ['GOOGLE_RESUMABLE_MEDIA_BUCKET']
 NOT_FOUND_ERR = (
     b'No such object: ' +
-    bytes(os.environ['GOOGLE_RESUMABLE_MEDIA_BUCKET'], 'utf-8') +
+    TEST_BUCKET.encode('utf-8') +
     b'/does-not-exist.txt'
 )
 
