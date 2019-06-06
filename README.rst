@@ -3,11 +3,15 @@
 
     Utilities for Google Media Downloads and Resumable Uploads
 
-|circleci|
+|circleci| |compat_check_pypi| |compat_check_github|
 
 See the `docs`_ for examples and usage.
 
 .. _docs: https://googleapis.github.io/google-resumable-media-python/latest/
+.. |compat_check_pypi| image:: https://python-compatibility-tools.appspot.com/one_badge_image?package=google-resumable-media
+   :target: https://python-compatibility-tools.appspot.com/one_badge_target?package=google-resumable-media
+.. |compat_check_github| image:: https://python-compatibility-tools.appspot.com/one_badge_image?package=git%2Bgit%3A//github.com/GoogleCloudPlatform/google-resumable-media-python.git
+   :target: https://python-compatibility-tools.appspot.com/one_badge_target?package=git%2Bgit%3A//github.com/GoogleCloudPlatform/google-resumable-media-python.git
 
 Supported Python Versions
 -------------------------
