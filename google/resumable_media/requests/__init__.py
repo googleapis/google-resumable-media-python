@@ -665,7 +665,15 @@ try:
     pkg_resources.require('requests >= 2.18.0')
 except pkg_resources.ResolutionError as caught_exc:  # pragma: NO COVER
     import six
+    message = ""
+    if isinstance(caught_exc, pkg_resources.VersionConflict):
+        message = "There is a version conflict in request module '
+        'required by ``google.resumable_media.requests`` subpackage.\n'
+    elif isinstance(caught_exc, pkg_resources.DistributionNotFound):
+        message = '``requests`` module not found.\n'
+        
     new_exc = ImportError(
+        message + 
         '``requests >= 2.18.0`` is required by the '
         '``google.resumable_media.requests`` subpackage.\n'
         'It can be installed via\n'
