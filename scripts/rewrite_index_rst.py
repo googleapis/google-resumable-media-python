@@ -42,10 +42,10 @@ _EXPECTED_SUBMODULE_LINES = (
 _EXPECTED_AUTOMODULE_LINES = (
     '',
     '.. automodule:: google.resumable_media',
-    '    :members:',
-    '    :inherited-members:',
-    '    :undoc-members:',
-    '    :show-inheritance:',
+    '   :members:',
+    '   :inherited-members:',
+    '   :undoc-members:',
+    '   :show-inheritance:',
     '',
 )
 _CURR_DIR = os.path.dirname(__file__)
@@ -102,7 +102,7 @@ def main():
                     if set(line) == set('=')]
     if title_index != 1:
         raise ValueError('Unexpected title line', title_index)
-    if lines[0] != 'google\.resumable\_media package':
+    if lines[0] != 'google.resumable\_media package':
         raise ValueError('Unexpected title content', lines[0])
 
     title = '``google.resumable_media``'
