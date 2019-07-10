@@ -415,11 +415,11 @@ class Test_GzipDecoder(object):
 
 class Test_DeflateDecoder(object):
 
-     def test_constructor(self):
+    def test_constructor(self):
         decoder = download_mod._DeflateDecoder(mock.sentinel.md5_hash)
         assert decoder._md5_hash is mock.sentinel.md5_hash
 
-     def test_decompress(self):
+    def test_decompress(self):
         data = b'\xc5\xee\xf7\xff\x00'
 
         md5_hash = mock.Mock(spec=['update'])
