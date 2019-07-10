@@ -51,7 +51,7 @@ def unit_tests(session):
     )
 
 
-@nox.session(python='3.7')
+@nox.session(python='3.6')
 def docs(session):
     """Build the docs."""
 
