@@ -383,6 +383,18 @@ class Test__add_decoder(object):
         assert isinstance(response_raw._decoder, download_mod._GzipDecoder)
         assert response_raw._decoder._md5_hash is mock.sentinel.md5_hash
 
+    def test_deflated(self):
+        headers = {u'content-encoding': u'deflate'}
+        response_raw = mock.Mock(
+            headers=headers, spec=[u'headers', u'_decoder'])
+        md5_hash = download_mod._add_decoder(
+            response_raw, mock.sentinel.md5_hash)
+
+        assert md5_hash is not mock.sentinel.md5_hash
+        assert isinstance(md5_hash, download_mod._DoNothingHash)
+        assert isinstance(response_raw._decoder, download_mod._DeflateDecoder)
+        assert response_raw._decoder._md5_hash is mock.sentinel.md5_hash
+
 
 class Test_GzipDecoder(object):
 
@@ -399,6 +411,23 @@ class Test_GzipDecoder(object):
 
         assert result == b''
         md5_hash.update.assert_called_once_with(data)
+
+
+class Test_DeflateDecoder(object):
+
+     def test_constructor(self):
+        decoder = download_mod._DeflateDecoder(mock.sentinel.md5_hash)
+        assert decoder._md5_hash is mock.sentinel.md5_hash
+
+     def test_decompress(self):
+        data = b'\xc5\xee\xf7\xff\x00'
+
+        md5_hash = mock.Mock(spec=['update'])
+        decoder = download_mod._DeflateDecoder(md5_hash)
+        result = decoder.decompress(data)
+
+        assert result == b''
+        md5_hash.update.assert_called_with(data)
 
 
 def _mock_response(status_code=http_client.OK, chunks=(), headers=None):

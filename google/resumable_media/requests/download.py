@@ -299,7 +299,7 @@ def _add_decoder(response_raw, md5_hash):
     This is so that we can intercept the compressed bytes before they are
     decoded.
 
-    Only patches if the content encoding is ``gzip``.
+    Only patches if the content encoding is ``gzip`` and ``deflate``.
 
     Args:
         response_raw (urllib3.response.HTTPResponse): The raw response for
@@ -313,10 +313,13 @@ def _add_decoder(response_raw, md5_hash):
         since the caller will no longer need to hash to decoded bytes.
     """
     encoding = response_raw.headers.get(u'content-encoding', u'').lower()
-    if encoding != u'gzip':
+    if encoding == u'gzip':
+        response_raw._decoder = _GzipDecoder(md5_hash)
+    elif encoding == u'deflate':
+        response_raw._decoder = _DeflateDecoder(md5_hash)
+    else:
         return md5_hash
 
-    response_raw._decoder = _GzipDecoder(md5_hash)
     return _DoNothingHash()
 
 
@@ -346,3 +349,31 @@ class _GzipDecoder(urllib3.response.GzipDecoder):
         """
         self._md5_hash.update(data)
         return super(_GzipDecoder, self).decompress(data)
+
+
+class _DeflateDecoder(urllib3.response.DeflateDecoder):
+    """Custom subclass of ``urllib3`` decoder for ``deflate``-ed bytes.
+
+    Allows an MD5 hash function to see the compressed bytes before they are
+    decoded. This way the hash of the compressed value can be computed.
+
+    Args:
+        md5_hash (Union[_DoNothingHash, hashlib.md5]): A hash function which
+            will get updated when it encounters compressed bytes.
+    """
+
+    def __init__(self, md5_hash):
+        super(_DeflateDecoder, self).__init__()
+        self._md5_hash = md5_hash
+
+    def decompress(self, data):
+        """Decompress the bytes.
+
+        Args:
+            data (bytes): The compressed bytes to be decompressed.
+
+        Returns:
+            bytes: The decompressed bytes from ``data``.
+        """
+        self._md5_hash.update(data)
+        return super(_DeflateDecoder, self).decompress(data)
