@@ -98,6 +98,33 @@ class TestDownload(object):
             chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE,
             decode_unicode=False)
 
+    def test__write_to_stream_with_raw_response(self):
+        stream = io.BytesIO()
+        download = download_mod.Download(EXAMPLE_URL, stream=stream)
+
+        chunk1 = b'\x1f\x8b\x08\x08?"\xeaY\x02\xfftmpBazYVY\x00KLJNIMK\xcf\xc8\xcc\xca\xce\xc9\xcd\xcb/(,*.)-+\xaf\xa8'
+        chunk2 = b'\xac20426153\xb7\xb0\xe4J\x1cU4\xaahT\xd1\xa8\xa2QE\xa3\x8aF\x15\x8d*'
+        chunk3 = b'\x1aU\x04S\x04\x00\x04P\xf8\xea@\t\x00\x00'
+        header_value = u'crc32c=qmNCyg==,md5=KHRs/+ZSrc/FuuR4qz/PZQ=='
+        headers = {download_mod._HASH_HEADER: header_value, 'content-encoding': 'gzip'}
+
+        response = _mock_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
+
+        value = iter([chunk1, chunk2, chunk3])
+        mock_patch = mock.patch(u'google.resumable_media.requests.download.Download._read_chunk_raw_response',
+                                return_value=value)
+        with mock_patch as mock_method:
+            ret_val = download._write_to_stream(response)
+
+            assert ret_val is None
+
+        assert stream.getvalue() == chunk1 + chunk2 + chunk3
+
+        # Check mocks.
+        response.__enter__.assert_called_once_with()
+        response.__exit__.assert_called_once_with(None, None, None)
+        mock_method.assert_called_once_with(response, chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE)
+
     def test__write_to_stream_with_hash_check_fail(self):
         stream = io.BytesIO()
         download = download_mod.Download(EXAMPLE_URL, stream=stream)
@@ -130,6 +157,26 @@ class TestDownload(object):
         response.iter_content.assert_called_once_with(
             chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE,
             decode_unicode=False)
+
+    def test___read_chunk_raw_response(self):
+        import types
+        stream = io.BytesIO()
+        download = download_mod.Download(EXAMPLE_URL, stream=stream)
+        chunk = b'\x1aU\x04S\x04\x00\x04P\xf8\xea@\t\x00\x00'
+        response = _mock_raw_response(chunk=chunk)
+        body_iter = download._read_chunk_raw_response(response, chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE)
+        for i in body_iter:
+            assert i == chunk
+            break
+        assert isinstance(body_iter, types.GeneratorType)
+
+    def test___read_chunk_raw_none_response(self):
+        stream = io.BytesIO()
+        download = download_mod.Download(EXAMPLE_URL, stream=stream)
+        response = _mock_raw_response()
+        body_iter = download._read_chunk_raw_response(response, chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE)
+        for i in body_iter:
+            assert i is None
 
     def _consume_helper(
             self, stream=None, end=65536, headers=None, chunks=(),
@@ -418,12 +465,14 @@ def _mock_response(status_code=http_client.OK, chunks=(), headers=None):
                 u'status_code',
                 u'headers',
                 u'raw',
+                u'request',
             ],
         )
         # i.e. context manager returns ``self``.
         response.__enter__.return_value = response
         response.__exit__.return_value = None
         response.iter_content.return_value = iter(chunks)
+        response.request.headers = {'accept-encoding': 'gzip'}
         return response
     else:
         return mock.Mock(
@@ -434,3 +483,30 @@ def _mock_response(status_code=http_client.OK, chunks=(), headers=None):
                 u'headers',
             ],
         )
+
+
+def read_row(chunk):
+    read_chunk = mock.Mock(return_value=chunk)
+    return mock.Mock(read=read_chunk)
+
+
+def _mock_raw_response(status_code=http_client.OK, chunk=b''):
+    mock_raw = read_row(chunk)
+    response = mock.MagicMock(
+        status_code=int(status_code),
+        raw=mock_raw,
+        spec=[
+            u'__enter__',
+            u'__exit__',
+            u'iter_content',
+            u'status_code',
+            u'headers',
+            u'raw',
+            u'request',
+        ],
+    )
+    # i.e. context manager returns ``self``.
+    response.__enter__.return_value = response
+    response.__exit__.return_value = None
+    response.request.headers = {'accept-encoding': 'gzip'}
+    return response

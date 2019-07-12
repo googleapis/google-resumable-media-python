@@ -92,7 +92,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
             _LOGGER.info(msg)
 
         return expected_md5_hash
-
+            
     def _write_to_stream(self, response):
         """Write response body to a write-able stream.
 
@@ -117,12 +117,23 @@ class Download(_helpers.RequestsMixin, _download.Download):
         with response:
             # NOTE: This might "donate" ``md5_hash`` to the decoder and replace
             #       it with a ``_DoNothingHash``.
-            local_hash = _add_decoder(response.raw, md5_hash)
-            body_iter = response.iter_content(
-                chunk_size=_SINGLE_GET_CHUNK_SIZE, decode_unicode=False)
-            for chunk in body_iter:
-                self._stream.write(chunk)
-                local_hash.update(chunk)
+            encoding = response.headers.get(u'content-encoding', u'').lower()
+            accept_encoding = response.request.headers.get('accept-encoding', u'').lower()
+            if encoding == 'gzip' and accept_encoding == 'gzip':
+                local_hash = md5_hash
+                response.raw.decode_content = False
+                body_iter = self._read_chunk_raw_response(response, chunk_size=_SINGLE_GET_CHUNK_SIZE)
+                for chunk in body_iter:
+                    self._stream.write(chunk)
+                    local_hash.update(chunk)
+
+            else:
+                local_hash = _add_decoder(response.raw, md5_hash)
+                body_iter = response.iter_content(
+                    chunk_size=_SINGLE_GET_CHUNK_SIZE, decode_unicode=False)
+                for chunk in body_iter:
+                    self._stream.write(chunk)
+                    local_hash.update(chunk)
 
         if expected_md5_hash is None:
             return
@@ -174,6 +185,26 @@ class Download(_helpers.RequestsMixin, _download.Download):
             self._write_to_stream(result)
 
         return result
+
+    @staticmethod
+    def _read_chunk_raw_response(response, chunk_size=1):
+        """Iterates over the response data.This avoids reading the content at once into memory for
+        large responses.The chunk size is the number of bytes it should
+        read into memory.
+
+        Args:
+            response (~requests.Response): The HTTP response object.
+            chunk_size (int): The number of bytes to be retrieved.
+
+        Returns:
+            A sequence of data describing response data
+        """
+
+        while True:
+            chunk = response.raw.read(chunk_size)
+            if not chunk:
+                break
+            yield chunk
 
 
 class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
