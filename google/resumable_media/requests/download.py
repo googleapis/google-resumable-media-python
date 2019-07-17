@@ -92,7 +92,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
             _LOGGER.info(msg)
 
         return expected_md5_hash
-            
+
     def _write_to_stream(self, response):
         """Write response body to a write-able stream.
 
@@ -118,11 +118,13 @@ class Download(_helpers.RequestsMixin, _download.Download):
             # NOTE: This might "donate" ``md5_hash`` to the decoder and replace
             #       it with a ``_DoNothingHash``.
             encoding = response.headers.get(u'content-encoding', u'').lower()
-            accept_encoding = response.request.headers.get('accept-encoding', u'').lower()
+            accept_encoding = response.request.headers.get('accept-encoding',
+                                                           u'').lower()
             if encoding == 'gzip' and accept_encoding == 'gzip':
                 local_hash = md5_hash
                 response.raw.decode_content = False
-                body_iter = self._read_chunk_raw_response(response, chunk_size=_SINGLE_GET_CHUNK_SIZE)
+                body_iter = self._read_chunk_raw_response(
+                    response, chunk_size=_SINGLE_GET_CHUNK_SIZE)
                 for chunk in body_iter:
                     self._stream.write(chunk)
                     local_hash.update(chunk)
@@ -188,7 +190,8 @@ class Download(_helpers.RequestsMixin, _download.Download):
 
     @staticmethod
     def _read_chunk_raw_response(response, chunk_size=1):
-        """Iterates over the response data.This avoids reading the content at once into memory for
+        """Iterates over the response data.
+        This avoids reading the content at once into memory for
         large responses.The chunk size is the number of bytes it should
         read into memory.
 

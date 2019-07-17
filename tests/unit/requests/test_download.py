@@ -102,16 +102,21 @@ class TestDownload(object):
         stream = io.BytesIO()
         download = download_mod.Download(EXAMPLE_URL, stream=stream)
 
-        chunk1 = b'\x1f\x8b\x08\x08?"\xeaY\x02\xfftmpBazYVY\x00KLJNIMK\xcf\xc8\xcc\xca\xce\xc9\xcd\xcb/(,*.)-+\xaf\xa8'
-        chunk2 = b'\xac20426153\xb7\xb0\xe4J\x1cU4\xaahT\xd1\xa8\xa2QE\xa3\x8aF\x15\x8d*'
+        chunk1 = b'\x1f\x8b\x08\x08?"\xeaY\x02\xfftmpBazYVY\x00KLJNIMK\xcf' \
+                 b'\xc8\xcc\xca\xce\xc9\xcd\xcb/(,*.)-+\xaf\xa8'
+        chunk2 = b'\xac20426153\xb7\xb0\xe4J\x1cU4\xaahT\xd1\xa8\xa2QE\xa3' \
+                 b'\x8aF\x15\x8d*'
         chunk3 = b'\x1aU\x04S\x04\x00\x04P\xf8\xea@\t\x00\x00'
         header_value = u'crc32c=qmNCyg==,md5=KHRs/+ZSrc/FuuR4qz/PZQ=='
-        headers = {download_mod._HASH_HEADER: header_value, 'content-encoding': 'gzip'}
+        headers = {download_mod._HASH_HEADER: header_value,
+                   'content-encoding': 'gzip'}
 
-        response = _mock_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
+        response = _mock_response(chunks=[chunk1, chunk2, chunk3],
+                                  headers=headers)
 
         value = iter([chunk1, chunk2, chunk3])
-        mock_patch = mock.patch(u'google.resumable_media.requests.download.Download._read_chunk_raw_response',
+        mock_patch = mock.patch(u'google.resumable_media.requests.download.'
+                                u'Download._read_chunk_raw_response',
                                 return_value=value)
         with mock_patch as mock_method:
             ret_val = download._write_to_stream(response)
@@ -123,7 +128,8 @@ class TestDownload(object):
         # Check mocks.
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
-        mock_method.assert_called_once_with(response, chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE)
+        mock_method.assert_called_once_with(
+            response, chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE)
 
     def test__write_to_stream_with_hash_check_fail(self):
         stream = io.BytesIO()
@@ -158,25 +164,27 @@ class TestDownload(object):
             chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE,
             decode_unicode=False)
 
-    def test___read_chunk_raw_response(self):
+    def test__read_chunk_raw_response(self):
         import types
         stream = io.BytesIO()
         download = download_mod.Download(EXAMPLE_URL, stream=stream)
         chunk = b'\x1aU\x04S\x04\x00\x04P\xf8\xea@\t\x00\x00'
         response = _mock_raw_response(chunk=chunk)
-        body_iter = download._read_chunk_raw_response(response, chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE)
-        for i in body_iter:
-            assert i == chunk
-            break
+        body_iter = download._read_chunk_raw_response(
+            response, chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE)
         assert isinstance(body_iter, types.GeneratorType)
+        i = next(body_iter)
+        assert i == chunk
 
-    def test___read_chunk_raw_none_response(self):
+    def test__read_chunk_raw_none_response(self):
         stream = io.BytesIO()
         download = download_mod.Download(EXAMPLE_URL, stream=stream)
         response = _mock_raw_response()
-        body_iter = download._read_chunk_raw_response(response, chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE)
-        for i in body_iter:
-            assert i is None
+        body_iter = download._read_chunk_raw_response(
+            response, chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE)
+
+        i = list(body_iter)
+        assert not []
 
     def _consume_helper(
             self, stream=None, end=65536, headers=None, chunks=(),
