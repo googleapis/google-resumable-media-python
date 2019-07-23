@@ -128,7 +128,6 @@ class Download(_helpers.RequestsMixin, _download.Download):
                 for chunk in body_iter:
                     self._stream.write(chunk)
                     local_hash.update(chunk)
-
             else:
                 local_hash = _add_decoder(response.raw, md5_hash)
                 body_iter = response.iter_content(
@@ -189,7 +188,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
         return result
 
     @staticmethod
-    def _read_chunk_raw_response(response, chunk_size=1):
+    def _read_chunk_raw_response(response, chunk_size):
         """Iterates over the response data.
         This avoids reading the content at once into memory for
         large responses.The chunk size is the number of bytes it should

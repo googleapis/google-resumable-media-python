@@ -118,14 +118,13 @@ class TestDownload(object):
         mock_patch = mock.patch(u'google.resumable_media.requests.download.'
                                 u'Download._read_chunk_raw_response',
                                 return_value=value)
+
         with mock_patch as mock_method:
             ret_val = download._write_to_stream(response)
-
             assert ret_val is None
 
         assert stream.getvalue() == chunk1 + chunk2 + chunk3
 
-        # Check mocks.
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         mock_method.assert_called_once_with(
@@ -184,7 +183,7 @@ class TestDownload(object):
             response, chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE)
 
         i = list(body_iter)
-        assert not []
+        assert len(i) == 0
 
     def _consume_helper(
             self, stream=None, end=65536, headers=None, chunks=(),
