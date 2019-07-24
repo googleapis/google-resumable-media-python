@@ -76,10 +76,9 @@ ENCRYPTED_ERR = (
     b'The target object is encrypted by a customer-supplied encryption key.')
 NO_BODY_ERR = (
     u'The content for this response was already consumed')
-TEST_BUCKET = os.environ['GOOGLE_RESUMABLE_MEDIA_BUCKET']
 NOT_FOUND_ERR = (
     b'No such object: ' +
-    TEST_BUCKET.encode('utf-8') +
+    utils.BUCKET_NAME.encode('utf-8') +
     b'/does-not-exist.txt'
 )
 
@@ -113,12 +112,6 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
         return response
 
 
-@pytest.fixture(scope=u'module')
-def authorized_transport():
-    credentials, _ = google.auth.default(scopes=(utils.GCS_RW_SCOPE,))
-    yield tr_requests.AuthorizedSession(credentials)
-
-
 # Transport that returns corrupt data, so we can exercise checksum handling.
 @pytest.fixture(scope=u'module')
 def corrupting_transport():
@@ -149,7 +142,7 @@ def _get_blob_name(info):
 
 
 @pytest.fixture(scope=u'module')
-def add_files(authorized_transport):
+def add_files(authorized_transport, bucket):
     blob_names = []
     for info in ALL_FILES:
         to_upload = _get_contents_for_upload(info)
@@ -247,7 +240,7 @@ def test_corrupt_download(add_files, corrupting_transport):
 
 
 @pytest.fixture(scope=u'module')
-def secret_file(authorized_transport):
+def secret_file(authorized_transport, bucket):
     blob_name = u'super-seekrit.txt'
     data = b'Please do not tell anyone my encrypted seekrit.'
 
@@ -292,7 +285,7 @@ def test_extra_headers(authorized_transport, secret_file):
     check_tombstoned(download_wo, authorized_transport)
 
 
-def test_non_existent_file(authorized_transport):
+def test_non_existent_file(authorized_transport, bucket):
     blob_name = u'does-not-exist.txt'
     media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
     download = resumable_requests.Download(media_url)
@@ -305,7 +298,7 @@ def test_non_existent_file(authorized_transport):
 
 
 @pytest.fixture(scope=u'module')
-def simple_file(authorized_transport):
+def simple_file(authorized_transport, bucket):
     blob_name = u'basic-file.txt'
     upload_url = utils.SIMPLE_UPLOAD_TEMPLATE.format(blob_name=blob_name)
     upload = resumable_requests.SimpleUpload(upload_url)
