@@ -220,6 +220,7 @@ def test_download_to_stream(add_files, authorized_transport):
         check_tombstoned(download, authorized_transport)
 
 
+@pytest.mark.xfail  # See: #76
 def test_corrupt_download(add_files, corrupting_transport):
     for info in ALL_FILES:
         blob_name = _get_blob_name(info)
@@ -393,6 +394,7 @@ def consume_chunks(download, authorized_transport,
     return num_responses, response
 
 
+@pytest.mark.xfail  # See issue #56
 def test_chunked_download(add_files, authorized_transport):
     for info in ALL_FILES:
         actual_contents = _get_contents(info)
