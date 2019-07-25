@@ -21,10 +21,11 @@ from six.moves import http_client
 from google.resumable_media import common
 import google.resumable_media.requests.download as download_mod
 
-
 EXAMPLE_URL = (
     u'https://www.googleapis.com/download/storage/v1/b/'
     u'{BUCKET}/o/{OBJECT}?alt=media')
+EXT_DATA1 = 'ext_data1'
+EXT_DATA2 = 'ext_data2'
 
 
 class TestDownload(object):
@@ -131,14 +132,13 @@ class TestDownload(object):
             chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE,
             decode_unicode=False)
 
-    def _consume_helper(
-            self, stream=None, end=65536, headers=None, chunks=(),
-            response_headers=None):
+    def _consume_helper(self, stream=None, end=65536, headers=None, chunks=(),
+                        response_headers=None, **kwargs):
         download = download_mod.Download(
             EXAMPLE_URL, stream=stream, end=end, headers=headers)
         transport = mock.Mock(spec=[u'request'])
         transport.request.return_value = _mock_response(
-            chunks=chunks, headers=response_headers)
+            chunks=chunks, headers=response_headers, **kwargs)
 
         assert not download.finished
         ret_val = download.consume(transport)
@@ -159,6 +159,13 @@ class TestDownload(object):
 
     def test_consume(self):
         self._consume_helper()
+
+    def test_consume_with_ext_kwargs(self):
+        transport = self._consume_helper(ext_data1=EXT_DATA1,
+                                         ext_data2=EXT_DATA2)
+        response = transport.request.return_value
+        assert response.ext_data1 == EXT_DATA1
+        assert response.ext_data2 == EXT_DATA2
 
     def test_consume_with_stream(self):
         stream = io.BytesIO()
@@ -252,7 +259,7 @@ class TestChunkedDownload(object):
         }
 
     def _mock_response(self, start_byte, end_byte, total_bytes,
-                       content=None, status_code=None):
+                       content=None, status_code=None, **kwargs):
         response_headers = self._response_headers(
             start_byte, end_byte, total_bytes)
         return mock.Mock(
@@ -260,10 +267,11 @@ class TestChunkedDownload(object):
             headers=response_headers,
             status_code=status_code,
             spec=[
-                u'content',
-                u'headers',
-                u'status_code',
-            ],
+                     u'content',
+                     u'headers',
+                     u'status_code',
+                 ] + list(kwargs.keys()),
+            **kwargs
         )
 
     def test_consume_next_chunk_already_finished(self):
@@ -272,12 +280,13 @@ class TestChunkedDownload(object):
         with pytest.raises(ValueError):
             download.consume_next_chunk(None)
 
-    def _mock_transport(self, start, chunk_size, total_bytes, content=b''):
+    def _mock_transport(self, start, chunk_size, total_bytes, content=b'',
+                        **kwargs):
         transport = mock.Mock(spec=[u'request'])
         assert len(content) == chunk_size
         transport.request.return_value = self._mock_response(
             start, start + chunk_size - 1, total_bytes,
-            content=content, status_code=int(http_client.OK))
+            content=content, status_code=int(http_client.OK), **kwargs)
 
         return transport
 
@@ -309,9 +318,24 @@ class TestChunkedDownload(object):
         assert download.bytes_downloaded == chunk_size
         assert download.total_bytes == total_bytes
 
+    def test_consume_next_chunk_ext_kwargs(self):
+        start = 1536
+        stream = io.BytesIO()
+        data = b'Just one chunk.'
+        chunk_size = len(data)
+        download = download_mod.ChunkedDownload(
+            EXAMPLE_URL, chunk_size, stream, start=start)
+        total_bytes = 16384
+        transport = self._mock_transport(start, chunk_size, total_bytes,
+                                         content=data, ext_data1=EXT_DATA1,
+                                         ext_data2=EXT_DATA2)
+        # Actually consume the chunk and check the output.
+        ret_val = download.consume_next_chunk(transport)
+        assert ret_val.ext_data1 == EXT_DATA1
+        assert ret_val.ext_data2 == EXT_DATA2
+
 
 class Test__parse_md5_header(object):
-
     CRC32C_CHECKSUM = u'3q2+7w=='
     MD5_CHECKSUM = u'c2l4dGVlbmJ5dGVzbG9uZw=='
 
@@ -401,7 +425,8 @@ class Test_GzipDecoder(object):
         md5_hash.update.assert_called_once_with(data)
 
 
-def _mock_response(status_code=http_client.OK, chunks=(), headers=None):
+def _mock_response(status_code=http_client.OK, chunks=(), headers=None,
+                   **kwargs):
     if headers is None:
         headers = {}
 
@@ -412,13 +437,14 @@ def _mock_response(status_code=http_client.OK, chunks=(), headers=None):
             status_code=int(status_code),
             raw=mock_raw,
             spec=[
-                u'__enter__',
-                u'__exit__',
-                u'iter_content',
-                u'status_code',
-                u'headers',
-                u'raw',
-            ],
+                     u'__enter__',
+                     u'__exit__',
+                     u'iter_content',
+                     u'status_code',
+                     u'headers',
+                     u'raw',
+                 ] + list(kwargs.keys()),
+            **kwargs
         )
         # i.e. context manager returns ``self``.
         response.__enter__.return_value = response
@@ -430,7 +456,8 @@ def _mock_response(status_code=http_client.OK, chunks=(), headers=None):
             headers=headers,
             status_code=int(status_code),
             spec=[
-                u'status_code',
-                u'headers',
-            ],
+                     u'status_code',
+                     u'headers',
+                 ] + list(kwargs.keys()),
+            **kwargs
         )
