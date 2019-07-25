@@ -18,7 +18,6 @@ Also supported here are simple (media) uploads and multipart
 uploads that contain both metadata and a small file as payload.
 """
 
-
 from google.resumable_media import _upload
 from google.resumable_media.requests import _helpers
 
@@ -38,7 +37,7 @@ class SimpleUpload(_helpers.RequestsMixin, _upload.SimpleUpload):
         upload_url (str): The URL where the content will be uploaded.
     """
 
-    def transmit(self, transport, data, content_type):
+    def transmit(self, transport, data, content_type, **transport_kwargs):
         """Transmit the resource to be uploaded.
 
         Args:
@@ -55,7 +54,7 @@ class SimpleUpload(_helpers.RequestsMixin, _upload.SimpleUpload):
             data, content_type)
         result = _helpers.http_request(
             transport, method, url, data=payload, headers=headers,
-            retry_strategy=self._retry_strategy)
+            retry_strategy=self._retry_strategy, **transport_kwargs)
         self._process_response(result)
         return result
 
@@ -75,7 +74,8 @@ class MultipartUpload(_helpers.RequestsMixin, _upload.MultipartUpload):
         upload_url (str): The URL where the content will be uploaded.
     """
 
-    def transmit(self, transport, data, metadata, content_type):
+    def transmit(self, transport, data, metadata, content_type,
+                 **transport_kwargs):
         """Transmit the resource to be uploaded.
 
         Args:
@@ -94,7 +94,7 @@ class MultipartUpload(_helpers.RequestsMixin, _upload.MultipartUpload):
             data, metadata, content_type)
         result = _helpers.http_request(
             transport, method, url, data=payload, headers=headers,
-            retry_strategy=self._retry_strategy)
+            retry_strategy=self._retry_strategy, **transport_kwargs)
         self._process_response(result)
         return result
 
@@ -283,7 +283,7 @@ class ResumableUpload(_helpers.RequestsMixin, _upload.ResumableUpload):
     """
 
     def initiate(self, transport, stream, metadata, content_type,
-                 total_bytes=None, stream_final=True):
+                 total_bytes=None, stream_final=True, **transport_kwargs):
         """Initiate a resumable upload.
 
         By default, this method assumes your ``stream`` is in a "final"
@@ -323,11 +323,11 @@ class ResumableUpload(_helpers.RequestsMixin, _upload.ResumableUpload):
             total_bytes=total_bytes, stream_final=stream_final)
         result = _helpers.http_request(
             transport, method, url, data=payload, headers=headers,
-            retry_strategy=self._retry_strategy)
+            retry_strategy=self._retry_strategy, **transport_kwargs)
         self._process_initiate_response(result)
         return result
 
-    def transmit_next_chunk(self, transport):
+    def transmit_next_chunk(self, transport, **transport_kwargs):
         """Transmit the next chunk of the resource to be uploaded.
 
         If the current upload was initiated with ``stream_final=False``,
@@ -392,11 +392,11 @@ class ResumableUpload(_helpers.RequestsMixin, _upload.ResumableUpload):
         method, url, payload, headers = self._prepare_request()
         result = _helpers.http_request(
             transport, method, url, data=payload, headers=headers,
-            retry_strategy=self._retry_strategy)
+            retry_strategy=self._retry_strategy, **transport_kwargs)
         self._process_response(result, len(payload))
         return result
 
-    def recover(self, transport):
+    def recover(self, transport, **transport_kwargs):
         """Recover from a failure.
 
         This method should be used when a :class:`ResumableUpload` is in an
@@ -417,6 +417,6 @@ class ResumableUpload(_helpers.RequestsMixin, _upload.ResumableUpload):
         # NOTE: We assume "payload is None" but pass it along anyway.
         result = _helpers.http_request(
             transport, method, url, data=payload, headers=headers,
-            retry_strategy=self._retry_strategy)
+            retry_strategy=self._retry_strategy, **transport_kwargs)
         self._process_recover_response(result)
         return result

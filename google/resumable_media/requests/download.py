@@ -136,7 +136,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
                 self.media_url, expected_md5_hash, actual_md5_hash)
             raise common.DataCorruption(response, msg)
 
-    def consume(self, transport):
+    def consume(self, transport, **transport_kwargs):
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded
@@ -162,6 +162,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
             u'headers': headers,
             u'retry_strategy': self._retry_strategy,
         }
+        request_kwargs.update(transport_kwargs)
         if self._stream is not None:
             request_kwargs[u'stream'] = True
 
@@ -204,7 +205,7 @@ class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
         ValueError: If ``start`` is negative.
     """
 
-    def consume_next_chunk(self, transport):
+    def consume_next_chunk(self, transport, **transport_kwargs):
         """Consume the next chunk of the resource to be downloaded.
 
         Args:
@@ -221,7 +222,7 @@ class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
         # NOTE: We assume "payload is None" but pass it along anyway.
         result = _helpers.http_request(
             transport, method, url, data=payload, headers=headers,
-            retry_strategy=self._retry_strategy)
+            retry_strategy=self._retry_strategy, **transport_kwargs)
         self._process_response(result)
         return result
 
