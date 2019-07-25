@@ -13,8 +13,8 @@
 # limitations under the License.
 
 # Library dependencies.
-google-auth >= 0.10.0
-requests >= 2.18.0, < 3.0.0dev
+google-auth==1.6.3
+requests==2.22.0
 
 # Testing dependencies.
 mock
