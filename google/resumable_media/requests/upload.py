@@ -18,6 +18,7 @@ Also supported here are simple (media) uploads and multipart
 uploads that contain both metadata and a small file as payload.
 """
 
+
 from google.resumable_media import _upload
 from google.resumable_media.requests import _helpers
 

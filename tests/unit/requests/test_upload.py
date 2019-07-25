@@ -35,6 +35,8 @@ ONE_MB = 1024 * 1024
 BASIC_CONTENT = u'text/plain'
 JSON_TYPE = u'application/json; charset=UTF-8'
 JSON_TYPE_LINE = b'content-type: application/json; charset=UTF-8\r\n'
+EXT_DATA1 = 'ext_data1'
+EXT_DATA2 = 'ext_data2'
 
 
 class TestSimpleUpload(object):
@@ -53,6 +55,18 @@ class TestSimpleUpload(object):
         transport.request.assert_called_once_with(
             u'POST', SIMPLE_URL, data=data, headers=upload_headers)
         assert upload.finished
+
+    def test_transmit_with_ext_kwargs(self):
+        data = b'I have got a lovely bunch of coconuts.'
+        content_type = BASIC_CONTENT
+        upload = upload_mod.SimpleUpload(SIMPLE_URL)
+        transport = mock.Mock(spec=[u'request'])
+        transport.request.return_value = _make_response(ext_data1=EXT_DATA1,
+                                                        ext_data2=EXT_DATA2)
+        ret_val = upload.transmit(transport, data, content_type,
+                                  ext_data1=EXT_DATA1, ext_data2=EXT_DATA2)
+        assert ret_val.ext_data1 == EXT_DATA1
+        assert ret_val.ext_data2 == EXT_DATA2
 
 
 class TestMultipartUpload(object):
@@ -87,6 +101,19 @@ class TestMultipartUpload(object):
             headers=upload_headers)
         assert upload.finished
         mock_get_boundary.assert_called_once_with()
+
+    def test_transmit_with_ext_kwargs(self):
+        data = b'Mock data here and there.'
+        content_type = BASIC_CONTENT
+        metadata = {u'Hey': u'You', u'Guys': u'90909'}
+        upload = upload_mod.MultipartUpload(MULTIPART_URL)
+        transport = mock.Mock(spec=[u'request'])
+        transport.request.return_value = _make_response(ext_data1=EXT_DATA1,
+                                                        ext_data2=EXT_DATA2)
+        ret_val = upload.transmit(transport, data, metadata, content_type,
+                                  ext_data1=EXT_DATA1, ext_data2=EXT_DATA2)
+        assert ret_val.ext_data1 == EXT_DATA1
+        assert ret_val.ext_data2 == EXT_DATA2
 
 
 class TestResumableUpload(object):
@@ -123,6 +150,26 @@ class TestResumableUpload(object):
         transport.request.assert_called_once_with(
             u'POST', RESUMABLE_URL, data=json_bytes, headers=expected_headers)
 
+    def test_initiate_with_ext_kwargs(self):
+        upload = upload_mod.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        data = b'Knock knock who is there'
+        stream = io.BytesIO(data)
+        metadata = {u'name': u'got-jokes.txt'}
+        transport = mock.Mock(spec=[u'request'])
+        location = u'http://test.invalid?upload_id=AACODBBBxuw9u3AA',
+        response_headers = {u'location': location}
+        post_response = _make_response(headers=response_headers,
+                                       ext_data1=EXT_DATA1,
+                                       ext_data2=EXT_DATA2)
+        transport.request.return_value = post_response
+        total_bytes = 100
+        assert total_bytes > len(data)
+        response = upload.initiate(
+            transport, stream, metadata, BASIC_CONTENT,
+            total_bytes=total_bytes, stream_final=False)
+        assert response.ext_data1 == EXT_DATA1
+        assert response.ext_data2 == EXT_DATA2
+
     @staticmethod
     def _upload_in_flight(data, headers=None):
         upload = upload_mod.ResumableUpload(
@@ -134,10 +181,10 @@ class TestResumableUpload(object):
         return upload
 
     @staticmethod
-    def _chunk_mock(status_code, response_headers):
+    def _chunk_mock(status_code, response_headers, **kwargs):
         transport = mock.Mock(spec=[u'request'])
         put_response = _make_response(
-            status_code=status_code, headers=response_headers)
+            status_code=status_code, headers=response_headers, **kwargs)
         transport.request.return_value = put_response
 
         return transport
@@ -172,6 +219,21 @@ class TestResumableUpload(object):
             u'PUT', upload.resumable_url, data=payload,
             headers=expected_headers)
 
+    def test_transmit_next_chunk_with_ext_kwargs(self):
+        data = b'This time the data is official.'
+        upload = self._upload_in_flight(data)
+        chunk_size = 10
+        assert chunk_size < len(data)
+        upload._chunk_size = chunk_size
+        response_headers = {u'range': u'bytes=0-{:d}'.format(chunk_size - 1)}
+        transport = self._chunk_mock(
+            resumable_media.PERMANENT_REDIRECT, response_headers,
+            ext_data1=EXT_DATA1, ext_data2=EXT_DATA2)
+
+        response = upload.transmit_next_chunk(transport)
+        assert response.ext_data1 == EXT_DATA1
+        assert response.ext_data2 == EXT_DATA2
+
     def test_recover(self):
         upload = upload_mod.ResumableUpload(RESUMABLE_URL, ONE_MB)
         upload._invalid = True  # Make sure invalid.
@@ -193,9 +255,25 @@ class TestResumableUpload(object):
         transport.request.assert_called_once_with(
             u'PUT', upload.resumable_url, data=None, headers=expected_headers)
 
+    def test_recover_with_ext_kwargs(self):
+        upload = upload_mod.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload._invalid = True  # Make sure invalid.
+        upload._stream = mock.Mock(spec=[u'seek'])
+        upload._resumable_url = u'http://test.invalid?upload_id=big-deal'
+        end = 55555
+        headers = {u'range': u'bytes=0-{:d}'.format(end)}
+        transport = self._chunk_mock(resumable_media.PERMANENT_REDIRECT,
+                                     headers, ext_data1=EXT_DATA1,
+                                     ext_data2=EXT_DATA2)
+        ret_val = upload.recover(transport)
+        assert ret_val.ext_data1 == EXT_DATA1
+        assert ret_val.ext_data2 == EXT_DATA2
 
-def _make_response(status_code=http_client.OK, headers=None):
+
+def _make_response(status_code=http_client.OK, headers=None, **kwargs):
     headers = headers or {}
     return mock.Mock(
         headers=headers, status_code=status_code,
-        spec=[u'headers', u'status_code'])
+        spec=[u'headers', u'status_code'] + list(kwargs.keys()),
+        **kwargs
+    )
