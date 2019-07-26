@@ -395,7 +395,6 @@ def consume_chunks(download, authorized_transport,
     return num_responses, response
 
 
-@pytest.mark.xfail  # See issue #56
 def test_chunked_download(add_files, authorized_transport):
     for info in ALL_FILES:
         actual_contents = _get_contents(info)
