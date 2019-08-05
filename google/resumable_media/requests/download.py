@@ -64,6 +64,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
         end (int): The last byte in a range to be downloaded. If not
             provided, but ``start`` is provided, will download from the
             ``start`` to the end of the media.
+        user_agent (Optional[str]) : Custom user agent to be sent
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
 
@@ -156,6 +157,8 @@ class Download(_helpers.RequestsMixin, _download.Download):
                 finished.
         """
         method, url, payload, headers = self._prepare_request()
+        if self.user_agent is not None:
+            headers[u'User-Agent'] = self.user_agent
         # NOTE: We assume "payload is None" but pass it along anyway.
         request_kwargs = {
             u'data': payload,

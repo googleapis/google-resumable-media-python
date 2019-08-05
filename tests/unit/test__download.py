@@ -35,6 +35,7 @@ class TestDownloadBase(object):
         assert download._stream is None
         assert download.start is None
         assert download.end is None
+        assert download.user_agent is None
         assert download._headers == {}
         assert not download._finished
         _check_retry_strategy(download)
@@ -42,14 +43,16 @@ class TestDownloadBase(object):
     def test_constructor_explicit(self):
         start = 11
         end = 10001
+        user_agent = 'custome-user-agent-1.0'
         headers = {u'foof': u'barf'}
         download = _download.DownloadBase(
             EXAMPLE_URL, stream=mock.sentinel.stream,
-            start=start, end=end, headers=headers)
+            start=start, end=end, user_agent=user_agent, headers=headers)
         assert download.media_url == EXAMPLE_URL
         assert download._stream is mock.sentinel.stream
         assert download.start == start
         assert download.end == end
+        assert download.user_agent == user_agent
         assert download._headers is headers
         assert not download._finished
         _check_retry_strategy(download)

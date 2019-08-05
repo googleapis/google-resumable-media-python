@@ -41,6 +41,7 @@ class DownloadBase(object):
             the downloaded resource can be written to.
         start (int): The first byte in a range to be downloaded.
         end (int): The last byte in a range to be downloaded.
+        user_agent (Optional[str]) : Custom user agent to be sent
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
 
@@ -51,11 +52,12 @@ class DownloadBase(object):
     """
 
     def __init__(self, media_url, stream=None,
-                 start=None, end=None, headers=None):
+                 start=None, end=None, user_agent=None, headers=None):
         self.media_url = media_url
         self._stream = stream
         self.start = start
         self.end = end
+        self.user_agent = user_agent
         if headers is None:
             headers = {}
         self._headers = headers

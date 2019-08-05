@@ -132,10 +132,11 @@ class TestDownload(object):
             decode_unicode=False)
 
     def _consume_helper(
-            self, stream=None, end=65536, headers=None, chunks=(),
-            response_headers=None):
+            self, stream=None, end=65536, user_agent=None, headers=None,
+            chunks=(), response_headers=None):
         download = download_mod.Download(
-            EXAMPLE_URL, stream=stream, end=end, headers=headers)
+            EXAMPLE_URL, stream=stream, end=end, user_agent=user_agent,
+            headers=headers)
         transport = mock.Mock(spec=[u'request'])
         transport.request.return_value = _mock_response(
             chunks=chunks, headers=response_headers)
@@ -233,6 +234,14 @@ class TestDownload(object):
         range_bytes = u'bytes={:d}-{:d}'.format(0, end)
         # Make sure the headers have been modified.
         assert headers == {u'range': range_bytes}
+
+    def test_consume_with_user_agent(self):
+        headers = {}
+        end = 16383
+        user_agent = "Custom-User-Agent-1.0"
+        range_bytes = u'bytes={:d}-{:d}'.format(0, end)
+        self._consume_helper(end=end, user_agent=user_agent, headers=headers)
+        assert headers == {u'range': range_bytes, u'User-Agent': user_agent}
 
 
 class TestChunkedDownload(object):
