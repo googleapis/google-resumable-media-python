@@ -25,6 +25,7 @@ from google.resumable_media import common
 
 
 _DEFAULT_RETRY_STRATEGY = common.RetryStrategy()
+_SINGLE_GET_CHUNK_SIZE = 8192
 
 
 class RequestsMixin(object):
@@ -69,7 +70,12 @@ class RequestsMixin(object):
         Returns:
             bytes: The body of the ``response``.
         """
-        return response.content
+        if response._content is False:
+            response._content = b''.join(
+                response.raw.stream(
+                    _SINGLE_GET_CHUNK_SIZE, decode_content=False))
+            response._content_consumed = True
+        return response._content
 
 
 def http_request(transport, method, url, data=None, headers=None,
