@@ -32,6 +32,7 @@ _DEFAULT_CONNECT_TIMEOUT = 61
 # The number of seconds to wait between bytes sent from the server.
 _DEFAULT_READ_TIMEOUT = 60
 
+
 class RequestsMixin(object):
     """Mix-in class implementing ``requests``-specific behavior.
 
@@ -100,7 +101,8 @@ def http_request(transport, method, url, data=None, headers=None,
         ~requests.Response: The return value of ``transport.request()``.
     """
     if "timeout" not in transport_kwargs:
-        transport_kwargs["timeout"] = (_DEFAULT_CONNECT_TIMEOUT, _DEFAULT_READ_TIMEOUT)
+        transport_kwargs["timeout"] = (
+            _DEFAULT_CONNECT_TIMEOUT, _DEFAULT_READ_TIMEOUT)
 
     func = functools.partial(
         transport.request, method, url, data=data, headers=headers,
