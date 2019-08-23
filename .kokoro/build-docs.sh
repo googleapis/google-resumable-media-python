@@ -26,4 +26,5 @@ ssh-add ${KOKORO_GFILE_DIR}/id_rsa
 pip install --upgrade -r docs/requirements.txt
 
 # Build and Publish Documentation
-bash test_utils/scripts/update_docs.sh kokoro
+bash scripts/build_docs.sh kokoro
+
