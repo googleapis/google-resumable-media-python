@@ -46,7 +46,8 @@ echo "Build finished. The HTML pages are in docs/latest."
 
 # If this is a CI build, we want to make sure the docs are already
 # checked in as is.
-if [[ -n "${CIRCLECI}" ] || [-n "${KOKORO}" ]]; then
+if [ -n "${CIRCLECI}" ] || ["$1" -eq "kokoro" ]
+then
     echo "On a CI build, making sure docs already checked in."
     # Pre-emptively ignore changes to the buildinfo file.
     git checkout docs/latest/.buildinfo
