@@ -4,7 +4,7 @@
 
 [1]: https://pypi.org/project/google-resumable-media/#history
 
-## 0.1.0
+## 0.3.3
 
 08-22-2019 17:23 PDT
 
