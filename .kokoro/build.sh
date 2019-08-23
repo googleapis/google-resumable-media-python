@@ -16,7 +16,7 @@
 
 set -eo pipefail
 
-cd github/google-resumable-media-python
+cd github/google-cloud-python
 
 # Disable buffering, so that the logs stream through.
 export PYTHONUNBUFFERED=1
@@ -30,6 +30,18 @@ export GOOGLE_APPLICATION_CREDENTIALS=${KOKORO_GFILE_DIR}/service-account.json
 # Setup project id.
 export PROJECT_ID=$(cat "${KOKORO_GFILE_DIR}/project-id.json")
 
+# Find out if this package was modified.
+# Temporarily use Thea's fork of ci-diff-helper w/ Kokoro support.
+python3.6 -m pip install --quiet git+https://github.com/theacodes/ci-diff-helper.git
+python3.6 test_utils/scripts/get_target_packages_kokoro.py > ~/target_packages
+cat ~/target_packages
+
+if [[ ! -n $(grep -x "$PACKAGE" ~/target_packages) ]]; then
+    echo "$PACKAGE was not modified, returning."
+    exit;
+fi
+
+cd "$PACKAGE"
 
 # Remove old nox
 python3.6 -m pip uninstall --yes --quiet nox-automation

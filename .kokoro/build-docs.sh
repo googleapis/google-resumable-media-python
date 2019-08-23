@@ -2,7 +2,7 @@
 
 set -eo pipefail
 
-cd ${KOKORO_ARTIFACTS_DIR}/github/google-resumable-media-python
+cd ${KOKORO_ARTIFACTS_DIR}/github/google-cloud-python
 pwd
 ls
 env
@@ -27,4 +27,3 @@ pip install --upgrade -r docs/requirements.txt
 
 # Build and Publish Documentation
 bash scripts/build_docs.sh kokoro
-
