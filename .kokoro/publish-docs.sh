@@ -5,7 +5,7 @@ set -eo pipefail
 # Disable buffering, so that the logs stream through.
 export PYTHONUNBUFFERED=1
 
-cd github/google-cloud-python/${PACKAGE}
+cd github/google-resumable-media-python
 
 # Remove old nox
 python3.6 -m pip uninstall --yes --quiet nox-automation
