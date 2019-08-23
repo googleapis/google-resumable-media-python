@@ -16,7 +16,7 @@
 
 set -eo pipefail
 
-cd github/google-cloud-python
+cd github/google-resumable-media-python
 
 # Disable buffering, so that the logs stream through.
 export PYTHONUNBUFFERED=1
