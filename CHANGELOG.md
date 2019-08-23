@@ -4,6 +4,26 @@
 
 [1]: https://pypi.org/project/google-resumable-media/#history
 
+## 0.1.0
+
+08-22-2019 17:23 PDT
+
+
+### Implementation Changes
+- Add a default timeout for the http_request method ([#88](https://github.com/googleapis/google-resumable-media-python/pull/88))
+
+### Documentation
+- Fix docs build redux. ([#75](https://github.com/googleapis/google-resumable-media-python/pull/75))
+
+### Internal / Testing Changes
+- DRY 'requests' pin; don't shadow exception. ([#83](https://github.com/googleapis/google-resumable-media-python/pull/83))
+- Renovate: preserve semver ranges. ([#82](https://github.com/googleapis/google-resumable-media-python/pull/82))
+- Add renovate.json ([#79](https://github.com/googleapis/google-resumable-media-python/pull/79))
+- Fix systest bitrot. ([#77](https://github.com/googleapis/google-resumable-media-python/pull/77))
+- Update to new nox ([#57](https://github.com/googleapis/google-resumable-media-python/pull/57))
+- Reconstruct 'CHANGELOG.md' from pre-releasetool era releases. ([#66](https://github.com/googleapis/google-resumable-media-python/pull/66))
+- Drop a hardcoded value in an error message. ([#48](https://github.com/googleapis/google-resumable-media-python/pull/48))
+
 ## 0.3.2
 
 2018-12-17 17:31 PST
