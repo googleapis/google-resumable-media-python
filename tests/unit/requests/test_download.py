@@ -155,7 +155,6 @@ class TestDownload(object):
             timeout=EXPECTED_TIMEOUT,
         )
 
-
         range_bytes = u'bytes={:d}-{:d}'.format(0, end)
         assert download._headers[u'range'] == range_bytes
         assert download.finished
