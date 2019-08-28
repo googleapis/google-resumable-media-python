@@ -365,6 +365,7 @@ class TestResumableUpload(object):
             u'content-type': JSON_TYPE,
             u'x-upload-content-length': u'{:d}'.format(len(data)),
             u'x-upload-content-type': BASIC_CONTENT,
+            u'x-goog-resumable': u'start',
         }
         assert headers == expected_headers
 
@@ -378,6 +379,7 @@ class TestResumableUpload(object):
             u'top': u'quark',
             u'x-upload-content-length': u'{:d}'.format(len(data)),
             u'x-upload-content-type': BASIC_CONTENT,
+            u'x-goog-resumable': u'start',
         }
         assert new_headers == expected_headers
 
@@ -390,6 +392,7 @@ class TestResumableUpload(object):
             u'content-type': u'application/json; charset=UTF-8',
             u'x-upload-content-length': u'{:d}'.format(total_bytes),
             u'x-upload-content-type': BASIC_CONTENT,
+            u'x-goog-resumable': u'start',
         }
         assert headers == expected_headers
 
@@ -399,6 +402,7 @@ class TestResumableUpload(object):
         expected_headers = {
             u'content-type': u'application/json; charset=UTF-8',
             u'x-upload-content-type': BASIC_CONTENT,
+            u'x-goog-resumable': u'start',
         }
         assert headers == expected_headers
 

@@ -415,6 +415,7 @@ class ResumableUpload(UploadBase):
         headers = {
             _CONTENT_TYPE_HEADER: u'application/json; charset=UTF-8',
             u'x-upload-content-type': content_type,
+            u'x-goog-resumable': u'start',  # FBO XML API
         }
         # Set the total bytes if possible.
         if total_bytes is not None:

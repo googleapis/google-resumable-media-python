@@ -121,6 +121,7 @@ class TestResumableUpload(object):
             u'content-type': JSON_TYPE,
             u'x-upload-content-type': BASIC_CONTENT,
             u'x-upload-content-length': u'{:d}'.format(total_bytes),
+            u'x-goog-resumable': u'start',
         }
         transport.request.assert_called_once_with(
             u'POST', RESUMABLE_URL, data=json_bytes, headers=expected_headers,
