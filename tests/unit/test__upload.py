@@ -901,6 +901,15 @@ class Test_get_next_chunk(object):
         assert result3 == (9, b'9', u'bytes 9-9/10')
         assert stream.tell() == total_bytes
 
+    def test_success_zero_size(self):
+        data = b''
+        stream = io.BytesIO(data)
+        total_bytes = len(data)
+        chunk_size = 31
+        result0 = _upload.get_next_chunk(stream, chunk_size, total_bytes)
+        assert result0 == (0, b'', u'bytes */0')
+        assert stream.tell() == total_bytes
+
     def test_success_unknown_size(self):
         data = b'abcdefghij'
         stream = io.BytesIO(data)

@@ -32,6 +32,8 @@ CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 DATA_DIR = os.path.join(CURR_DIR, u'..', u'..', u'data')
 ICO_FILE = os.path.realpath(os.path.join(DATA_DIR, u'favicon.ico'))
 IMAGE_FILE = os.path.realpath(os.path.join(DATA_DIR, u'image1.jpg'))
+EMPTY_FILE = os.path.realpath(os.path.join(DATA_DIR, u'empty.txt'))
+PLAIN_TEXT_TYPE = u'text/plain'
 ICO_CONTENT_TYPE = u'image/x-icon'
 JPEG_CONTENT_TYPE = u'image/jpeg'
 BYTES_CONTENT_TYPE = u'application/octet-stream'
@@ -462,6 +464,41 @@ class TestResumableUploadUnknownSize(object):
         with open(ICO_FILE, u'rb') as stream:
             response = upload.initiate(
                 authorized_transport, stream, metadata, ICO_CONTENT_TYPE,
+                stream_final=False)
+            # Make sure ``initiate`` succeeded and did not mangle the stream.
+            check_initiate(
+                response, upload, stream, authorized_transport, metadata)
+            # Make sure total bytes was never set.
+            assert upload.total_bytes is None
+            # Make the **ONLY** request.
+            response = upload.transmit_next_chunk(authorized_transport)
+            self._check_range_sent(response, 0, total_bytes - 1, total_bytes)
+            check_response(response, blob_name, total_bytes=total_bytes)
+            # Download the content to make sure it's "working as expected".
+            stream.seek(0)
+            actual_contents = stream.read()
+            check_content(
+                blob_name, actual_contents, authorized_transport)
+            # Make sure the upload is tombstoned.
+            check_tombstoned(upload, authorized_transport)
+
+    def test_empty_size(self, authorized_transport, cleanup):
+        blob_name = os.path.basename(EMPTY_FILE)
+        chunk_size = resumable_media.UPLOAD_CHUNK_SIZE
+        # Make sure to clean up the uploaded blob when we are done.
+        cleanup(blob_name, authorized_transport)
+        check_does_not_exist(authorized_transport, blob_name)
+        # Make sure the blob is smaller than the chunk size.
+        total_bytes = os.path.getsize(EMPTY_FILE)
+        assert total_bytes < chunk_size
+        # Create the actual upload object.
+        upload = resumable_requests.ResumableUpload(
+            utils.RESUMABLE_UPLOAD, chunk_size)
+        # Initiate the upload.
+        metadata = {u'name': blob_name}
+        with open(EMPTY_FILE, u'rb') as stream:
+            response = upload.initiate(
+                authorized_transport, stream, metadata, PLAIN_TEXT_TYPE,
                 stream_final=False)
             # Make sure ``initiate`` succeeded and did not mangle the stream.
             check_initiate(
