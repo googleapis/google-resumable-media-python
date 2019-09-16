@@ -56,21 +56,6 @@ ALL_FILES = (
             slice(-256, None, None),  # obj[-256:]
             slice(262144, None, None),  # obj[262144:]
         ),
-<<<<<<< HEAD
-    },
-    {
-        u"path": os.path.realpath(os.path.join(DATA_DIR, u"file.txt")),
-        u"content_type": PLAIN_TEXT,
-        u"checksum": u"XHSHAr/SpIeZtZbjgQ4nGw==",
-        u"slices": (),
-    },
-    {
-        u"path": os.path.realpath(os.path.join(DATA_DIR, u"gzipped.txt.gz")),
-        u"content_type": PLAIN_TEXT,
-        u"checksum": u"KHRs/+ZSrc/FuuR4qz/PZQ==",
-        u"slices": (),
-        u"metadata": {u"contentEncoding": u"gzip"},
-=======
     }, {
         u'path': os.path.realpath(os.path.join(DATA_DIR, u'file.txt')),
         u'content_type': PLAIN_TEXT,
@@ -86,7 +71,6 @@ ALL_FILES = (
         u'metadata': {
             u'contentEncoding': u'gzip',
         },
->>>>>>> parent of 2b9ffc8... Always use raw response data. (#87)
     },
 )
 ENCRYPTED_ERR = b"The target object is encrypted by a customer-supplied encryption key."
@@ -143,22 +127,13 @@ def _get_contents_for_upload(info):
 
 
 def _get_contents(info):
-<<<<<<< HEAD
-    full_path = info[u"path"]
-    with open(full_path, u"rb") as file_obj:
-=======
     full_path = info.get(u'uncompressed', info[u'path'])
     with open(full_path, u'rb') as file_obj:
->>>>>>> parent of 2b9ffc8... Always use raw response data. (#87)
         return file_obj.read()
 
 
 def _get_blob_name(info):
-<<<<<<< HEAD
-    full_path = info[u"path"]
-=======
     full_path = info.get(u'uncompressed', info[u'path'])
->>>>>>> parent of 2b9ffc8... Always use raw response data. (#87)
     return os.path.basename(full_path)
 
 
@@ -205,15 +180,6 @@ def check_tombstoned(download, transport):
         assert exc_info.match(u"Download has finished.")
 
 
-<<<<<<< HEAD
-def read_raw_content(response):
-    return b"".join(
-        response.raw.stream(_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False)
-    )
-
-
-=======
->>>>>>> parent of 2b9ffc8... Always use raw response data. (#87)
 def test_download_full(add_files, authorized_transport):
     for info in ALL_FILES:
         actual_contents = _get_contents(info)
