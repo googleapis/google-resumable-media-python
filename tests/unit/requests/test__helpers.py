@@ -27,6 +27,7 @@ class TestRequestsMixin(object):
         assert status_code == _helpers.RequestsMixin._get_status_code(response)
 
     def test__get_headers(self):
+<<<<<<< HEAD
         headers = {u"fruit": u"apple"}
         response = mock.Mock(headers=headers, spec=["headers"])
         assert headers == _helpers.RequestsMixin._get_headers(response)
@@ -44,6 +45,15 @@ class TestRequestsMixin(object):
     def test__get_body_w_content_consumed(self):
         body = b"This is the payload."
         response = mock.Mock(_content=body, spec=["_content"])
+=======
+        headers = {u'fruit': u'apple'}
+        response = mock.Mock(headers=headers, spec=[u'headers'])
+        assert headers == _helpers.RequestsMixin._get_headers(response)
+
+    def test__get_body(self):
+        body = b'This is the payload.'
+        response = mock.Mock(content=body, spec=[u'content'])
+>>>>>>> parent of 2b9ffc8... Always use raw response data. (#87)
         assert body == _helpers.RequestsMixin._get_body(response)
 
 
