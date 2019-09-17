@@ -27,13 +27,13 @@ class TestRequestsMixin(object):
         assert status_code == _helpers.RequestsMixin._get_status_code(response)
 
     def test__get_headers(self):
-        headers = {u'fruit': u'apple'}
-        response = mock.Mock(headers=headers, spec=[u'headers'])
+        headers = {u"fruit": u"apple"}
+        response = mock.Mock(headers=headers, spec=[u"headers"])
         assert headers == _helpers.RequestsMixin._get_headers(response)
 
     def test__get_body(self):
-        body = b'This is the payload.'
-        response = mock.Mock(content=body, spec=[u'content'])
+        body = b"This is the payload."
+        response = mock.Mock(content=body, spec=[u"content"])
         assert body == _helpers.RequestsMixin._get_body(response)
 
 

@@ -30,8 +30,7 @@ EXPECTED_TIMEOUT = (61, 60)
 
 
 class TestDownload(object):
-
-    @mock.patch(u'google.resumable_media.requests.download._LOGGER')
+    @mock.patch(u"google.resumable_media.requests.download._LOGGER")
     def test__get_expected_md5_present(self, _LOGGER):
         download = download_mod.Download(EXAMPLE_URL)
 
@@ -44,7 +43,7 @@ class TestDownload(object):
         assert expected_md5_hash == checksum
         _LOGGER.info.assert_not_called()
 
-    @mock.patch(u'google.resumable_media.requests.download._LOGGER')
+    @mock.patch(u"google.resumable_media.requests.download._LOGGER")
     def test__get_expected_md5_missing(self, _LOGGER):
         download = download_mod.Download(EXAMPLE_URL)
 
@@ -73,8 +72,8 @@ class TestDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.iter_content.assert_called_once_with(
-            chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE,
-            decode_unicode=False)
+            chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+        )
 
     def test__write_to_stream_with_hash_check_success(self):
         stream = io.BytesIO()
@@ -96,8 +95,8 @@ class TestDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.iter_content.assert_called_once_with(
-            chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE,
-            decode_unicode=False)
+            chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+        )
 
     def test__write_to_stream_with_hash_check_fail(self):
         stream = io.BytesIO()
@@ -129,15 +128,16 @@ class TestDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.iter_content.assert_called_once_with(
-            chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE,
-            decode_unicode=False)
+            chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+        )
 
     def _consume_helper(
         self, stream=None, end=65536, headers=None, chunks=(), response_headers=None
     ):
         download = download_mod.Download(
-            EXAMPLE_URL, stream=stream, end=end, headers=headers)
-        transport = mock.Mock(spec=[u'request'])
+            EXAMPLE_URL, stream=stream, end=end, headers=headers
+        )
+        transport = mock.Mock(spec=[u"request"])
         transport.request.return_value = _mock_response(
             chunks=chunks, headers=response_headers
         )
@@ -146,12 +146,13 @@ class TestDownload(object):
         ret_val = download.consume(transport)
         assert ret_val is transport.request.return_value
 
-        called_kwargs = {u'data': None, u'headers': download._headers}
+        called_kwargs = {u"data": None, u"headers": download._headers}
         if chunks:
             assert stream is not None
-            called_kwargs[u'stream'] = True
+            called_kwargs[u"stream"] = True
         transport.request.assert_called_once_with(
-            u'GET', EXAMPLE_URL, timeout=EXPECTED_TIMEOUT, **called_kwargs)
+            u"GET", EXAMPLE_URL, timeout=EXPECTED_TIMEOUT, **called_kwargs
+        )
 
         range_bytes = u"bytes={:d}-{:d}".format(0, end)
         assert download._headers[u"range"] == range_bytes
@@ -174,8 +175,8 @@ class TestDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.iter_content.assert_called_once_with(
-            chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE,
-            decode_unicode=False)
+            chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+        )
 
     def test_consume_with_stream_hash_check_success(self):
         stream = io.BytesIO()
@@ -193,8 +194,8 @@ class TestDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.iter_content.assert_called_once_with(
-            chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE,
-            decode_unicode=False)
+            chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+        )
 
     def test_consume_with_stream_hash_check_fail(self):
         stream = io.BytesIO()
@@ -204,9 +205,8 @@ class TestDownload(object):
         bad_checksum = u"anVzdCBub3QgdGhpcyAxLA=="
         header_value = u"crc32c=V0FUPw==,md5={}".format(bad_checksum)
         headers = {download_mod._HASH_HEADER: header_value}
-        transport = mock.Mock(spec=[u'request'])
-        transport.request.return_value = _mock_response(
-            chunks=chunks, headers=headers)
+        transport = mock.Mock(spec=[u"request"])
+        transport.request.return_value = _mock_response(chunks=chunks, headers=headers)
 
         assert not download.finished
         with pytest.raises(common.DataCorruption) as exc_info:
@@ -265,11 +265,7 @@ class TestChunkedDownload(object):
             content=content,
             headers=response_headers,
             status_code=status_code,
-            spec=[
-                u'content',
-                u'headers',
-                u'status_code',
-            ],
+            spec=[u"content", u"headers", u"status_code"],
         )
 
     def test_consume_next_chunk_already_finished(self):
@@ -278,8 +274,8 @@ class TestChunkedDownload(object):
         with pytest.raises(ValueError):
             download.consume_next_chunk(None)
 
-    def _mock_transport(self, start, chunk_size, total_bytes, content=b''):
-        transport = mock.Mock(spec=[u'request'])
+    def _mock_transport(self, start, chunk_size, total_bytes, content=b""):
+        transport = mock.Mock(spec=[u"request"])
         assert len(content) == chunk_size
         transport.request.return_value = self._mock_response(
             start,
@@ -312,8 +308,12 @@ class TestChunkedDownload(object):
         range_bytes = u"bytes={:d}-{:d}".format(start, start + chunk_size - 1)
         download_headers = {u"range": range_bytes}
         transport.request.assert_called_once_with(
-            u'GET', EXAMPLE_URL, data=None, headers=download_headers,
-            timeout=EXPECTED_TIMEOUT)
+            u"GET",
+            EXAMPLE_URL,
+            data=None,
+            headers=download_headers,
+            timeout=EXPECTED_TIMEOUT,
+        )
         assert stream.getvalue() == data
         # Go back and check the internal state after consuming the chunk.
         assert not download.finished
@@ -374,20 +374,16 @@ def test__DoNothingHash():
 
 
 class Test__add_decoder(object):
-
     def test_non_gzipped(self):
-        response_raw = mock.Mock(headers={}, spec=[u'headers'])
-        md5_hash = download_mod._add_decoder(
-            response_raw, mock.sentinel.md5_hash)
+        response_raw = mock.Mock(headers={}, spec=[u"headers"])
+        md5_hash = download_mod._add_decoder(response_raw, mock.sentinel.md5_hash)
 
         assert md5_hash is mock.sentinel.md5_hash
 
     def test_gzipped(self):
-        headers = {u'content-encoding': u'gzip'}
-        response_raw = mock.Mock(
-            headers=headers, spec=[u'headers', u'_decoder'])
-        md5_hash = download_mod._add_decoder(
-            response_raw, mock.sentinel.md5_hash)
+        headers = {u"content-encoding": u"gzip"}
+        response_raw = mock.Mock(headers=headers, spec=[u"headers", u"_decoder"])
+        md5_hash = download_mod._add_decoder(response_raw, mock.sentinel.md5_hash)
 
         assert md5_hash is not mock.sentinel.md5_hash
         assert isinstance(md5_hash, download_mod._DoNothingHash)
@@ -396,19 +392,18 @@ class Test__add_decoder(object):
 
 
 class Test_GzipDecoder(object):
-
     def test_constructor(self):
         decoder = download_mod._GzipDecoder(mock.sentinel.md5_hash)
         assert decoder._md5_hash is mock.sentinel.md5_hash
 
     def test_decompress(self):
-        md5_hash = mock.Mock(spec=['update'])
+        md5_hash = mock.Mock(spec=["update"])
         decoder = download_mod._GzipDecoder(md5_hash)
 
-        data = b'\x1f\x8b\x08\x08'
+        data = b"\x1f\x8b\x08\x08"
         result = decoder.decompress(data)
 
-        assert result == b''
+        assert result == b""
         md5_hash.update.assert_called_once_with(data)
 
 
@@ -417,18 +412,18 @@ def _mock_response(status_code=http_client.OK, chunks=(), headers=None):
         headers = {}
 
     if chunks:
-        mock_raw = mock.Mock(headers=headers, spec=[u'headers'])
+        mock_raw = mock.Mock(headers=headers, spec=[u"headers"])
         response = mock.MagicMock(
             headers=headers,
             status_code=int(status_code),
             raw=mock_raw,
             spec=[
-                u'__enter__',
-                u'__exit__',
-                u'iter_content',
-                u'status_code',
-                u'headers',
-                u'raw',
+                u"__enter__",
+                u"__exit__",
+                u"iter_content",
+                u"status_code",
+                u"headers",
+                u"raw",
             ],
         )
         # i.e. context manager returns ``self``.
@@ -440,8 +435,5 @@ def _mock_response(status_code=http_client.OK, chunks=(), headers=None):
         return mock.Mock(
             headers=headers,
             status_code=int(status_code),
-            spec=[
-                u'status_code',
-                u'headers',
-            ],
+            spec=[u"status_code", u"headers"],
         )

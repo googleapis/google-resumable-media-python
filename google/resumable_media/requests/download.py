@@ -27,7 +27,7 @@ from google.resumable_media.requests import _helpers
 
 _LOGGER = logging.getLogger(__name__)
 _SINGLE_GET_CHUNK_SIZE = 8192
-_HASH_HEADER = u'x-goog-hash'
+_HASH_HEADER = u"x-goog-hash"
 _MISSING_MD5 = u"""\
 No MD5 checksum was returned from the service while downloading {}
 (which happens for composite objects), so client-side content integrity
@@ -118,7 +118,8 @@ class Download(_helpers.RequestsMixin, _download.Download):
             #       it with a ``_DoNothingHash``.
             local_hash = _add_decoder(response.raw, md5_hash)
             body_iter = response.iter_content(
-                chunk_size=_SINGLE_GET_CHUNK_SIZE, decode_unicode=False)
+                chunk_size=_SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+            )
             for chunk in body_iter:
                 self._stream.write(chunk)
                 local_hash.update(chunk)
@@ -158,22 +159,21 @@ class Download(_helpers.RequestsMixin, _download.Download):
         method, url, payload, headers = self._prepare_request()
         # NOTE: We assume "payload is None" but pass it along anyway.
         request_kwargs = {
-            u'data': payload,
-            u'headers': headers,
-            u'retry_strategy': self._retry_strategy,
+            u"data": payload,
+            u"headers": headers,
+            u"retry_strategy": self._retry_strategy,
         }
         if self._stream is not None:
-            request_kwargs[u'stream'] = True
+            request_kwargs[u"stream"] = True
 
-        result = _helpers.http_request(
-            transport, method, url, **request_kwargs)
+        result = _helpers.http_request(transport, method, url, **request_kwargs)
 
-        self._process_response(response)
+        self._process_response(result)
 
         if self._stream is not None:
-            self._write_to_stream(response)
+            self._write_to_stream(result)
 
-        return response
+        return result
 
 
 class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
@@ -220,8 +220,13 @@ class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
         method, url, payload, headers = self._prepare_request()
         # NOTE: We assume "payload is None" but pass it along anyway.
         result = _helpers.http_request(
-            transport, method, url, data=payload, headers=headers,
-            retry_strategy=self._retry_strategy)
+            transport,
+            method,
+            url,
+            data=payload,
+            headers=headers,
+            retry_strategy=self._retry_strategy,
+        )
         self._process_response(result)
         return result
 
@@ -312,8 +317,8 @@ def _add_decoder(response_raw, md5_hash):
         if ``_decoder`` is not patched. Otherwise, returns a ``_DoNothingHash``
         since the caller will no longer need to hash to decoded bytes.
     """
-    encoding = response_raw.headers.get(u'content-encoding', u'').lower()
-    if encoding != u'gzip':
+    encoding = response_raw.headers.get(u"content-encoding", u"").lower()
+    if encoding != u"gzip":
         return md5_hash
 
     response_raw._decoder = _GzipDecoder(md5_hash)

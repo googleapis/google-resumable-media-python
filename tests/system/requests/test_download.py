@@ -56,21 +56,20 @@ ALL_FILES = (
             slice(-256, None, None),  # obj[-256:]
             slice(262144, None, None),  # obj[262144:]
         ),
-    }, {
-        u'path': os.path.realpath(os.path.join(DATA_DIR, u'file.txt')),
-        u'content_type': PLAIN_TEXT,
-        u'checksum': u'KHRs/+ZSrc/FuuR4qz/PZQ==',
-        u'slices': (),
-    }, {
-        u'path': os.path.realpath(os.path.join(DATA_DIR, u'gzipped.txt.gz')),
-        u'uncompressed':
-            os.path.realpath(os.path.join(DATA_DIR, u'gzipped.txt')),
-        u'content_type': PLAIN_TEXT,
-        u'checksum': u'KHRs/+ZSrc/FuuR4qz/PZQ==',
-        u'slices': (),
-        u'metadata': {
-            u'contentEncoding': u'gzip',
-        },
+    },
+    {
+        u"path": os.path.realpath(os.path.join(DATA_DIR, u"file.txt")),
+        u"content_type": PLAIN_TEXT,
+        u"checksum": u"KHRs/+ZSrc/FuuR4qz/PZQ==",
+        u"slices": (),
+    },
+    {
+        u"path": os.path.realpath(os.path.join(DATA_DIR, u"gzipped.txt.gz")),
+        u"uncompressed": os.path.realpath(os.path.join(DATA_DIR, u"gzipped.txt")),
+        u"content_type": PLAIN_TEXT,
+        u"checksum": u"KHRs/+ZSrc/FuuR4qz/PZQ==",
+        u"slices": (),
+        u"metadata": {u"contentEncoding": u"gzip"},
     },
 )
 ENCRYPTED_ERR = b"The target object is encrypted by a customer-supplied encryption key."
@@ -127,13 +126,13 @@ def _get_contents_for_upload(info):
 
 
 def _get_contents(info):
-    full_path = info.get(u'uncompressed', info[u'path'])
-    with open(full_path, u'rb') as file_obj:
+    full_path = info.get(u"uncompressed", info[u"path"])
+    with open(full_path, u"rb") as file_obj:
         return file_obj.read()
 
 
 def _get_blob_name(info):
-    full_path = info.get(u'uncompressed', info[u'path'])
+    full_path = info.get(u"uncompressed", info[u"path"])
     return os.path.basename(full_path)
 
 

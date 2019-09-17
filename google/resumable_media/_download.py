@@ -349,20 +349,29 @@ class ChunkedDownload(DownloadBase):
             return
 
         _helpers.require_status_code(
-            response, _ACCEPTABLE_STATUS_CODES,
-            self._get_status_code, callback=self._make_invalid)
+            response,
+            _ACCEPTABLE_STATUS_CODES,
+            self._get_status_code,
+            callback=self._make_invalid,
+        )
         content_length = _helpers.header_required(
-            response, u'content-length', self._get_headers,
-            callback=self._make_invalid)
+            response, u"content-length", self._get_headers, callback=self._make_invalid
+        )
         num_bytes = int(content_length)
         _, end_byte, total_bytes = get_range_info(
-            response, self._get_headers, callback=self._make_invalid)
+            response, self._get_headers, callback=self._make_invalid
+        )
         response_body = self._get_body(response)
         if len(response_body) != num_bytes:
             self._make_invalid()
             raise common.InvalidResponse(
-                response, u'Response is different size than content-length',
-                u'Expected', num_bytes, u'Received', len(response_body))
+                response,
+                u"Response is different size than content-length",
+                u"Expected",
+                num_bytes,
+                u"Received",
+                len(response_body),
+            )
 
         # First update ``bytes_downloaded``.
         self._bytes_downloaded += num_bytes
