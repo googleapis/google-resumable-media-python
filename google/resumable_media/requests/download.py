@@ -73,25 +73,6 @@ class Download(_helpers.RequestsMixin, _download.Download):
         end (Optional[int]): The last byte in a range to be downloaded.
     """
 
-    def _get_expected_md5(self, response):
-        """Get the expected MD5 hash from the response headers.
-
-        Args:
-            response (~requests.Response): The HTTP response object.
-
-        Returns:
-            Optional[str]: The expected MD5 hash of the response, if it
-            can be detected from the ``X-Goog-Hash`` header.
-        """
-        headers = self._get_headers(response)
-        expected_md5_hash = _parse_md5_header(headers.get(_HASH_HEADER), response)
-
-        if expected_md5_hash is None:
-            msg = _MISSING_MD5.format(self.media_url)
-            _LOGGER.info(msg)
-
-        return expected_md5_hash
-
     def _write_to_stream(self, response):
         """Write response body to a write-able stream.
 
@@ -107,7 +88,9 @@ class Download(_helpers.RequestsMixin, _download.Download):
             ~google.resumable_media.common.DataCorruption: If the download's
                 checksum doesn't agree with server-computed checksum.
         """
-        expected_md5_hash = self._get_expected_md5(response)
+        expected_md5_hash = _get_expected_md5(
+            response, self._get_headers, self.media_url
+        )
 
         if expected_md5_hash is None:
             md5_hash = _DoNothingHash()
@@ -229,6 +212,28 @@ class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
         )
         self._process_response(result)
         return result
+
+
+def _get_expected_md5(response, get_headers, media_url):
+    """Get the expected MD5 hash from the response headers.
+
+    Args:
+        response (~requests.Response): The HTTP response object.
+        get_headers (callable: response->dict): returns response headers.
+        media_url (str): The URL containing the media to be downloaded.
+
+    Returns:
+        Optional[str]: The expected MD5 hash of the response, if it
+        can be detected from the ``X-Goog-Hash`` header.
+    """
+    headers = get_headers(response)
+    expected_md5_hash = _parse_md5_header(headers.get(_HASH_HEADER), response)
+
+    if expected_md5_hash is None:
+        msg = _MISSING_MD5.format(media_url)
+        _LOGGER.info(msg)
+
+    return expected_md5_hash
 
 
 def _parse_md5_header(header_value, response):

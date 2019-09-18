@@ -30,31 +30,6 @@ EXPECTED_TIMEOUT = (61, 60)
 
 
 class TestDownload(object):
-    @mock.patch(u"google.resumable_media.requests.download._LOGGER")
-    def test__get_expected_md5_present(self, _LOGGER):
-        download = download_mod.Download(EXAMPLE_URL)
-
-        checksum = u"b2twdXNodGhpc2J1dHRvbg=="
-        header_value = u"crc32c=3q2+7w==,md5={}".format(checksum)
-        headers = {download_mod._HASH_HEADER: header_value}
-        response = _mock_response(headers=headers)
-
-        expected_md5_hash = download._get_expected_md5(response)
-        assert expected_md5_hash == checksum
-        _LOGGER.info.assert_not_called()
-
-    @mock.patch(u"google.resumable_media.requests.download._LOGGER")
-    def test__get_expected_md5_missing(self, _LOGGER):
-        download = download_mod.Download(EXAMPLE_URL)
-
-        headers = {}
-        response = _mock_response(headers=headers)
-
-        expected_md5_hash = download._get_expected_md5(response)
-        assert expected_md5_hash is None
-        expected_msg = download_mod._MISSING_MD5.format(EXAMPLE_URL)
-        _LOGGER.info.assert_called_once_with(expected_msg)
-
     def test__write_to_stream_no_hash_check(self):
         stream = io.BytesIO()
         download = download_mod.Download(EXAMPLE_URL, stream=stream)
@@ -319,6 +294,39 @@ class TestChunkedDownload(object):
         assert not download.finished
         assert download.bytes_downloaded == chunk_size
         assert download.total_bytes == total_bytes
+
+
+class Test__get_expected_md5(object):
+    @mock.patch("google.resumable_media.requests.download._LOGGER")
+    def test__w_header_present(self, _LOGGER):
+        checksum = u"b2twdXNodGhpc2J1dHRvbg=="
+        header_value = u"crc32c=3q2+7w==,md5={}".format(checksum)
+        headers = {download_mod._HASH_HEADER: header_value}
+        response = _mock_response(headers=headers)
+
+        def _get_headers(response):
+            return response.headers
+
+        expected_md5_hash = download_mod._get_expected_md5(
+            response, _get_headers, EXAMPLE_URL
+        )
+        assert expected_md5_hash == checksum
+        _LOGGER.info.assert_not_called()
+
+    @mock.patch("google.resumable_media.requests.download._LOGGER")
+    def test__w_header_missing(self, _LOGGER):
+        headers = {}
+        response = _mock_response(headers=headers)
+
+        def _get_headers(response):
+            return response.headers
+
+        expected_md5_hash = download_mod._get_expected_md5(
+            response, _get_headers, EXAMPLE_URL
+        )
+        assert expected_md5_hash is None
+        expected_msg = download_mod._MISSING_MD5.format(EXAMPLE_URL)
+        _LOGGER.info.assert_called_once_with(expected_msg)
 
 
 class Test__parse_md5_header(object):
