@@ -325,6 +325,62 @@ class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
         return result
 
 
+class RawChunkedDownload(_helpers.RawRequestsMixin, _download.ChunkedDownload):
+    """Download a raw resource in chunks from a Google API.
+
+    Args:
+        media_url (str): The URL containing the media to be downloaded.
+        chunk_size (int): The number of bytes to be retrieved in each
+            request.
+        stream (IO[bytes]): A write-able stream (i.e. file-like object) that
+            will be used to concatenate chunks of the resource as they are
+            downloaded.
+        start (int): The first byte in a range to be downloaded. If not
+            provided, defaults to ``0``.
+        end (int): The last byte in a range to be downloaded. If not
+            provided, will download to the end of the media.
+        headers (Optional[Mapping[str, str]]): Extra headers that should
+            be sent with each request, e.g. headers for data encryption
+            key headers.
+
+    Attributes:
+        media_url (str): The URL containing the media to be downloaded.
+        start (Optional[int]): The first byte in a range to be downloaded.
+        end (Optional[int]): The last byte in a range to be downloaded.
+        chunk_size (int): The number of bytes to be retrieved in each request.
+
+    Raises:
+        ValueError: If ``start`` is negative.
+    """
+
+    def consume_next_chunk(self, transport):
+        """Consume the next chunk of the resource to be downloaded.
+
+        Args:
+            transport (~requests.Session): A ``requests`` object which can
+                make authenticated requests.
+
+        Returns:
+            ~requests.Response: The HTTP response returned by ``transport``.
+
+        Raises:
+            ValueError: If the current download has finished.
+        """
+        method, url, payload, headers = self._prepare_request()
+        # NOTE: We assume "payload is None" but pass it along anyway.
+        result = _helpers.http_request(
+            transport,
+            method,
+            url,
+            data=payload,
+            headers=headers,
+            stream=True,
+            retry_strategy=self._retry_strategy,
+        )
+        self._process_response(result)
+        return result
+
+
 def _get_expected_md5(response, get_headers, media_url):
     """Get the expected MD5 hash from the response headers.
 

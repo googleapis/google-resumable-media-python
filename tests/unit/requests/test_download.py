@@ -492,6 +492,84 @@ class TestChunkedDownload(object):
         assert download.total_bytes == total_bytes
 
 
+class TestRawChunkedDownload(object):
+    @staticmethod
+    def _response_content_range(start_byte, end_byte, total_bytes):
+        return u"bytes {:d}-{:d}/{:d}".format(start_byte, end_byte, total_bytes)
+
+    def _response_headers(self, start_byte, end_byte, total_bytes):
+        content_length = end_byte - start_byte + 1
+        resp_range = self._response_content_range(start_byte, end_byte, total_bytes)
+        return {
+            u"content-length": u"{:d}".format(content_length),
+            u"content-range": resp_range,
+        }
+
+    def _mock_response(
+        self, start_byte, end_byte, total_bytes, content=None, status_code=None
+    ):
+        response_headers = self._response_headers(start_byte, end_byte, total_bytes)
+        return mock.Mock(
+            _content=content,
+            headers=response_headers,
+            status_code=status_code,
+            spec=["_content", "headers", "status_code"],
+        )
+
+    def test_consume_next_chunk_already_finished(self):
+        download = download_mod.RawChunkedDownload(EXAMPLE_URL, 512, None)
+        download._finished = True
+        with pytest.raises(ValueError):
+            download.consume_next_chunk(None)
+
+    def _mock_transport(self, start, chunk_size, total_bytes, content=b""):
+        transport = mock.Mock(spec=["request"])
+        assert len(content) == chunk_size
+        transport.request.return_value = self._mock_response(
+            start,
+            start + chunk_size - 1,
+            total_bytes,
+            content=content,
+            status_code=int(http_client.OK),
+        )
+
+        return transport
+
+    def test_consume_next_chunk(self):
+        start = 1536
+        stream = io.BytesIO()
+        data = b"Just one chunk."
+        chunk_size = len(data)
+        download = download_mod.RawChunkedDownload(
+            EXAMPLE_URL, chunk_size, stream, start=start
+        )
+        total_bytes = 16384
+        transport = self._mock_transport(start, chunk_size, total_bytes, content=data)
+
+        # Verify the internal state before consuming a chunk.
+        assert not download.finished
+        assert download.bytes_downloaded == 0
+        assert download.total_bytes is None
+        # Actually consume the chunk and check the output.
+        ret_val = download.consume_next_chunk(transport)
+        assert ret_val is transport.request.return_value
+        range_bytes = u"bytes={:d}-{:d}".format(start, start + chunk_size - 1)
+        download_headers = {u"range": range_bytes}
+        transport.request.assert_called_once_with(
+            u"GET",
+            EXAMPLE_URL,
+            data=None,
+            headers=download_headers,
+            stream=True,
+            timeout=EXPECTED_TIMEOUT,
+        )
+        assert stream.getvalue() == data
+        # Go back and check the internal state after consuming the chunk.
+        assert not download.finished
+        assert download.bytes_downloaded == chunk_size
+        assert download.total_bytes == total_bytes
+
+
 class Test__get_expected_md5(object):
     @mock.patch("google.resumable_media.requests.download._LOGGER")
     def test__w_header_present(self, _LOGGER):
