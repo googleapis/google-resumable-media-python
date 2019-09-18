@@ -37,6 +37,23 @@ class TestRequestsMixin(object):
         assert body == _helpers.RequestsMixin._get_body(response)
 
 
+class TestRawRequestsMixin(object):
+    def test__get_body_wo_content_consumed(self):
+        body = b"This is the payload."
+        raw = mock.Mock(spec=["stream"])
+        raw.stream.return_value = iter([body])
+        response = mock.Mock(raw=raw, _content=False, spec=["raw", "_content"])
+        assert body == _helpers.RawRequestsMixin._get_body(response)
+        raw.stream.assert_called_once_with(
+            _helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
+        )
+
+    def test__get_body_w_content_consumed(self):
+        body = b"This is the payload."
+        response = mock.Mock(_content=body, spec=["_content"])
+        assert body == _helpers.RawRequestsMixin._get_body(response)
+
+
 def test_http_request():
     transport, responses = _make_transport(http_client.OK)
     method = u"POST"
