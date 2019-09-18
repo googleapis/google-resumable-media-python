@@ -322,7 +322,8 @@ class TestChunkedDownload(object):
         assert download.invalid
 
     def test__process_response(self):
-        chunk_size = 333
+        data = b"1234xyztL" * 37  # 9 * 37 == 33
+        chunk_size = len(data)
         stream = io.BytesIO()
         download = _download.ChunkedDownload(EXAMPLE_URL, chunk_size, stream)
         _fix_up_virtual(download)
@@ -336,7 +337,6 @@ class TestChunkedDownload(object):
         assert download.bytes_downloaded == already
         assert download.total_bytes is None
         # Actually call the method to update.
-        data = b"1234xyztL" * 37  # 9 * 37 == 33
         response = self._mock_response(
             already,
             already + chunk_size - 1,
@@ -344,6 +344,39 @@ class TestChunkedDownload(object):
             content=data,
             status_code=int(http_client.PARTIAL_CONTENT),
         )
+        download._process_response(response)
+        # Check internal state after.
+        assert not download.finished
+        assert download.bytes_downloaded == already + chunk_size
+        assert download.total_bytes == total_bytes
+        assert stream.getvalue() == data
+
+    def test__process_response_transfer_encoding(self):
+        data = b"1234xyztL" * 37
+        chunk_size = len(data)
+        stream = io.BytesIO()
+        download = _download.ChunkedDownload(EXAMPLE_URL, chunk_size, stream)
+        _fix_up_virtual(download)
+
+        already = 22
+        download._bytes_downloaded = already
+        total_bytes = 4444
+
+        # Check internal state before.
+        assert not download.finished
+        assert download.bytes_downloaded == already
+        assert download.total_bytes is None
+        assert not download.invalid
+        # Actually call the method to update.
+        response = self._mock_response(
+            already,
+            already + chunk_size - 1,
+            total_bytes,
+            content=data,
+            status_code=int(http_client.PARTIAL_CONTENT),
+        )
+        response.headers[u"transfer-encoding"] = "chunked"
+        del response.headers[u"content-length"]
         download._process_response(response)
         # Check internal state after.
         assert not download.finished
@@ -394,9 +427,10 @@ class TestChunkedDownload(object):
         assert not download.invalid
         # Actually call the method to update.
         response = mock.Mock(
-            headers={},
+            headers={u"content-range": u"bytes 0-99/99"},
             status_code=int(http_client.PARTIAL_CONTENT),
-            spec=["headers", "status_code"],
+            content=b"DEADBEEF",
+            spec=["headers", "status_code", "content"],
         )
         with pytest.raises(common.InvalidResponse) as exc_info:
             download._process_response(response)
