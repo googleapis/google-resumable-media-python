@@ -28,12 +28,12 @@ class TestRequestsMixin(object):
 
     def test__get_headers(self):
         headers = {u"fruit": u"apple"}
-        response = mock.Mock(headers=headers, spec=[u"headers"])
+        response = mock.Mock(headers=headers, spec=["headers"])
         assert headers == _helpers.RequestsMixin._get_headers(response)
 
     def test__get_body(self):
         body = b"This is the payload."
-        response = mock.Mock(content=body, spec=[u"content"])
+        response = mock.Mock(content=body, spec=["content"])
         assert body == _helpers.RequestsMixin._get_body(response)
 
 
@@ -80,11 +80,11 @@ def test_http_request_defaults():
 
 
 def _make_response(status_code):
-    return mock.Mock(status_code=status_code, spec=[u"status_code"])
+    return mock.Mock(status_code=status_code, spec=["status_code"])
 
 
 def _make_transport(*status_codes):
-    transport = mock.Mock(spec=[u"request"])
+    transport = mock.Mock(spec=["request"])
     responses = [_make_response(status_code) for status_code in status_codes]
     transport.request.side_effect = responses
     return transport, responses

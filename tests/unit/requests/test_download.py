@@ -137,7 +137,7 @@ class TestDownload(object):
         download = download_mod.Download(
             EXAMPLE_URL, stream=stream, end=end, headers=headers
         )
-        transport = mock.Mock(spec=[u"request"])
+        transport = mock.Mock(spec=["request"])
         transport.request.return_value = _mock_response(
             chunks=chunks, headers=response_headers
         )
@@ -205,7 +205,7 @@ class TestDownload(object):
         bad_checksum = u"anVzdCBub3QgdGhpcyAxLA=="
         header_value = u"crc32c=V0FUPw==,md5={}".format(bad_checksum)
         headers = {download_mod._HASH_HEADER: header_value}
-        transport = mock.Mock(spec=[u"request"])
+        transport = mock.Mock(spec=["request"])
         transport.request.return_value = _mock_response(chunks=chunks, headers=headers)
 
         assert not download.finished
@@ -265,7 +265,7 @@ class TestChunkedDownload(object):
             content=content,
             headers=response_headers,
             status_code=status_code,
-            spec=[u"content", u"headers", u"status_code"],
+            spec=["content", "headers", "status_code"],
         )
 
     def test_consume_next_chunk_already_finished(self):
@@ -275,7 +275,7 @@ class TestChunkedDownload(object):
             download.consume_next_chunk(None)
 
     def _mock_transport(self, start, chunk_size, total_bytes, content=b""):
-        transport = mock.Mock(spec=[u"request"])
+        transport = mock.Mock(spec=["request"])
         assert len(content) == chunk_size
         transport.request.return_value = self._mock_response(
             start,
@@ -375,14 +375,14 @@ def test__DoNothingHash():
 
 class Test__add_decoder(object):
     def test_non_gzipped(self):
-        response_raw = mock.Mock(headers={}, spec=[u"headers"])
+        response_raw = mock.Mock(headers={}, spec=["headers"])
         md5_hash = download_mod._add_decoder(response_raw, mock.sentinel.md5_hash)
 
         assert md5_hash is mock.sentinel.md5_hash
 
     def test_gzipped(self):
         headers = {u"content-encoding": u"gzip"}
-        response_raw = mock.Mock(headers=headers, spec=[u"headers", u"_decoder"])
+        response_raw = mock.Mock(headers=headers, spec=["headers", "_decoder"])
         md5_hash = download_mod._add_decoder(response_raw, mock.sentinel.md5_hash)
 
         assert md5_hash is not mock.sentinel.md5_hash
@@ -412,7 +412,7 @@ def _mock_response(status_code=http_client.OK, chunks=(), headers=None):
         headers = {}
 
     if chunks:
-        mock_raw = mock.Mock(headers=headers, spec=[u"headers"])
+        mock_raw = mock.Mock(headers=headers, spec=["headers"])
         response = mock.MagicMock(
             headers=headers,
             status_code=int(status_code),
@@ -435,5 +435,5 @@ def _mock_response(status_code=http_client.OK, chunks=(), headers=None):
         return mock.Mock(
             headers=headers,
             status_code=int(status_code),
-            spec=[u"status_code", u"headers"],
+            spec=["status_code", "headers"],
         )
