@@ -19,7 +19,8 @@ import pytest
 from six.moves import http_client
 
 from google.resumable_media import common
-import google.resumable_media.requests.download as download_mod
+from google.resumable_media.requests import download as download_mod
+from google.resumable_media.requests import _helpers
 
 
 EXAMPLE_URL = (
@@ -47,7 +48,7 @@ class TestDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.iter_content.assert_called_once_with(
-            chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+            chunk_size=_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
         )
 
     def test__write_to_stream_with_hash_check_success(self):
@@ -70,7 +71,7 @@ class TestDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.iter_content.assert_called_once_with(
-            chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+            chunk_size=_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
         )
 
     def test__write_to_stream_with_hash_check_fail(self):
@@ -103,7 +104,7 @@ class TestDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.iter_content.assert_called_once_with(
-            chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+            chunk_size=_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
         )
 
     def _consume_helper(
@@ -150,7 +151,7 @@ class TestDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.iter_content.assert_called_once_with(
-            chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+            chunk_size=_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
         )
 
     def test_consume_with_stream_hash_check_success(self):
@@ -169,7 +170,7 @@ class TestDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.iter_content.assert_called_once_with(
-            chunk_size=download_mod._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+            chunk_size=_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
         )
 
     def test_consume_with_stream_hash_check_fail(self):
@@ -182,6 +183,201 @@ class TestDownload(object):
         headers = {download_mod._HASH_HEADER: header_value}
         transport = mock.Mock(spec=["request"])
         transport.request.return_value = _mock_response(chunks=chunks, headers=headers)
+
+        assert not download.finished
+        with pytest.raises(common.DataCorruption) as exc_info:
+            download.consume(transport)
+
+        assert stream.getvalue() == b"".join(chunks)
+        assert download.finished
+        assert download._headers == {}
+
+        error = exc_info.value
+        assert error.response is transport.request.return_value
+        assert len(error.args) == 1
+        good_checksum = u"1A/dxEpys717C6FH7FIWDw=="
+        msg = download_mod._CHECKSUM_MISMATCH.format(
+            EXAMPLE_URL, bad_checksum, good_checksum
+        )
+        assert error.args[0] == msg
+
+        # Check mocks.
+        transport.request.assert_called_once_with(
+            u"GET",
+            EXAMPLE_URL,
+            data=None,
+            headers={},
+            stream=True,
+            timeout=EXPECTED_TIMEOUT,
+        )
+
+    def test_consume_with_headers(self):
+        headers = {}  # Empty headers
+        end = 16383
+        self._consume_helper(end=end, headers=headers)
+        range_bytes = u"bytes={:d}-{:d}".format(0, end)
+        # Make sure the headers have been modified.
+        assert headers == {u"range": range_bytes}
+
+
+class TestRawDownload(object):
+    def test__write_to_stream_no_hash_check(self):
+        stream = io.BytesIO()
+        download = download_mod.RawDownload(EXAMPLE_URL, stream=stream)
+
+        chunk1 = b"right now, "
+        chunk2 = b"but a little later"
+        response = _mock_raw_response(chunks=[chunk1, chunk2], headers={})
+
+        ret_val = download._write_to_stream(response)
+        assert ret_val is None
+
+        assert stream.getvalue() == chunk1 + chunk2
+
+        # Check mocks.
+        response.__enter__.assert_called_once_with()
+        response.__exit__.assert_called_once_with(None, None, None)
+        response.raw.stream.assert_called_once_with(
+            _helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
+        )
+
+    def test__write_to_stream_with_hash_check_success(self):
+        stream = io.BytesIO()
+        download = download_mod.RawDownload(EXAMPLE_URL, stream=stream)
+
+        chunk1 = b"first chunk, count starting at 0. "
+        chunk2 = b"second chunk, or chunk 1, which is better? "
+        chunk3 = b"ordinals and numerals and stuff."
+        header_value = u"crc32c=qmNCyg==,md5=fPAJHnnoi/+NadyNxT2c2w=="
+        headers = {download_mod._HASH_HEADER: header_value}
+        response = _mock_raw_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
+
+        ret_val = download._write_to_stream(response)
+        assert ret_val is None
+
+        assert stream.getvalue() == chunk1 + chunk2 + chunk3
+
+        # Check mocks.
+        response.__enter__.assert_called_once_with()
+        response.__exit__.assert_called_once_with(None, None, None)
+        response.raw.stream.assert_called_once_with(
+            _helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
+        )
+
+    def test__write_to_stream_with_hash_check_fail(self):
+        stream = io.BytesIO()
+        download = download_mod.RawDownload(EXAMPLE_URL, stream=stream)
+
+        chunk1 = b"first chunk, count starting at 0. "
+        chunk2 = b"second chunk, or chunk 1, which is better? "
+        chunk3 = b"ordinals and numerals and stuff."
+        bad_checksum = u"d3JvbmcgbiBtYWRlIHVwIQ=="
+        header_value = u"crc32c=V0FUPw==,md5={}".format(bad_checksum)
+        headers = {download_mod._HASH_HEADER: header_value}
+        response = _mock_raw_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
+
+        with pytest.raises(common.DataCorruption) as exc_info:
+            download._write_to_stream(response)
+
+        assert not download.finished
+
+        error = exc_info.value
+        assert error.response is response
+        assert len(error.args) == 1
+        good_checksum = u"fPAJHnnoi/+NadyNxT2c2w=="
+        msg = download_mod._CHECKSUM_MISMATCH.format(
+            EXAMPLE_URL, bad_checksum, good_checksum
+        )
+        assert error.args[0] == msg
+
+        # Check mocks.
+        response.__enter__.assert_called_once_with()
+        response.__exit__.assert_called_once_with(None, None, None)
+        response.raw.stream.assert_called_once_with(
+            _helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
+        )
+
+    def _consume_helper(
+        self, stream=None, end=65536, headers=None, chunks=(), response_headers=None
+    ):
+        download = download_mod.RawDownload(
+            EXAMPLE_URL, stream=stream, end=end, headers=headers
+        )
+        transport = mock.Mock(spec=["request"])
+        transport.request.return_value = _mock_raw_response(
+            chunks=chunks, headers=response_headers
+        )
+
+        assert not download.finished
+        ret_val = download.consume(transport)
+        assert ret_val is transport.request.return_value
+
+        if chunks:
+            assert stream is not None
+        transport.request.assert_called_once_with(
+            u"GET",
+            EXAMPLE_URL,
+            data=None,
+            headers=download._headers,
+            stream=True,
+            timeout=EXPECTED_TIMEOUT,
+        )
+
+        range_bytes = u"bytes={:d}-{:d}".format(0, end)
+        assert download._headers[u"range"] == range_bytes
+        assert download.finished
+
+        return transport
+
+    def test_consume(self):
+        self._consume_helper()
+
+    def test_consume_with_stream(self):
+        stream = io.BytesIO()
+        chunks = (b"up down ", b"charlie ", b"brown")
+        transport = self._consume_helper(stream=stream, chunks=chunks)
+
+        assert stream.getvalue() == b"".join(chunks)
+
+        # Check mocks.
+        response = transport.request.return_value
+        response.__enter__.assert_called_once_with()
+        response.__exit__.assert_called_once_with(None, None, None)
+        response.raw.stream.assert_called_once_with(
+            _helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
+        )
+
+    def test_consume_with_stream_hash_check_success(self):
+        stream = io.BytesIO()
+        chunks = (b"up down ", b"charlie ", b"brown")
+        header_value = u"md5=JvS1wjMvfbCXgEGeaJJLDQ=="
+        headers = {download_mod._HASH_HEADER: header_value}
+        transport = self._consume_helper(
+            stream=stream, chunks=chunks, response_headers=headers
+        )
+
+        assert stream.getvalue() == b"".join(chunks)
+
+        # Check mocks.
+        response = transport.request.return_value
+        response.__enter__.assert_called_once_with()
+        response.__exit__.assert_called_once_with(None, None, None)
+        response.raw.stream.assert_called_once_with(
+            _helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
+        )
+
+    def test_consume_with_stream_hash_check_fail(self):
+        stream = io.BytesIO()
+        download = download_mod.RawDownload(EXAMPLE_URL, stream=stream)
+
+        chunks = (b"zero zero", b"niner tango")
+        bad_checksum = u"anVzdCBub3QgdGhpcyAxLA=="
+        header_value = u"crc32c=V0FUPw==,md5={}".format(bad_checksum)
+        headers = {download_mod._HASH_HEADER: header_value}
+        transport = mock.Mock(spec=["request"])
+        transport.request.return_value = _mock_raw_response(
+            chunks=chunks, headers=headers
+        )
 
         assert not download.finished
         with pytest.raises(common.DataCorruption) as exc_info:
@@ -445,3 +641,28 @@ def _mock_response(status_code=http_client.OK, chunks=(), headers=None):
             status_code=int(status_code),
             spec=["status_code", "headers"],
         )
+
+
+def _mock_raw_response(status_code=http_client.OK, chunks=(), headers=None):
+    if headers is None:
+        headers = {}
+
+    mock_raw = mock.Mock(headers=headers, spec=["stream"])
+    mock_raw.stream.return_value = iter(chunks)
+    response = mock.MagicMock(
+        headers=headers,
+        status_code=int(status_code),
+        raw=mock_raw,
+        spec=[
+            u"__enter__",
+            u"__exit__",
+            u"iter_content",
+            u"status_code",
+            u"headers",
+            u"raw",
+        ],
+    )
+    # i.e. context manager returns ``self``.
+    response.__enter__.return_value = response
+    response.__exit__.return_value = None
+    return response
