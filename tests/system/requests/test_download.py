@@ -21,10 +21,9 @@ import os
 import google.auth
 import google.auth.transport.requests as tr_requests
 import pytest
-from google.resumable_media import common
 from six.moves import http_client
 
-from google import resumable_media
+from google.resumable_media import common
 import google.resumable_media.requests as resumable_requests
 import google.resumable_media.requests.download as download_mod
 from tests.system import utils
@@ -34,6 +33,13 @@ CURR_DIR = os.path.dirname(os.path.realpath(__file__))
 DATA_DIR = os.path.join(CURR_DIR, u"..", u"..", u"data")
 PLAIN_TEXT = u"text/plain"
 IMAGE_JPEG = u"image/jpeg"
+ENCRYPTED_ERR = b"The target object is encrypted by a customer-supplied encryption key."
+NO_BODY_ERR = u"The content for this response was already consumed"
+NOT_FOUND_ERR = (
+    b"No such object: " + utils.BUCKET_NAME.encode("utf-8") + b"/does-not-exist.txt"
+)
+
+
 ALL_FILES = (
     {
         u"path": os.path.realpath(os.path.join(DATA_DIR, u"image1.jpg")),
@@ -72,39 +78,44 @@ ALL_FILES = (
         u"metadata": {u"contentEncoding": u"gzip"},
     },
 )
-ENCRYPTED_ERR = b"The target object is encrypted by a customer-supplied encryption key."
-NO_BODY_ERR = u"The content for this response was already consumed"
-NOT_FOUND_ERR = (
-    b"No such object: " + utils.BUCKET_NAME.encode("utf-8") + b"/does-not-exist.txt"
-)
 
 
-class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
-    """A Requests Session class with credentials, which corrupts responses.
+def get_contents_for_upload(info):
+    with open(info[u"path"], u"rb") as file_obj:
+        return file_obj.read()
 
-    This class is used for testing checksum validation.
 
-    Args:
-        credentials (google.auth.credentials.Credentials): The credentials to
-            add to the request.
-        refresh_status_codes (Sequence[int]): Which HTTP status codes indicate
-            that credentials should be refreshed and the request should be
-            retried.
-        max_refresh_attempts (int): The maximum number of times to attempt to
-            refresh the credentials and retry the request.
-        kwargs: Additional arguments passed to the :class:`requests.Session`
-            constructor.
-    """
+def get_contents(info):
+    full_path = info.get(u"uncompressed", info[u"path"])
+    with open(full_path, u"rb") as file_obj:
+        return file_obj.read()
 
-    EMPTY_HASH = base64.b64encode(hashlib.md5(b"").digest()).decode(u"utf-8")
 
-    def request(self, method, url, data=None, headers=None, **kwargs):
-        """Implementation of Requests' request."""
-        response = tr_requests.AuthorizedSession.request(
-            self, method, url, data=data, headers=headers, **kwargs
-        )
-        response.headers[download_mod._HASH_HEADER] = u"md5={}".format(self.EMPTY_HASH)
-        return response
+def get_blob_name(info):
+    full_path = info.get(u"uncompressed", info[u"path"])
+    return os.path.basename(full_path)
+
+
+def delete_blob(transport, blob_name):
+    metadata_url = utils.METADATA_URL_TEMPLATE.format(blob_name=blob_name)
+    response = transport.delete(metadata_url)
+    assert response.status_code == http_client.NO_CONTENT
+
+
+@pytest.fixture(scope=u"module")
+def secret_file(authorized_transport, bucket):
+    blob_name = u"super-seekrit.txt"
+    data = b"Please do not tell anyone my encrypted seekrit."
+
+    upload_url = utils.SIMPLE_UPLOAD_TEMPLATE.format(blob_name=blob_name)
+    headers = utils.get_encryption_headers()
+    upload = resumable_requests.SimpleUpload(upload_url, headers=headers)
+    response = upload.transmit(authorized_transport, data, PLAIN_TEXT)
+    assert response.status_code == http_client.OK
+
+    yield blob_name, data, headers
+
+    delete_blob(authorized_transport, blob_name)
 
 
 # Transport that returns corrupt data, so we can exercise checksum handling.
@@ -114,34 +125,26 @@ def corrupting_transport():
     yield CorruptingAuthorizedSession(credentials)
 
 
-def delete_blob(transport, blob_name):
-    metadata_url = utils.METADATA_URL_TEMPLATE.format(blob_name=blob_name)
-    response = transport.delete(metadata_url)
-    assert response.status_code == http_client.NO_CONTENT
+@pytest.fixture(scope=u"module")
+def simple_file(authorized_transport, bucket):
+    blob_name = u"basic-file.txt"
+    upload_url = utils.SIMPLE_UPLOAD_TEMPLATE.format(blob_name=blob_name)
+    upload = resumable_requests.SimpleUpload(upload_url)
+    data = b"Simple contents"
+    response = upload.transmit(authorized_transport, data, PLAIN_TEXT)
+    assert response.status_code == http_client.OK
 
+    yield blob_name, data
 
-def _get_contents_for_upload(info):
-    with open(info[u"path"], u"rb") as file_obj:
-        return file_obj.read()
-
-
-def _get_contents(info):
-    full_path = info.get(u"uncompressed", info[u"path"])
-    with open(full_path, u"rb") as file_obj:
-        return file_obj.read()
-
-
-def _get_blob_name(info):
-    full_path = info.get(u"uncompressed", info[u"path"])
-    return os.path.basename(full_path)
+    delete_blob(authorized_transport, blob_name)
 
 
 @pytest.fixture(scope=u"module")
 def add_files(authorized_transport, bucket):
     blob_names = []
     for info in ALL_FILES:
-        to_upload = _get_contents_for_upload(info)
-        blob_name = _get_blob_name(info)
+        to_upload = get_contents_for_upload(info)
+        blob_name = get_blob_name(info)
 
         blob_names.append(blob_name)
         if u"metadata" in info:
@@ -179,10 +182,49 @@ def check_tombstoned(download, transport):
         assert exc_info.match(u"Download has finished.")
 
 
+def check_error_response(exc_info, status_code, message):
+    error = exc_info.value
+    response = error.response
+    assert response.status_code == status_code
+    assert response.content.startswith(message)
+    assert len(error.args) == 5
+    assert error.args[1] == status_code
+    assert error.args[3] == http_client.OK
+    assert error.args[4] == http_client.PARTIAL_CONTENT
+
+
+class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
+    """A Requests Session class with credentials, which corrupts responses.
+
+    This class is used for testing checksum validation.
+
+    Args:
+        credentials (google.auth.credentials.Credentials): The credentials to
+            add to the request.
+        refresh_status_codes (Sequence[int]): Which HTTP status codes indicate
+            that credentials should be refreshed and the request should be
+            retried.
+        max_refresh_attempts (int): The maximum number of times to attempt to
+            refresh the credentials and retry the request.
+        kwargs: Additional arguments passed to the :class:`requests.Session`
+            constructor.
+    """
+
+    EMPTY_HASH = base64.b64encode(hashlib.md5(b"").digest()).decode(u"utf-8")
+
+    def request(self, method, url, data=None, headers=None, **kwargs):
+        """Implementation of Requests' request."""
+        response = tr_requests.AuthorizedSession.request(
+            self, method, url, data=data, headers=headers, **kwargs
+        )
+        response.headers[download_mod._HASH_HEADER] = u"md5={}".format(self.EMPTY_HASH)
+        return response
+
+
 def test_download_full(add_files, authorized_transport):
     for info in ALL_FILES:
-        actual_contents = _get_contents(info)
-        blob_name = _get_blob_name(info)
+        actual_contents = get_contents(info)
+        blob_name = get_blob_name(info)
 
         # Create the actual download object.
         media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
@@ -196,8 +238,8 @@ def test_download_full(add_files, authorized_transport):
 
 def test_download_to_stream(add_files, authorized_transport):
     for info in ALL_FILES:
-        actual_contents = _get_contents(info)
-        blob_name = _get_blob_name(info)
+        actual_contents = get_contents(info)
+        blob_name = get_blob_name(info)
 
         # Create the actual download object.
         media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
@@ -218,7 +260,7 @@ def test_download_to_stream(add_files, authorized_transport):
 @pytest.mark.xfail  # See: #76
 def test_corrupt_download(add_files, corrupting_transport):
     for info in ALL_FILES:
-        blob_name = _get_blob_name(info)
+        blob_name = get_blob_name(info)
 
         # Create the actual download object.
         media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
@@ -237,33 +279,6 @@ def test_corrupt_download(add_files, corrupting_transport):
         assert exc_info.value.args == (msg,)
 
 
-@pytest.fixture(scope=u"module")
-def secret_file(authorized_transport, bucket):
-    blob_name = u"super-seekrit.txt"
-    data = b"Please do not tell anyone my encrypted seekrit."
-
-    upload_url = utils.SIMPLE_UPLOAD_TEMPLATE.format(blob_name=blob_name)
-    headers = utils.get_encryption_headers()
-    upload = resumable_requests.SimpleUpload(upload_url, headers=headers)
-    response = upload.transmit(authorized_transport, data, PLAIN_TEXT)
-    assert response.status_code == http_client.OK
-
-    yield blob_name, data, headers
-
-    delete_blob(authorized_transport, blob_name)
-
-
-def check_error_response(exc_info, status_code, message):
-    error = exc_info.value
-    response = error.response
-    assert response.status_code == status_code
-    assert response.content.startswith(message)
-    assert len(error.args) == 5
-    assert error.args[1] == status_code
-    assert error.args[3] == http_client.OK
-    assert error.args[4] == http_client.PARTIAL_CONTENT
-
-
 def test_extra_headers(authorized_transport, secret_file):
     blob_name, data, headers = secret_file
     # Create the actual download object.
@@ -276,7 +291,7 @@ def test_extra_headers(authorized_transport, secret_file):
     check_tombstoned(download, authorized_transport)
     # Attempt to consume the resource **without** the headers.
     download_wo = resumable_requests.Download(media_url)
-    with pytest.raises(resumable_media.InvalidResponse) as exc_info:
+    with pytest.raises(common.InvalidResponse) as exc_info:
         download_wo.consume(authorized_transport)
 
     check_error_response(exc_info, http_client.BAD_REQUEST, ENCRYPTED_ERR)
@@ -289,24 +304,10 @@ def test_non_existent_file(authorized_transport, bucket):
     download = resumable_requests.Download(media_url)
 
     # Try to consume the resource and fail.
-    with pytest.raises(resumable_media.InvalidResponse) as exc_info:
+    with pytest.raises(common.InvalidResponse) as exc_info:
         download.consume(authorized_transport)
     check_error_response(exc_info, http_client.NOT_FOUND, NOT_FOUND_ERR)
     check_tombstoned(download, authorized_transport)
-
-
-@pytest.fixture(scope=u"module")
-def simple_file(authorized_transport, bucket):
-    blob_name = u"basic-file.txt"
-    upload_url = utils.SIMPLE_UPLOAD_TEMPLATE.format(blob_name=blob_name)
-    upload = resumable_requests.SimpleUpload(upload_url)
-    data = b"Simple contents"
-    response = upload.transmit(authorized_transport, data, PLAIN_TEXT)
-    assert response.status_code == http_client.OK
-
-    yield blob_name, data
-
-    delete_blob(authorized_transport, blob_name)
 
 
 def test_bad_range(simple_file, authorized_transport):
@@ -320,7 +321,7 @@ def test_bad_range(simple_file, authorized_transport):
     download = resumable_requests.Download(media_url, start=start, end=end)
 
     # Try to consume the resource and fail.
-    with pytest.raises(resumable_media.InvalidResponse) as exc_info:
+    with pytest.raises(common.InvalidResponse) as exc_info:
         download.consume(authorized_transport)
 
     check_error_response(
@@ -343,8 +344,8 @@ def _download_slice(media_url, slice_):
 
 def test_download_partial(add_files, authorized_transport):
     for info in ALL_FILES:
-        actual_contents = _get_contents(info)
-        blob_name = _get_blob_name(info)
+        actual_contents = get_contents(info)
+        blob_name = get_blob_name(info)
 
         media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
         for slice_ in info[u"slices"]:
@@ -394,8 +395,8 @@ def consume_chunks(download, authorized_transport, total_bytes, actual_contents)
 @pytest.mark.xfail  # See issue #56
 def test_chunked_download(add_files, authorized_transport):
     for info in ALL_FILES:
-        actual_contents = _get_contents(info)
-        blob_name = _get_blob_name(info)
+        actual_contents = get_contents(info)
+        blob_name = get_blob_name(info)
 
         total_bytes = len(actual_contents)
         num_chunks, chunk_size = get_chunk_size(7, total_bytes)
@@ -419,8 +420,8 @@ def test_chunked_download(add_files, authorized_transport):
 
 def test_chunked_download_partial(add_files, authorized_transport):
     for info in ALL_FILES:
-        actual_contents = _get_contents(info)
-        blob_name = _get_blob_name(info)
+        actual_contents = get_contents(info)
+        blob_name = get_blob_name(info)
 
         media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
         for slice_ in info[u"slices"]:
@@ -487,7 +488,7 @@ def test_chunked_with_extra_headers(authorized_transport, secret_file):
     # Attempt to consume the resource **without** the headers.
     stream_wo = io.BytesIO()
     download_wo = resumable_requests.ChunkedDownload(media_url, chunk_size, stream_wo)
-    with pytest.raises(resumable_media.InvalidResponse) as exc_info:
+    with pytest.raises(common.InvalidResponse) as exc_info:
         download_wo.consume_next_chunk(authorized_transport)
 
     assert stream_wo.tell() == 0
