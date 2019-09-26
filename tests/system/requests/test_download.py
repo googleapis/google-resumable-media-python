@@ -437,34 +437,13 @@ class TestChunkedDownload(object):
     def _make_one(self, media_url, chunk_size, stream, **kw):
         return self._get_target_class()(media_url, chunk_size, stream, **kw)
 
-    @pytest.mark.xfail  # See issue #56
-    def test_chunked_download(self, add_files, authorized_transport):
-        for info in ALL_FILES:
-            actual_contents = get_contents(info)
-            blob_name = get_blob_name(info)
-
-            total_bytes = len(actual_contents)
-            num_chunks, chunk_size = get_chunk_size(7, total_bytes)
-            # Create the actual download object.
-            media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
-            stream = io.BytesIO()
-            download = self._make_one(media_url, chunk_size, stream)
-            # Consume the resource in chunks.
-            num_responses, last_response = consume_chunks(
-                download, authorized_transport, total_bytes, actual_contents
-            )
-            # Make sure the combined chunks are the whole object.
-            assert stream.getvalue() == actual_contents
-            # Check that we have the right number of responses.
-            assert num_responses == num_chunks
-            # Make sure the last chunk isn't the same size.
-            assert total_bytes % chunk_size != 0
-            assert len(last_response.content) < chunk_size
-            check_tombstoned(download, authorized_transport)
+    @staticmethod
+    def _get_contents(info):
+        return get_contents(info)
 
     def test_chunked_download_partial(self, add_files, authorized_transport):
         for info in ALL_FILES:
-            actual_contents = get_contents(info)
+            actual_contents = self._get_contents(info)
             blob_name = get_blob_name(info)
 
             media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
@@ -535,3 +514,38 @@ class TestChunkedDownload(object):
         assert stream_wo.tell() == 0
         check_error_response(exc_info, http_client.BAD_REQUEST, ENCRYPTED_ERR)
         assert download_wo.invalid
+
+
+class TestRawChunkedDownload(TestChunkedDownload):
+
+    @staticmethod
+    def _get_target_class():
+        return resumable_requests.RawChunkedDownload
+
+    @staticmethod
+    def _get_contents(info):
+        return get_raw_contents(info)
+
+    def test_chunked_download_full(self, add_files, authorized_transport):
+        for info in ALL_FILES:
+            actual_contents = self._get_contents(info)
+            blob_name = get_blob_name(info)
+
+            total_bytes = len(actual_contents)
+            num_chunks, chunk_size = get_chunk_size(7, total_bytes)
+            # Create the actual download object.
+            media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
+            stream = io.BytesIO()
+            download = self._make_one(media_url, chunk_size, stream)
+            # Consume the resource in chunks.
+            num_responses, last_response = consume_chunks(
+                download, authorized_transport, total_bytes, actual_contents
+            )
+            # Make sure the combined chunks are the whole object.
+            assert stream.getvalue() == actual_contents
+            # Check that we have the right number of responses.
+            assert num_responses == num_chunks
+            # Make sure the last chunk isn't the same size.
+            assert total_bytes % chunk_size != 0
+            assert len(last_response.content) < chunk_size
+            check_tombstoned(download, authorized_transport)
