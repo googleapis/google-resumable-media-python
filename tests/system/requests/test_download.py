@@ -25,6 +25,7 @@ from six.moves import http_client
 
 from google.resumable_media import common
 import google.resumable_media.requests as resumable_requests
+from google.resumable_media.requests import _helpers
 import google.resumable_media.requests.download as download_mod
 from tests.system import utils
 
@@ -38,6 +39,7 @@ NO_BODY_ERR = u"The content for this response was already consumed"
 NOT_FOUND_ERR = (
     b"No such object: " + utils.BUCKET_NAME.encode("utf-8") + b"/does-not-exist.txt"
 )
+SIMPLE_DOWNLOADS = (resumable_requests.Download, resumable_requests.RawDownload)
 
 
 class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
@@ -97,7 +99,7 @@ ALL_FILES = (
     {
         u"path": get_path(u"file.txt"),
         u"content_type": PLAIN_TEXT,
-        u"checksum": u"KHRs/+ZSrc/FuuR4qz/PZQ==",
+        u"checksum": u"XHSHAr/SpIeZtZbjgQ4nGw==",
         u"slices": (),
     },
     {
@@ -118,6 +120,12 @@ def get_contents_for_upload(info):
 
 def get_contents(info):
     full_path = info.get(u"uncompressed", info[u"path"])
+    with open(full_path, u"rb") as file_obj:
+        return file_obj.read()
+
+
+def get_raw_contents(info):
+    full_path = info[u"path"]
     with open(full_path, u"rb") as file_obj:
         return file_obj.read()
 
@@ -200,9 +208,10 @@ def add_files(authorized_transport, bucket):
     for blob_name in blob_names:
         delete_blob(authorized_transport, blob_name)
 
+
 def check_tombstoned(download, transport):
     assert download.finished
-    if isinstance(download, resumable_requests.Download):
+    if isinstance(download, SIMPLE_DOWNLOADS):
         with pytest.raises(ValueError) as exc_info:
             download.consume(transport)
         assert exc_info.match(u"A download can only be used once.")
@@ -232,9 +241,17 @@ class TestDownload(object):
     def _make_one(self, media_url, **kw):
         return self._get_target_class()(media_url, **kw)
 
+    @staticmethod
+    def _get_contents(info):
+        return get_contents(info)
+
+    @staticmethod
+    def _read_response_content(response):
+        return response.content
+
     def test_download_full(self, add_files, authorized_transport):
         for info in ALL_FILES:
-            actual_contents = get_contents(info)
+            actual_contents = self._get_contents(info)
             blob_name = get_blob_name(info)
 
             # Create the actual download object.
@@ -243,12 +260,12 @@ class TestDownload(object):
             # Consume the resource.
             response = download.consume(authorized_transport)
             assert response.status_code == http_client.OK
-            assert response.content == actual_contents
+            assert self._read_response_content(response) == actual_contents
             check_tombstoned(download, authorized_transport)
 
     def test_download_to_stream(self, add_files, authorized_transport):
         for info in ALL_FILES:
-            actual_contents = get_contents(info)
+            actual_contents = self._get_contents(info)
             blob_name = get_blob_name(info)
 
             # Create the actual download object.
@@ -265,27 +282,6 @@ class TestDownload(object):
             assert response._content_consumed is True
             assert stream.getvalue() == actual_contents
             check_tombstoned(download, authorized_transport)
-
-    @pytest.mark.xfail  # See: #76
-    def test_corrupt_download(self, add_files, corrupting_transport):
-        for info in ALL_FILES:
-            blob_name = get_blob_name(info)
-
-            # Create the actual download object.
-            media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
-            stream = io.BytesIO()
-            download = self._make_one(media_url, stream=stream)
-            # Consume the resource.
-            with pytest.raises(common.DataCorruption) as exc_info:
-                download.consume(corrupting_transport)
-
-            assert download.finished
-            msg = download_mod._CHECKSUM_MISMATCH.format(
-                download.media_url,
-                CorruptingAuthorizedSession.EMPTY_HASH,
-                info[u"checksum"],
-            )
-            assert exc_info.value.args == (msg,)
 
     def test_extra_headers(self, authorized_transport, secret_file):
         blob_name, data, headers = secret_file
@@ -348,7 +344,7 @@ class TestDownload(object):
 
     def test_download_partial(self, add_files, authorized_transport):
         for info in ALL_FILES:
-            actual_contents = get_contents(info)
+            actual_contents = self._get_contents(info)
             blob_name = get_blob_name(info)
 
             media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
@@ -359,6 +355,42 @@ class TestDownload(object):
                 assert response.content == actual_contents[slice_]
                 with pytest.raises(ValueError):
                     download.consume(authorized_transport)
+
+
+class TestRawDownload(TestDownload):
+
+    @staticmethod
+    def _get_target_class():
+        return resumable_requests.RawDownload
+
+    @staticmethod
+    def _get_contents(info):
+        return get_raw_contents(info)
+
+    @staticmethod
+    def _read_response_content(response):
+        return b''.join(response.raw.stream(
+        _helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False))
+
+    def test_corrupt_download(self, add_files, corrupting_transport):
+        for info in ALL_FILES:
+            blob_name = get_blob_name(info)
+
+            # Create the actual download object.
+            media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
+            stream = io.BytesIO()
+            download = self._make_one(media_url, stream=stream)
+            # Consume the resource.
+            with pytest.raises(common.DataCorruption) as exc_info:
+                download.consume(corrupting_transport)
+
+            assert download.finished
+            msg = download_mod._CHECKSUM_MISMATCH.format(
+                download.media_url,
+                CorruptingAuthorizedSession.EMPTY_HASH,
+                info[u"checksum"],
+            )
+            assert exc_info.value.args == (msg,)
 
 
 def get_chunk_size(min_chunks, total_bytes):

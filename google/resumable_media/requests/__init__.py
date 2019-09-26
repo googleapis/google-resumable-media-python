@@ -661,6 +661,7 @@ transmitted in chunks until completion:
 from google.resumable_media.requests.download import ChunkedDownload
 from google.resumable_media.requests.download import Download
 from google.resumable_media.requests.upload import MultipartUpload
+from google.resumable_media.requests.download import RawDownload
 from google.resumable_media.requests.upload import ResumableUpload
 from google.resumable_media.requests.upload import SimpleUpload
 
@@ -669,6 +670,7 @@ __all__ = [
     u"ChunkedDownload",
     u"Download",
     u"MultipartUpload",
+    u"RawDownload",
     u"ResumableUpload",
     u"SimpleUpload",
 ]
