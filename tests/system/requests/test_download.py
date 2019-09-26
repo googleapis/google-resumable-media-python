@@ -73,6 +73,7 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
 def get_path(filename):
     return os.path.realpath(os.path.join(DATA_DIR, filename))
 
+
 ALL_FILES = (
     {
         u"path": get_path(u"image1.jpg"),
@@ -233,7 +234,6 @@ def check_error_response(exc_info, status_code, message):
 
 
 class TestDownload(object):
-
     @staticmethod
     def _get_target_class():
         return resumable_requests.Download
@@ -358,7 +358,6 @@ class TestDownload(object):
 
 
 class TestRawDownload(TestDownload):
-
     @staticmethod
     def _get_target_class():
         return resumable_requests.RawDownload
@@ -369,8 +368,9 @@ class TestRawDownload(TestDownload):
 
     @staticmethod
     def _read_response_content(response):
-        return b''.join(response.raw.stream(
-        _helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False))
+        return b"".join(
+            response.raw.stream(_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False)
+        )
 
     def test_corrupt_download(self, add_files, corrupting_transport):
         for info in ALL_FILES:
@@ -429,7 +429,6 @@ def consume_chunks(download, authorized_transport, total_bytes, actual_contents)
 
 
 class TestChunkedDownload(object):
-
     @staticmethod
     def _get_target_class():
         return resumable_requests.ChunkedDownload
@@ -507,7 +506,9 @@ class TestChunkedDownload(object):
         check_tombstoned(download, authorized_transport)
         # Attempt to consume the resource **without** the headers.
         stream_wo = io.BytesIO()
-        download_wo = resumable_requests.ChunkedDownload(media_url, chunk_size, stream_wo)
+        download_wo = resumable_requests.ChunkedDownload(
+            media_url, chunk_size, stream_wo
+        )
         with pytest.raises(common.InvalidResponse) as exc_info:
             download_wo.consume_next_chunk(authorized_transport)
 
@@ -517,7 +518,6 @@ class TestChunkedDownload(object):
 
 
 class TestRawChunkedDownload(TestChunkedDownload):
-
     @staticmethod
     def _get_target_class():
         return resumable_requests.RawChunkedDownload
