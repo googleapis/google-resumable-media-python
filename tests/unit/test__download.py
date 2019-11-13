@@ -155,10 +155,19 @@ class TestDownload(object):
         # Make sure **finished** even after a failure.
         assert download.finished
 
-    def test_consume(self):
+    def test_consume_defaults(self):
         download = _download.Download(EXAMPLE_URL)
+
         with pytest.raises(NotImplementedError) as exc_info:
             download.consume(None)
+
+        exc_info.match(u"virtual")
+
+    def test_consume_explicit_response_callback(self):
+        download = _download.Download(EXAMPLE_URL)
+
+        with pytest.raises(NotImplementedError) as exc_info:
+            download.consume(None, response_callback=object())
 
         exc_info.match(u"virtual")
 
@@ -594,10 +603,19 @@ class TestChunkedDownload(object):
         assert download.bytes_downloaded == 0
         assert download.total_bytes is None
 
-    def test_consume_next_chunk(self):
+    def test_consume_next_chunk_defaults(self):
         download = _download.ChunkedDownload(EXAMPLE_URL, 256, None)
+
         with pytest.raises(NotImplementedError) as exc_info:
             download.consume_next_chunk(None)
+
+        exc_info.match(u"virtual")
+
+    def test_consume_next_chunk_explicit_response_callback(self):
+        download = _download.ChunkedDownload(EXAMPLE_URL, 256, None)
+
+        with pytest.raises(NotImplementedError) as exc_info:
+            download.consume_next_chunk(None, response_callback=object())
 
         exc_info.match(u"virtual")
 

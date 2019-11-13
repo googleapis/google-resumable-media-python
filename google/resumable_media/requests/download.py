@@ -119,7 +119,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
             )
             raise common.DataCorruption(response, msg)
 
-    def consume(self, transport):
+    def consume(self, transport, response_callback=None):
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded
@@ -128,6 +128,8 @@ class Download(_helpers.RequestsMixin, _download.Download):
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
+            response_callback (Callable[object]->None): callback for
+                response object:  allows callers access to response metadata.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -148,14 +150,17 @@ class Download(_helpers.RequestsMixin, _download.Download):
         if self._stream is not None:
             request_kwargs[u"stream"] = True
 
-        result = _helpers.http_request(transport, method, url, **request_kwargs)
+        response = _helpers.http_request(transport, method, url, **request_kwargs)
 
-        self._process_response(result)
+        if response_callback is not None:
+            response_callback(response)
+
+        self._process_response(response)
 
         if self._stream is not None:
-            self._write_to_stream(result)
+            self._write_to_stream(response)
 
-        return result
+        return response
 
 
 class RawDownload(_helpers.RawRequestsMixin, _download.Download):
@@ -231,7 +236,7 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
             )
             raise common.DataCorruption(response, msg)
 
-    def consume(self, transport):
+    def consume(self, transport, response_callback=None):
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded
@@ -240,6 +245,8 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
+            response_callback (Callable[object]->None): callback for
+                response object:  allows callers access to response metadata.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -252,7 +259,7 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
         """
         method, url, payload, headers = self._prepare_request()
         # NOTE: We assume "payload is None" but pass it along anyway.
-        result = _helpers.http_request(
+        response = _helpers.http_request(
             transport,
             method,
             url,
@@ -262,12 +269,15 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
             stream=True,
         )
 
-        self._process_response(result)
+        if response_callback is not None:
+            response_callback(response)
+
+        self._process_response(response)
 
         if self._stream is not None:
-            self._write_to_stream(result)
+            self._write_to_stream(response)
 
-        return result
+        return response
 
 
 class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
@@ -298,12 +308,15 @@ class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
         ValueError: If ``start`` is negative.
     """
 
-    def consume_next_chunk(self, transport):
+    def consume_next_chunk(self, transport, response_callback=None):
         """Consume the next chunk of the resource to be downloaded.
 
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
+            response_callback (Callable[object]->None): callback for
+                each chunk's response object:  allows callers access
+                to response metadata.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -313,7 +326,7 @@ class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
         """
         method, url, payload, headers = self._prepare_request()
         # NOTE: We assume "payload is None" but pass it along anyway.
-        result = _helpers.http_request(
+        response = _helpers.http_request(
             transport,
             method,
             url,
@@ -321,8 +334,13 @@ class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
             headers=headers,
             retry_strategy=self._retry_strategy,
         )
-        self._process_response(result)
-        return result
+
+        if response_callback is not None:
+            response_callback(response)
+
+        self._process_response(response)
+
+        return response
 
 
 class RawChunkedDownload(_helpers.RawRequestsMixin, _download.ChunkedDownload):
@@ -353,12 +371,15 @@ class RawChunkedDownload(_helpers.RawRequestsMixin, _download.ChunkedDownload):
         ValueError: If ``start`` is negative.
     """
 
-    def consume_next_chunk(self, transport):
+    def consume_next_chunk(self, transport, response_callback=None):
         """Consume the next chunk of the resource to be downloaded.
 
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
+            response_callback (Callable[object]->None): callback for
+                each chunk's response object:  allows callers access
+                to response metadata.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -368,7 +389,7 @@ class RawChunkedDownload(_helpers.RawRequestsMixin, _download.ChunkedDownload):
         """
         method, url, payload, headers = self._prepare_request()
         # NOTE: We assume "payload is None" but pass it along anyway.
-        result = _helpers.http_request(
+        response = _helpers.http_request(
             transport,
             method,
             url,
@@ -377,8 +398,13 @@ class RawChunkedDownload(_helpers.RawRequestsMixin, _download.ChunkedDownload):
             stream=True,
             retry_strategy=self._retry_strategy,
         )
-        self._process_response(result)
-        return result
+
+        if response_callback is not None:
+            response_callback(response)
+
+        self._process_response(response)
+
+        return response
 
 
 def _get_expected_md5(response, get_headers, media_url):

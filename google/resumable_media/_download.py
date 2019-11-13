@@ -171,7 +171,7 @@ class Download(DownloadBase):
             response, _ACCEPTABLE_STATUS_CODES, self._get_status_code
         )
 
-    def consume(self, transport):
+    def consume(self, transport, response_callback=None):
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded
@@ -180,6 +180,8 @@ class Download(DownloadBase):
         Args:
             transport (object): An object which can make authenticated
                 requests.
+            response_callback (Callable[object]->None): callback for
+                response object:  allows callers access to response metadata.
 
         Raises:
             NotImplementedError: Always, since virtual.
@@ -398,12 +400,15 @@ class ChunkedDownload(DownloadBase):
         # Write the response body to the stream.
         self._stream.write(response_body)
 
-    def consume_next_chunk(self, transport):
+    def consume_next_chunk(self, transport, response_callback=None):
         """Consume the next chunk of the resource to be downloaded.
 
         Args:
             transport (object): An object which can make authenticated
                 requests.
+            response_callback (Callable[object]->None): callback for
+                each chunk's response object:  allows callers access
+                to response metadata.
 
         Raises:
             NotImplementedError: Always, since virtual.

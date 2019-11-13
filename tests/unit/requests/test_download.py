@@ -108,18 +108,31 @@ class TestDownload(object):
         )
 
     def _consume_helper(
-        self, stream=None, end=65536, headers=None, chunks=(), response_headers=None
+        self,
+        stream=None,
+        end=65536,
+        headers=None,
+        chunks=(),
+        response_headers=None,
+        use_response_callback=False,
     ):
         download = download_mod.Download(
             EXAMPLE_URL, stream=stream, end=end, headers=headers
         )
         transport = mock.Mock(spec=["request"])
-        transport.request.return_value = _mock_response(
+        response = transport.request.return_value = _mock_response(
             chunks=chunks, headers=response_headers
         )
 
         assert not download.finished
-        ret_val = download.consume(transport)
+
+        callback = mock.Mock()
+
+        if use_response_callback:
+            ret_val = download.consume(transport, response_callback=callback)
+        else:
+            ret_val = download.consume(transport)
+
         assert ret_val is transport.request.return_value
 
         called_kwargs = {u"data": None, u"headers": download._headers}
@@ -134,10 +147,16 @@ class TestDownload(object):
         assert download._headers[u"range"] == range_bytes
         assert download.finished
 
+        if use_response_callback:
+            callback.assert_called_once_with(response)
+
         return transport
 
     def test_consume(self):
         self._consume_helper()
+
+    def test_consume_w_response_callback(self):
+        self._consume_helper(use_response_callback=True)
 
     def test_consume_with_stream(self):
         stream = io.BytesIO()
@@ -298,18 +317,31 @@ class TestRawDownload(object):
         )
 
     def _consume_helper(
-        self, stream=None, end=65536, headers=None, chunks=(), response_headers=None
+        self,
+        stream=None,
+        end=65536,
+        headers=None,
+        chunks=(),
+        response_headers=None,
+        use_response_callback=False,
     ):
         download = download_mod.RawDownload(
             EXAMPLE_URL, stream=stream, end=end, headers=headers
         )
         transport = mock.Mock(spec=["request"])
-        transport.request.return_value = _mock_raw_response(
+        response = transport.request.return_value = _mock_raw_response(
             chunks=chunks, headers=response_headers
         )
 
         assert not download.finished
-        ret_val = download.consume(transport)
+
+        callback = mock.Mock()
+
+        if use_response_callback:
+            ret_val = download.consume(transport, response_callback=callback)
+        else:
+            ret_val = download.consume(transport)
+
         assert ret_val is transport.request.return_value
 
         if chunks:
@@ -327,10 +359,16 @@ class TestRawDownload(object):
         assert download._headers[u"range"] == range_bytes
         assert download.finished
 
+        if use_response_callback:
+            callback.assert_called_once_with(response)
+
         return transport
 
     def test_consume(self):
         self._consume_helper()
+
+    def test_consume_w_response_callback(self):
+        self._consume_helper(use_response_callback=True)
 
     def test_consume_with_stream(self):
         stream = io.BytesIO()
@@ -458,7 +496,7 @@ class TestChunkedDownload(object):
 
         return transport
 
-    def test_consume_next_chunk(self):
+    def _consume_next_chunk_helper(self, use_response_callback=False):
         start = 1536
         stream = io.BytesIO()
         data = b"Just one chunk."
@@ -468,14 +506,23 @@ class TestChunkedDownload(object):
         )
         total_bytes = 16384
         transport = self._mock_transport(start, chunk_size, total_bytes, content=data)
+        response = transport.request.return_value
 
         # Verify the internal state before consuming a chunk.
         assert not download.finished
         assert download.bytes_downloaded == 0
         assert download.total_bytes is None
+
+        callback = mock.Mock()
+
         # Actually consume the chunk and check the output.
-        ret_val = download.consume_next_chunk(transport)
+        if use_response_callback:
+            ret_val = download.consume_next_chunk(transport, response_callback=callback)
+        else:
+            ret_val = download.consume_next_chunk(transport)
+
         assert ret_val is transport.request.return_value
+
         range_bytes = u"bytes={:d}-{:d}".format(start, start + chunk_size - 1)
         download_headers = {u"range": range_bytes}
         transport.request.assert_called_once_with(
@@ -490,6 +537,15 @@ class TestChunkedDownload(object):
         assert not download.finished
         assert download.bytes_downloaded == chunk_size
         assert download.total_bytes == total_bytes
+
+        if use_response_callback:
+            callback.assert_called_once_with(response)
+
+    def test_consume_next_chunk(self):
+        self._consume_next_chunk_helper()
+
+    def test_consume_next_chunk_w_response_callback(self):
+        self._consume_next_chunk_helper(use_response_callback=True)
 
 
 class TestRawChunkedDownload(object):
@@ -535,7 +591,7 @@ class TestRawChunkedDownload(object):
 
         return transport
 
-    def test_consume_next_chunk(self):
+    def _consume_next_chunk_helper(self, use_response_callback=False):
         start = 1536
         stream = io.BytesIO()
         data = b"Just one chunk."
@@ -545,14 +601,23 @@ class TestRawChunkedDownload(object):
         )
         total_bytes = 16384
         transport = self._mock_transport(start, chunk_size, total_bytes, content=data)
+        response = transport.request.return_value
 
         # Verify the internal state before consuming a chunk.
         assert not download.finished
         assert download.bytes_downloaded == 0
         assert download.total_bytes is None
+
+        callback = mock.Mock()
+
         # Actually consume the chunk and check the output.
-        ret_val = download.consume_next_chunk(transport)
+        if use_response_callback:
+            ret_val = download.consume_next_chunk(transport, response_callback=callback)
+        else:
+            ret_val = download.consume_next_chunk(transport)
+
         assert ret_val is transport.request.return_value
+
         range_bytes = u"bytes={:d}-{:d}".format(start, start + chunk_size - 1)
         download_headers = {u"range": range_bytes}
         transport.request.assert_called_once_with(
@@ -568,6 +633,15 @@ class TestRawChunkedDownload(object):
         assert not download.finished
         assert download.bytes_downloaded == chunk_size
         assert download.total_bytes == total_bytes
+
+        if use_response_callback:
+            callback.assert_called_once_with(response)
+
+    def test_consume_next_chunk(self):
+        self._consume_next_chunk_helper()
+
+    def test_consume_next_chunk_w_response_callback(self):
+        self._consume_next_chunk_helper(use_response_callback=True)
 
 
 class Test__get_expected_md5(object):
