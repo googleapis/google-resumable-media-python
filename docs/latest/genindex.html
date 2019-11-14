@@ -9,7 +9,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Index &mdash; google-resumable-media 0.4.1 documentation</title>
+  <title>Index &mdash; google-resumable-media 0.5.0 documentation</title>
   
 
   
@@ -59,7 +59,7 @@
             
             
               <div class="version">
-                0.4.1
+                0.5.0
               </div>
             
           
@@ -185,7 +185,11 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.ChunkedDownload.bytes_downloaded">bytes_downloaded() (google.resumable_media.requests.download.ChunkedDownload property)</a>
+
+      <ul>
+        <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.RawChunkedDownload.bytes_downloaded">(google.resumable_media.requests.download.RawChunkedDownload property)</a>
 </li>
+      </ul></li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="google.resumable_media.requests.upload.html#google.resumable_media.requests.upload.ResumableUpload.bytes_uploaded">bytes_uploaded() (google.resumable_media.requests.upload.ResumableUpload property)</a>
@@ -197,17 +201,29 @@
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.ChunkedDownload.chunk_size">chunk_size (google.resumable_media.requests.download.ChunkedDownload attribute)</a>
+
+      <ul>
+        <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.RawChunkedDownload.chunk_size">(google.resumable_media.requests.download.RawChunkedDownload attribute)</a>
 </li>
+      </ul></li>
       <li><a href="google.resumable_media.requests.upload.html#google.resumable_media.requests.upload.ResumableUpload.chunk_size">chunk_size() (google.resumable_media.requests.upload.ResumableUpload property)</a>
+</li>
+      <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.ChunkedDownload">ChunkedDownload (class in google.resumable_media.requests.download)</a>
 </li>
   </ul></td>
   <td style="width: 33%; vertical-align: top;"><ul>
-      <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.ChunkedDownload">ChunkedDownload (class in google.resumable_media.requests.download)</a>
-</li>
       <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.Download.consume">consume() (google.resumable_media.requests.download.Download method)</a>
+
+      <ul>
+        <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.RawDownload.consume">(google.resumable_media.requests.download.RawDownload method)</a>
 </li>
+      </ul></li>
       <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.ChunkedDownload.consume_next_chunk">consume_next_chunk() (google.resumable_media.requests.download.ChunkedDownload method)</a>
+
+      <ul>
+        <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.RawChunkedDownload.consume_next_chunk">(google.resumable_media.requests.download.RawChunkedDownload method)</a>
 </li>
+      </ul></li>
   </ul></td>
 </tr></table>
 
@@ -231,6 +247,10 @@
       <ul>
         <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.Download.end">(google.resumable_media.requests.download.Download attribute)</a>
 </li>
+        <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.RawChunkedDownload.end">(google.resumable_media.requests.download.RawChunkedDownload attribute)</a>
+</li>
+        <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.RawDownload.end">(google.resumable_media.requests.download.RawDownload attribute)</a>
+</li>
       </ul></li>
   </ul></td>
 </tr></table>
@@ -242,6 +262,10 @@
 
       <ul>
         <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.Download.finished">(google.resumable_media.requests.download.Download property)</a>
+</li>
+        <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.RawChunkedDownload.finished">(google.resumable_media.requests.download.RawChunkedDownload property)</a>
+</li>
+        <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.RawDownload.finished">(google.resumable_media.requests.download.RawDownload property)</a>
 </li>
         <li><a href="google.resumable_media.requests.upload.html#google.resumable_media.requests.upload.MultipartUpload.finished">(google.resumable_media.requests.upload.MultipartUpload property)</a>
 </li>
@@ -279,6 +303,8 @@
       <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.ChunkedDownload.invalid">invalid() (google.resumable_media.requests.download.ChunkedDownload property)</a>
 
       <ul>
+        <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.RawChunkedDownload.invalid">(google.resumable_media.requests.download.RawChunkedDownload property)</a>
+</li>
         <li><a href="google.resumable_media.requests.upload.html#google.resumable_media.requests.upload.ResumableUpload.invalid">(google.resumable_media.requests.upload.ResumableUpload property)</a>
 </li>
       </ul></li>
@@ -300,14 +326,18 @@
 </li>
       <li><a href="google.resumable_media.common.html#google.resumable_media.common.RetryStrategy.max_sleep">max_sleep (google.resumable_media.common.RetryStrategy attribute)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="google.resumable_media.common.html#google.resumable_media.common.MAX_SLEEP">MAX_SLEEP (in module google.resumable_media.common)</a>
 </li>
+  </ul></td>
+  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.ChunkedDownload.media_url">media_url (google.resumable_media.requests.download.ChunkedDownload attribute)</a>
 
       <ul>
         <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.Download.media_url">(google.resumable_media.requests.download.Download attribute)</a>
+</li>
+        <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.RawChunkedDownload.media_url">(google.resumable_media.requests.download.RawChunkedDownload attribute)</a>
+</li>
+        <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.RawDownload.media_url">(google.resumable_media.requests.download.RawDownload attribute)</a>
 </li>
       </ul></li>
       <li><a href="google.resumable_media.requests.upload.html#google.resumable_media.requests.upload.MultipartUpload">MultipartUpload (class in google.resumable_media.requests.upload)</a>
@@ -326,6 +356,10 @@
 <h2 id="R">R</h2>
 <table style="width: 100%" class="indextable genindextable"><tr>
   <td style="width: 33%; vertical-align: top;"><ul>
+      <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.RawChunkedDownload">RawChunkedDownload (class in google.resumable_media.requests.download)</a>
+</li>
+      <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.RawDownload">RawDownload (class in google.resumable_media.requests.download)</a>
+</li>
       <li><a href="google.resumable_media.requests.upload.html#google.resumable_media.requests.upload.ResumableUpload.recover">recover() (google.resumable_media.requests.upload.ResumableUpload method)</a>
 </li>
       <li><a href="google.resumable_media.common.html#google.resumable_media.common.DataCorruption.response">response (google.resumable_media.common.DataCorruption attribute)</a>
@@ -352,12 +386,14 @@
   <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="google.resumable_media.requests.upload.html#google.resumable_media.requests.upload.SimpleUpload">SimpleUpload (class in google.resumable_media.requests.upload)</a>
 </li>
-  </ul></td>
-  <td style="width: 33%; vertical-align: top;"><ul>
       <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.ChunkedDownload.start">start (google.resumable_media.requests.download.ChunkedDownload attribute)</a>
 
       <ul>
         <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.Download.start">(google.resumable_media.requests.download.Download attribute)</a>
+</li>
+        <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.RawChunkedDownload.start">(google.resumable_media.requests.download.RawChunkedDownload attribute)</a>
+</li>
+        <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.RawDownload.start">(google.resumable_media.requests.download.RawDownload attribute)</a>
 </li>
       </ul></li>
   </ul></td>
@@ -371,6 +407,8 @@
       <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.ChunkedDownload.total_bytes">total_bytes() (google.resumable_media.requests.download.ChunkedDownload property)</a>
 
       <ul>
+        <li><a href="google.resumable_media.requests.download.html#google.resumable_media.requests.download.RawChunkedDownload.total_bytes">(google.resumable_media.requests.download.RawChunkedDownload property)</a>
+</li>
         <li><a href="google.resumable_media.requests.upload.html#google.resumable_media.requests.upload.ResumableUpload.total_bytes">(google.resumable_media.requests.upload.ResumableUpload property)</a>
 </li>
       </ul></li>

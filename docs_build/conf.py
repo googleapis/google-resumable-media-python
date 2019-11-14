@@ -181,5 +181,5 @@ texinfo_documents = [
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3.6', None),
-    'requests': ('http://requests.kennethreitz.org/en/stable', None),
+    'requests': ('https://requests.readthedocs.org/en/latest', None),
 }
