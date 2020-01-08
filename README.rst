@@ -10,11 +10,11 @@ See the `docs`_ for examples and usage.
 
 Supported Python Versions
 -------------------------
-Python >= 3.4
+Python >= 3.5
 
 Deprecated Python Versions
 --------------------------
-Python == 2.7. Python 2.7 support will be removed on January 1, 2020.
+Python == 2.7. Python 2.7 support was removed on January 1, 2020.
 
 License
 -------
