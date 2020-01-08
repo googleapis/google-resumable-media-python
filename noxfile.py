@@ -24,7 +24,7 @@ SYSTEM_TEST_ENV_VARS = (
 GOOGLE_AUTH = 'google-auth >= 0.10.0'
 
 
-@nox.session(python=['3.5', '3.6', '3.7'])
+@nox.session(python=['2.7', '3.5', '3.6', '3.7'])
 def unit_tests(session):
     """Run the unit test suite."""
 
@@ -119,7 +119,7 @@ def blacken(session):
     session.run("black", os.path.join("google", "resumable_media"), "tests")
 
 
-@nox.session(python=['3.6'])
+@nox.session(python=['2.7', '3.6'])
 def system_tests(session):
     """Run the system test suite."""
 
