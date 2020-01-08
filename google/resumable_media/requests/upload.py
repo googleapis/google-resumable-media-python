@@ -329,6 +329,7 @@ class ResumableUpload(_helpers.RequestsMixin, _upload.ResumableUpload):
         content_type,
         total_bytes=None,
         stream_final=True,
+        timeout=(_helpers._DEFAULT_CONNECT_TIMEOUT, _helpers._DEFAULT_READ_TIMEOUT),
     ):
         """Initiate a resumable upload.
 
@@ -360,6 +361,13 @@ class ResumableUpload(_helpers.RequestsMixin, _upload.ResumableUpload):
                 "final" (i.e. no more bytes will be added to it). In this case
                 we determine the upload size from the size of the stream. If
                 ``total_bytes`` is passed, this argument will be ignored.
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -378,11 +386,16 @@ class ResumableUpload(_helpers.RequestsMixin, _upload.ResumableUpload):
             data=payload,
             headers=headers,
             retry_strategy=self._retry_strategy,
+            timeout=timeout,
         )
         self._process_initiate_response(response)
         return response
 
-    def transmit_next_chunk(self, transport):
+    def transmit_next_chunk(
+        self,
+        transport,
+        timeout=(_helpers._DEFAULT_CONNECT_TIMEOUT, _helpers._DEFAULT_READ_TIMEOUT),
+    ):
         """Transmit the next chunk of the resource to be uploaded.
 
         If the current upload was initiated with ``stream_final=False``,
@@ -436,6 +449,13 @@ class ResumableUpload(_helpers.RequestsMixin, _upload.ResumableUpload):
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -452,6 +472,7 @@ class ResumableUpload(_helpers.RequestsMixin, _upload.ResumableUpload):
             data=payload,
             headers=headers,
             retry_strategy=self._retry_strategy,
+            timeout=timeout,
         )
         self._process_response(response, len(payload))
         return response
