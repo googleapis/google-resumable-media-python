@@ -114,6 +114,44 @@ class TestMultipartUpload(object):
         assert upload.finished
         mock_get_boundary.assert_called_once_with()
 
+    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==4==")
+    def test_transmit_w_custom_timeout(self, mock_get_boundary):
+        data = b"Mock data here and there."
+        metadata = {u"Hey": u"You", u"Guys": u"90909"}
+        content_type = BASIC_CONTENT
+        upload = upload_mod.MultipartUpload(MULTIPART_URL)
+        transport = mock.Mock(spec=["request"])
+        transport.request.return_value = _make_response()
+
+        upload.transmit(transport, data, metadata, content_type, timeout=12.6)
+
+        expected_payload = b"".join(
+            (
+                b"--==4==\r\n",
+                JSON_TYPE_LINE,
+                b"\r\n",
+                json.dumps(metadata).encode(u"utf-8"),
+                b"\r\n",
+                b"--==4==\r\n",
+                b"content-type: text/plain\r\n",
+                b"\r\n",
+                b"Mock data here and there.\r\n",
+                b"--==4==--",
+            )
+        )
+        multipart_type = b'multipart/related; boundary="==4=="'
+        upload_headers = {u"content-type": multipart_type}
+
+        transport.request.assert_called_once_with(
+            u"POST",
+            MULTIPART_URL,
+            data=expected_payload,
+            headers=upload_headers,
+            timeout=12.6,
+        )
+        assert upload.finished
+        mock_get_boundary.assert_called_once_with()
+
 
 class TestResumableUpload(object):
     def test_initiate(self):
