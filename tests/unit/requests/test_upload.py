@@ -62,6 +62,20 @@ class TestSimpleUpload(object):
         )
         assert upload.finished
 
+    def test_transmit_w_custom_timeout(self):
+        data = b"I have got a lovely bunch of coconuts."
+        content_type = BASIC_CONTENT
+        upload = upload_mod.SimpleUpload(SIMPLE_URL)
+        transport = mock.Mock(spec=["request"])
+        transport.request.return_value = _make_response()
+
+        upload.transmit(transport, data, content_type, timeout=12.6)
+
+        expected_headers = {u"content-type": content_type}
+        transport.request.assert_called_once_with(
+            u"POST", SIMPLE_URL, data=data, headers=expected_headers, timeout=12.6,
+        )
+
 
 class TestMultipartUpload(object):
     @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==4==")

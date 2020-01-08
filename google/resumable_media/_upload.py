@@ -198,7 +198,7 @@ class SimpleUpload(UploadBase):
         self._headers[_CONTENT_TYPE_HEADER] = content_type
         return _POST, self.upload_url, data, self._headers
 
-    def transmit(self, transport, data, content_type):
+    def transmit(self, transport, data, content_type, timeout=None):
         """Transmit the resource to be uploaded.
 
         Args:
@@ -207,6 +207,13 @@ class SimpleUpload(UploadBase):
             data (bytes): The resource content to be uploaded.
             content_type (str): The content type of the resource, e.g. a JPEG
                 image has content type ``image/jpeg``.
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
 
         Raises:
             NotImplementedError: Always, since virtual.

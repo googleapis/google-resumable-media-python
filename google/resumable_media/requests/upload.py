@@ -38,7 +38,13 @@ class SimpleUpload(_helpers.RequestsMixin, _upload.SimpleUpload):
         upload_url (str): The URL where the content will be uploaded.
     """
 
-    def transmit(self, transport, data, content_type):
+    def transmit(
+        self,
+        transport,
+        data,
+        content_type,
+        timeout=(_helpers._DEFAULT_CONNECT_TIMEOUT, _helpers._DEFAULT_READ_TIMEOUT),
+    ):
         """Transmit the resource to be uploaded.
 
         Args:
@@ -47,6 +53,13 @@ class SimpleUpload(_helpers.RequestsMixin, _upload.SimpleUpload):
             data (bytes): The resource content to be uploaded.
             content_type (str): The content type of the resource, e.g. a JPEG
                 image has content type ``image/jpeg``.
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -59,6 +72,7 @@ class SimpleUpload(_helpers.RequestsMixin, _upload.SimpleUpload):
             data=payload,
             headers=headers,
             retry_strategy=self._retry_strategy,
+            timeout=timeout,
         )
         self._process_response(response)
         return response
