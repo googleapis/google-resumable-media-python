@@ -41,30 +41,10 @@ _CONTENT_RANGE_TEMPLATE = u"bytes {:d}-{:d}/{:d}"
 _RANGE_UNKNOWN_TEMPLATE = u"bytes {:d}-{:d}/*"
 _EMPTY_RANGE_TEMPLATE = u"bytes */{:d}"
 _BOUNDARY_WIDTH = len(str(sys.maxsize - 1))
-_BOUNDARY_FORMAT = b"===============%%0%dd==" % _BOUNDARY_WIDTH
+_BOUNDARY_FORMAT = u"==============={{:0{:d}d}}==".format(_BOUNDARY_WIDTH)
 _MULTIPART_SEP = b"--"
 _CRLF = b"\r\n"
 _MULTIPART_BEGIN = b"\r\ncontent-type: application/json; charset=UTF-8\r\n\r\n"
-_MULTIPART_CONTENT_TEMPLATE = (
-    b"%%(boundary_sep)b"
-    b"%(MULTIPART_BEGIN)b"
-    b"%%(metadata_json_bytes)b"
-    b"%(CRLF)b"
-    b"%%(boundary_sep)b"
-    b"%(CRLF)b"
-    b"content-type: "
-    b"%%(content_type)b"
-    b"%(CRLF)b"
-    b"%(CRLF)b"
-    b"%%(data)b"  # Empty line between headers and body.
-    b"%(CRLF)b"
-    b"%%(boundary_sep)b"
-    b"%(MULTIPART_SEP)b"
-) % {
-    b"MULTIPART_BEGIN": _MULTIPART_BEGIN,
-    b"CRLF": _CRLF,
-    b"MULTIPART_SEP": _MULTIPART_SEP,
-}
 _RELATED_HEADER = b'multipart/related; boundary="'
 _BYTES_RANGE_RE = re.compile(r"bytes=0-(?P<end_byte>\d+)", flags=re.IGNORECASE)
 _STREAM_ERROR_TEMPLATE = (
@@ -761,7 +741,11 @@ def get_boundary():
     Returns:
         bytes: The boundary used to separate parts of a multipart request.
     """
-    return _BOUNDARY_FORMAT % random.randrange(sys.maxsize)
+    random_int = random.randrange(sys.maxsize)
+    boundary = _BOUNDARY_FORMAT.format(random_int)
+    # NOTE: Neither % formatting nor .format() are available for byte strings
+    #       in Python 3.4, so we must use unicode strings as templates.
+    return boundary.encode(u"utf-8")
 
 
 def construct_multipart_request(data, metadata, content_type):
@@ -780,16 +764,27 @@ def construct_multipart_request(data, metadata, content_type):
         between each part.
     """
     multipart_boundary = get_boundary()
-    boundary_sep = _MULTIPART_SEP + multipart_boundary
-    metadata_json_bytes = json.dumps(metadata).encode(u"utf-8")
+    json_bytes = json.dumps(metadata).encode(u"utf-8")
     content_type = content_type.encode(u"utf-8")
-
-    content = _MULTIPART_CONTENT_TEMPLATE % {
-        b"boundary_sep": boundary_sep,
-        b"metadata_json_bytes": metadata_json_bytes,
-        b"content_type": content_type,
-        b"data": data,
-    }
+    # Combine the two parts into a multipart payload.
+    # NOTE: We'd prefer a bytes template but are restricted by Python 3.4.
+    boundary_sep = _MULTIPART_SEP + multipart_boundary
+    content = (
+        boundary_sep
+        + _MULTIPART_BEGIN
+        + json_bytes
+        + _CRLF
+        + boundary_sep
+        + _CRLF
+        + b"content-type: "
+        + content_type
+        + _CRLF
+        + _CRLF
+        + data  # Empty line between headers and body.
+        + _CRLF
+        + boundary_sep
+        + _MULTIPART_SEP
+    )
 
     return content, multipart_boundary
 
