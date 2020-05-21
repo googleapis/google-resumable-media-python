@@ -24,8 +24,8 @@ SYSTEM_TEST_ENV_VARS = (
 GOOGLE_AUTH = 'google-auth >= 0.10.0'
 
 
-@nox.session(python=['2.7', '3.4', '3.5', '3.6', '3.7'])
-def unit_tests(session):
+@nox.session(python=['2.7', '3.5', '3.6', '3.7', '3.8'])
+def unit(session):
     """Run the unit test suite."""
 
     # Install all test dependencies, then install this package in-place.
@@ -35,7 +35,7 @@ def unit_tests(session):
     # Run py.test against the unit tests.
     # NOTE: We don't require 100% line coverage for unit test runs since
     #       some have branches that are Py2/Py3 specific.
-    line_coverage = '--cov-fail-under=99'
+    line_coverage = '--cov-fail-under=0'
     session.run(
         'py.test',
         '--cov=google.resumable_media',
@@ -49,7 +49,7 @@ def unit_tests(session):
     )
 
 
-@nox.session(python='3.6')
+@nox.session(python='3.8')
 def docs(session):
     """Build the docs."""
 
@@ -66,7 +66,7 @@ def docs(session):
     session.run('bash', os.path.join('scripts', 'build_docs.sh'))
 
 
-@nox.session(python='3.6')
+@nox.session(python='3.8')
 def doctest(session):
     """Run the doctests."""
     # Install Sphinx and other dependencies.
@@ -88,7 +88,7 @@ def doctest(session):
     )
 
 
-@nox.session(python='3.6')
+@nox.session(python='3.8')
 def lint(session):
     """Run flake8.
 
@@ -105,7 +105,7 @@ def lint(session):
     session.run("black", "--check", os.path.join("google", "resumable_media"), "tests")
 
 
-@nox.session(python='3.6')
+@nox.session(python='3.8')
 def lint_setup_py(session):
     """Verify that setup.py is valid (including RST check)."""
     session.install('docutils', 'Pygments')
@@ -113,14 +113,14 @@ def lint_setup_py(session):
         'python', 'setup.py', 'check', '--restructuredtext', '--strict')
 
 
-@nox.session(python='3.6')
+@nox.session(python='3.8')
 def blacken(session):
     session.install("black")
     session.run("black", os.path.join("google", "resumable_media"), "tests")
 
 
-@nox.session(python=['2.7', '3.6'])
-def system_tests(session):
+@nox.session(python=['2.7', '3.8'])
+def system(session):
     """Run the system test suite."""
 
     # Sanity check: environment variables are set.
@@ -148,7 +148,7 @@ def system_tests(session):
     )
 
 
-@nox.session(python='3.6')
+@nox.session(python='3.8')
 def cover(session):
     """Run the final coverage report.
 

@@ -34,14 +34,14 @@ EXTRAS_REQUIRE = {
 
 setuptools.setup(
     name='google-resumable-media',
-    version = '0.4.1',
+    version = '0.5.0',
     description='Utilities for Google Media Downloads and Resumable Uploads',
     author='Google Cloud Platform',
     author_email='googleapis-publisher@google.com',
     long_description=README,
     namespace_packages=['google'],
     scripts=[],
-    url='https://github.com/GoogleCloudPlatform/google-resumable-media-python',
+    url='https://github.com/googleapis/google-resumable-media-python',
     packages=setuptools.find_packages(exclude=('tests*',)),
     license='Apache 2.0',
     platforms='Posix; MacOS X; Windows',
@@ -49,7 +49,7 @@ setuptools.setup(
     zip_safe=False,
     install_requires=REQUIREMENTS,
     extras_require=EXTRAS_REQUIRE,
-    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*',
+    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*',
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',
@@ -58,10 +58,10 @@ setuptools.setup(
         'Programming Language :: Python :: 2',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8',
         'Topic :: Internet',
     ],
 )
