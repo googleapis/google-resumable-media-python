@@ -861,7 +861,7 @@ class Test_get_next_chunk(object):
             _upload.get_next_chunk(stream, 1, 0)
         exc_info.match(u"Stream specified as empty, but produced non-empty content.")
 
-    def test_read_past_known_size(self):
+    def test_success_known_size_lt_stream_size(self):
         data = b"0123456789"
         stream = io.BytesIO(data)
         chunk_size = 3
