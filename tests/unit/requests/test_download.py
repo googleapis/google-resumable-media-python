@@ -101,8 +101,7 @@ class TestDownload(object):
         else:
             good_checksum = u"qmNCyg=="
         msg = download_mod._CHECKSUM_MISMATCH.format(
-            EXAMPLE_URL, bad_checksum, good_checksum,
-            checksum_type=checksum.upper()
+            EXAMPLE_URL, bad_checksum, good_checksum, checksum_type=checksum.upper()
         )
         assert error.args[0] == msg
 
@@ -114,8 +113,13 @@ class TestDownload(object):
         )
 
     def _consume_helper(
-        self, stream=None, end=65536, headers=None, chunks=(),
-        response_headers=None, checksum="md5"
+        self,
+        stream=None,
+        end=65536,
+        headers=None,
+        chunks=(),
+        response_headers=None,
+        checksum="md5",
     ):
         download = download_mod.Download(
             EXAMPLE_URL, stream=stream, end=end, headers=headers
@@ -151,7 +155,8 @@ class TestDownload(object):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
         transport = self._consume_helper(
-            stream=stream, chunks=chunks, checksum=checksum)
+            stream=stream, chunks=chunks, checksum=checksum
+        )
 
         assert stream.getvalue() == b"".join(chunks)
 
@@ -170,8 +175,7 @@ class TestDownload(object):
         header_value = u"crc32c=UNIQxg==,md5=JvS1wjMvfbCXgEGeaJJLDQ=="
         headers = {download_mod._HASH_HEADER: header_value}
         transport = self._consume_helper(
-            stream=stream, chunks=chunks, response_headers=headers,
-            checksum=checksum
+            stream=stream, chunks=chunks, response_headers=headers, checksum=checksum
         )
 
         assert stream.getvalue() == b"".join(chunks)
@@ -212,8 +216,7 @@ class TestDownload(object):
         else:
             good_checksum = u"GvNZlg=="
         msg = download_mod._CHECKSUM_MISMATCH.format(
-            EXAMPLE_URL, bad_checksum, good_checksum,
-            checksum_type=checksum.upper()
+            EXAMPLE_URL, bad_checksum, good_checksum, checksum_type=checksum.upper()
         )
         assert error.args[0] == msg
 
@@ -307,8 +310,7 @@ class TestRawDownload(object):
         else:
             good_checksum = u"qmNCyg=="
         msg = download_mod._CHECKSUM_MISMATCH.format(
-            EXAMPLE_URL, bad_checksum, good_checksum,
-            checksum_type=checksum.upper()
+            EXAMPLE_URL, bad_checksum, good_checksum, checksum_type=checksum.upper()
         )
         assert error.args[0] == msg
 
@@ -320,8 +322,13 @@ class TestRawDownload(object):
         )
 
     def _consume_helper(
-        self, stream=None, end=65536, headers=None, chunks=(),
-        response_headers=None, checksum=None
+        self,
+        stream=None,
+        end=65536,
+        headers=None,
+        chunks=(),
+        response_headers=None,
+        checksum=None,
     ):
         download = download_mod.RawDownload(
             EXAMPLE_URL, stream=stream, end=end, headers=headers
@@ -360,7 +367,8 @@ class TestRawDownload(object):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
         transport = self._consume_helper(
-            stream=stream, chunks=chunks, checksum=checksum)
+            stream=stream, chunks=chunks, checksum=checksum
+        )
 
         assert stream.getvalue() == b"".join(chunks)
 
@@ -379,8 +387,7 @@ class TestRawDownload(object):
         header_value = u"crc32c=UNIQxg==,md5=JvS1wjMvfbCXgEGeaJJLDQ=="
         headers = {download_mod._HASH_HEADER: header_value}
         transport = self._consume_helper(
-            stream=stream, chunks=chunks, response_headers=headers,
-            checksum=checksum
+            stream=stream, chunks=chunks, response_headers=headers, checksum=checksum
         )
 
         assert stream.getvalue() == b"".join(chunks)
@@ -423,8 +430,7 @@ class TestRawDownload(object):
         else:
             good_checksum = u"GvNZlg=="
         msg = download_mod._CHECKSUM_MISMATCH.format(
-            EXAMPLE_URL, bad_checksum, good_checksum,
-            checksum_type=checksum.upper()
+            EXAMPLE_URL, bad_checksum, good_checksum, checksum_type=checksum.upper()
         )
         assert error.args[0] == msg
 
@@ -606,12 +612,8 @@ class Test__get_expected_checksum(object):
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
     @mock.patch("google.resumable_media.requests.download._LOGGER")
     def test__w_header_present(self, _LOGGER, checksum):
-        checksums = {
-            "md5": u"b2twdXNodGhpc2J1dHRvbg==",
-            "crc32c": u"3q2+7w=="
-        }
-        header_value = u"crc32c={},md5={}".format(
-            checksums["crc32c"], checksums["md5"])
+        checksums = {"md5": u"b2twdXNodGhpc2J1dHRvbg==", "crc32c": u"3q2+7w=="}
+        header_value = u"crc32c={},md5={}".format(checksums["crc32c"], checksums["md5"])
         headers = {download_mod._HASH_HEADER: header_value}
         response = _mock_response(headers=headers)
 
@@ -638,7 +640,8 @@ class Test__get_expected_checksum(object):
         )
         assert expected_checksum is None
         expected_msg = download_mod._MISSING_CHECKSUM.format(
-            EXAMPLE_URL, checksum_type=checksum.upper())
+            EXAMPLE_URL, checksum_type=checksum.upper()
+        )
         _LOGGER.info.assert_called_once_with(expected_msg)
 
 
@@ -651,30 +654,36 @@ class Test__parse_checksum_header(object):
         header_value = None
         response = None
         md5_header = download_mod._parse_checksum_header(
-            header_value, response, checksum_label="md5")
+            header_value, response, checksum_label="md5"
+        )
         assert md5_header is None
         crc32c_header = download_mod._parse_checksum_header(
-            header_value, response, checksum_label="crc32c")
+            header_value, response, checksum_label="crc32c"
+        )
         assert crc32c_header is None
 
     def test_crc32c_only(self):
         header_value = u"crc32c={}".format(self.CRC32C_CHECKSUM)
         response = None
         md5_header = download_mod._parse_checksum_header(
-            header_value, response, checksum_label="md5")
+            header_value, response, checksum_label="md5"
+        )
         assert md5_header is None
         crc32c_header = download_mod._parse_checksum_header(
-            header_value, response, checksum_label="crc32c")
+            header_value, response, checksum_label="crc32c"
+        )
         assert crc32c_header == self.CRC32C_CHECKSUM
 
     def test_md5_only(self):
         header_value = u"md5={}".format(self.MD5_CHECKSUM)
         response = None
         md5_header = download_mod._parse_checksum_header(
-            header_value, response, checksum_label="md5")
+            header_value, response, checksum_label="md5"
+        )
         assert md5_header == self.MD5_CHECKSUM
         crc32c_header = download_mod._parse_checksum_header(
-            header_value, response, checksum_label="crc32c")
+            header_value, response, checksum_label="crc32c"
+        )
         assert crc32c_header is None
 
     def test_both_crc32c_and_md5(self):
@@ -683,10 +692,12 @@ class Test__parse_checksum_header(object):
         )
         response = None
         md5_header = download_mod._parse_checksum_header(
-            header_value, response, checksum_label="md5")
+            header_value, response, checksum_label="md5"
+        )
         assert md5_header == self.MD5_CHECKSUM
         crc32c_header = download_mod._parse_checksum_header(
-            header_value, response, checksum_label="crc32c")
+            header_value, response, checksum_label="crc32c"
+        )
         assert crc32c_header == self.CRC32C_CHECKSUM
 
     def test_md5_multiple_matches(self):
@@ -696,7 +707,8 @@ class Test__parse_checksum_header(object):
 
         with pytest.raises(common.InvalidResponse) as exc_info:
             download_mod._parse_checksum_header(
-                header_value, response, checksum_label="md5")
+                header_value, response, checksum_label="md5"
+            )
 
         error = exc_info.value
         assert error.response is response

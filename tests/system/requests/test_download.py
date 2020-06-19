@@ -70,7 +70,8 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
             self, method, url, data=data, headers=headers, **kwargs
         )
         response.headers[download_mod._HASH_HEADER] = u"crc32c={},md5={}".format(
-            self.EMPTY_CRC32C, self.EMPTY_MD5)
+            self.EMPTY_CRC32C, self.EMPTY_MD5
+        )
         return response
 
 
@@ -404,7 +405,7 @@ class TestRawDownload(TestDownload):
                 download.media_url,
                 EMPTY_HASH,
                 info[checksum],
-                checksum_type=checksum.upper()
+                checksum_type=checksum.upper(),
             )
             assert exc_info.value.args == (msg,)
 

@@ -92,17 +92,13 @@ class Download(_helpers.RequestsMixin, _download.Download):
                 checksum doesn't agree with server-computed checksum.
         """
         if checksum not in ["md5", "crc32c", None]:
-            raise ValueError(
-                "checksum must be ``'md5'``, ``'crc32c'`` or ``None``")
+            raise ValueError("checksum must be ``'md5'``, ``'crc32c'`` or ``None``")
 
         if checksum:
             # `_get_expected_checksum()` may return None, in which case it will
             # emit the info log `_MISSING_CHECKSUM`.
             expected_checksum = _get_expected_checksum(
-                response,
-                self._get_headers,
-                self.media_url,
-                checksum_type=checksum
+                response, self._get_headers, self.media_url, checksum_type=checksum
             )
         else:
             expected_checksum = None
@@ -136,8 +132,10 @@ class Download(_helpers.RequestsMixin, _download.Download):
             actual_checksum = actual_checksum.decode(u"utf-8")
             if actual_checksum != expected_checksum:
                 msg = _CHECKSUM_MISMATCH.format(
-                    self.media_url, expected_checksum, actual_checksum,
-                    checksum_type=checksum.upper()
+                    self.media_url,
+                    expected_checksum,
+                    actual_checksum,
+                    checksum_type=checksum.upper(),
                 )
                 raise common.DataCorruption(response, msg)
 
@@ -231,17 +229,13 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
         """
 
         if checksum not in ["md5", "crc32c", None]:
-            raise ValueError(
-                "checksum must be ``'md5'``, ``'crc32c'`` or ``None``")
+            raise ValueError("checksum must be ``'md5'``, ``'crc32c'`` or ``None``")
 
         if checksum:
             # `_get_expected_checksum()` may return None, in which case it will
             # emit the info log `_MISSING_CHECKSUM`.
             expected_checksum = _get_expected_checksum(
-                response,
-                self._get_headers,
-                self.media_url,
-                checksum_type=checksum
+                response, self._get_headers, self.media_url, checksum_type=checksum
             )
         else:
             expected_checksum = None
@@ -271,8 +265,10 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
             actual_checksum = actual_checksum.decode(u"utf-8")
             if actual_checksum != expected_checksum:
                 msg = _CHECKSUM_MISMATCH.format(
-                    self.media_url, expected_checksum, actual_checksum,
-                    checksum_type=checksum.upper()
+                    self.media_url,
+                    expected_checksum,
+                    actual_checksum,
+                    checksum_type=checksum.upper(),
                 )
                 raise common.DataCorruption(response, msg)
 
@@ -430,8 +426,7 @@ class RawChunkedDownload(_helpers.RawRequestsMixin, _download.ChunkedDownload):
         return result
 
 
-def _get_expected_checksum(
-        response, get_headers, media_url, checksum_type):
+def _get_expected_checksum(response, get_headers, media_url, checksum_type):
     """Get the expected checksum from the response headers.
 
     Args:
@@ -448,11 +443,11 @@ def _get_expected_checksum(
     """
     headers = get_headers(response)
     expected_checksum = _parse_checksum_header(
-        headers.get(_HASH_HEADER), response, checksum_label=checksum_type)
+        headers.get(_HASH_HEADER), response, checksum_label=checksum_type
+    )
 
     if expected_checksum is None:
-        msg = _MISSING_CHECKSUM.format(
-            media_url, checksum_type=checksum_type.upper())
+        msg = _MISSING_CHECKSUM.format(media_url, checksum_type=checksum_type.upper())
         _LOGGER.info(msg)
 
     return expected_checksum
@@ -504,8 +499,7 @@ def _parse_checksum_header(header_value, response, checksum_label):
     else:
         raise common.InvalidResponse(
             response,
-            u"X-Goog-Hash header had multiple ``{}`` values.".format(
-                checksum_label),
+            u"X-Goog-Hash header had multiple ``{}`` values.".format(checksum_label),
             header_value,
             matches,
         )
