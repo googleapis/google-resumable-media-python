@@ -1,11 +1,17 @@
 {
-  "updateTime": "2019-09-17T12:09:52.139104Z",
   "sources": [
     {
-      "template": {
-        "name": "python_library",
-        "origin": "synthtool.gcp",
-        "version": "2019.5.2"
+      "git": {
+        "name": ".",
+        "remote": "https://github.com/googleapis/google-resumable-media-python.git",
+        "sha": "b8150beaf02f08de147a3d53e77ff88090a58db0"
+      }
+    },
+    {
+      "git": {
+        "name": "synthtool",
+        "remote": "https://github.com/googleapis/synthtool.git",
+        "sha": "ffe10407ee2f261c799fb0d01bf32a8abc67ed1e"
       }
     }
   ]
