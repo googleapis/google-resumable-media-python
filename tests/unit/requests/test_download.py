@@ -112,6 +112,28 @@ class TestDownload(object):
             chunk_size=_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
         )
 
+    def test__write_to_stream_with_invalid_checksum_type(self):
+        BAD_CHECKSUM_TYPE = "badsum"
+
+        stream = io.BytesIO()
+        download = download_mod.Download(EXAMPLE_URL, stream=stream)
+
+        chunk1 = b"first chunk, count starting at 0. "
+        chunk2 = b"second chunk, or chunk 1, which is better? "
+        chunk3 = b"ordinals and numerals and stuff."
+        bad_checksum = u"d3JvbmcgbiBtYWRlIHVwIQ=="
+        header_value = u"crc32c={bad},md5={bad}".format(bad=bad_checksum)
+        headers = {download_mod._HASH_HEADER: header_value}
+        response = _mock_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
+
+        with pytest.raises(ValueError) as exc_info:
+            download._write_to_stream(response, checksum=BAD_CHECKSUM_TYPE)
+
+        assert not download.finished
+
+        error = exc_info.value
+        assert error.args[0] == "checksum must be ``'md5'``, ``'crc32c'`` or ``None``"
+
     def _consume_helper(
         self,
         stream=None,
@@ -320,6 +342,28 @@ class TestRawDownload(object):
         response.raw.stream.assert_called_once_with(
             _helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
         )
+
+    def test__write_to_stream_with_invalid_checksum_type(self):
+        BAD_CHECKSUM_TYPE = "badsum"
+
+        stream = io.BytesIO()
+        download = download_mod.RawDownload(EXAMPLE_URL, stream=stream)
+
+        chunk1 = b"first chunk, count starting at 0. "
+        chunk2 = b"second chunk, or chunk 1, which is better? "
+        chunk3 = b"ordinals and numerals and stuff."
+        bad_checksum = u"d3JvbmcgbiBtYWRlIHVwIQ=="
+        header_value = u"crc32c={bad},md5={bad}".format(bad=bad_checksum)
+        headers = {download_mod._HASH_HEADER: header_value}
+        response = _mock_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
+
+        with pytest.raises(ValueError) as exc_info:
+            download._write_to_stream(response, checksum=BAD_CHECKSUM_TYPE)
+
+        assert not download.finished
+
+        error = exc_info.value
+        assert error.args[0] == "checksum must be ``'md5'``, ``'crc32c'`` or ``None``"
 
     def _consume_helper(
         self,

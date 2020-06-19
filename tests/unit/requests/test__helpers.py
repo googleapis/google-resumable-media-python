@@ -117,6 +117,7 @@ def test_crc32c_throws_import_error():
         builtins.__import__ = orig_import
 
 
+@pytest.mark.filterwarnings("ignore::RuntimeWarning")
 def test_crc32c_warning_on_slow_crcmod():
     try:
         import builtins
