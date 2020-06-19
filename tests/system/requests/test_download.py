@@ -70,7 +70,7 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
             self, method, url, data=data, headers=headers, **kwargs
         )
         response.headers[download_mod._HASH_HEADER] = u"crc32c={},md5={}".format(
-                self.EMPTY_CRC32C, self.EMPTY_MD5)
+            self.EMPTY_CRC32C, self.EMPTY_MD5)
         return response
 
 
@@ -420,6 +420,7 @@ class TestRawDownload(TestDownload):
             download.consume(corrupting_transport, checksum=None)
 
             assert download.finished
+
 
 def get_chunk_size(min_chunks, total_bytes):
     # Make sure the number of chunks **DOES NOT** evenly divide.

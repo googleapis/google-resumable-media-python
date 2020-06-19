@@ -105,7 +105,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
                 checksum_type=checksum
             )
         else:
-            expected_checksum=None
+            expected_checksum = None
 
         if expected_checksum is not None and checksum == "md5":
             checksum_object = hashlib.md5()
@@ -275,7 +275,6 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
                     checksum_type=checksum.upper()
                 )
                 raise common.DataCorruption(response, msg)
-
 
     def consume(self, transport, checksum="md5"):
         """Consume the resource to be downloaded.

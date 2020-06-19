@@ -609,7 +609,7 @@ class Test__get_expected_checksum(object):
         checksums = {
             "md5": u"b2twdXNodGhpc2J1dHRvbg==",
             "crc32c": u"3q2+7w=="
-            }
+        }
         header_value = u"crc32c={},md5={}".format(
             checksums["crc32c"], checksums["md5"])
         headers = {download_mod._HASH_HEADER: header_value}
