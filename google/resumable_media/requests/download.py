@@ -84,8 +84,11 @@ class Download(_helpers.RequestsMixin, _download.Download):
             response (~requests.Response): The HTTP response object.
             checksum Optional([str]: The type of checksum to compute to verify
                 the integrity of the object. The response headers must contain
-                a checksum of the requested type. Supported values are "md5",
-                "crc32c" and None.
+                a checksum of the requested type. If the headers lack an
+                appropriate checksum (for instance in the case of transcoded or
+                ranged downloads where the remote service does not know the
+                correct checksum) an INFO-level log will be emitted. Supported
+                values are "md5", "crc32c" and None.
 
         Raises:
             ~google.resumable_media.common.DataCorruption: If the download's
@@ -150,8 +153,11 @@ class Download(_helpers.RequestsMixin, _download.Download):
                 make authenticated requests.
             checksum Optional([str]: The type of checksum to compute to verify
                 the integrity of the object. The response headers must contain
-                a checksum of the requested type. Supported values are "md5",
-                "crc32c" and None.
+                a checksum of the requested type. If the headers lack an
+                appropriate checksum (for instance in the case of transcoded or
+                ranged downloads where the remote service does not know the
+                correct checksum) an INFO-level log will be emitted. Supported
+                values are "md5", "crc32c" and None.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -220,8 +226,11 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
             response (~requests.Response): The HTTP response object.
             checksum Optional([str]: The type of checksum to compute to verify
                 the integrity of the object. The response headers must contain
-                a checksum of the requested type. Supported values are "md5",
-                "crc32c" and None.
+                a checksum of the requested type. If the headers lack an
+                appropriate checksum (for instance in the case of transcoded or
+                ranged downloads where the remote service does not know the
+                correct checksum) an INFO-level log will be emitted. Supported
+                values are "md5", "crc32c" and None.
 
         Raises:
             ~google.resumable_media.common.DataCorruption: If the download's
@@ -283,8 +292,11 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
                 make authenticated requests.
             checksum Optional([str]: The type of checksum to compute to verify
                 the integrity of the object. The response headers must contain
-                a checksum of the requested type. Supported values are "md5",
-                "crc32c" and None.
+                a checksum of the requested type. If the headers lack an
+                appropriate checksum (for instance in the case of transcoded or
+                ranged downloads where the remote service does not know the
+                correct checksum) an INFO-level log will be emitted. Supported
+                values are "md5", "crc32c" and None.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
