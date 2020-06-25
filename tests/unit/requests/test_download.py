@@ -54,7 +54,7 @@ class TestDownload(object):
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c", None])
     def test__write_to_stream_with_hash_check_success(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.Download(EXAMPLE_URL, stream=stream)
+        download = download_mod.Download(EXAMPLE_URL, stream=stream, checksum=checksum)
 
         chunk1 = b"first chunk, count starting at 0. "
         chunk2 = b"second chunk, or chunk 1, which is better? "
@@ -63,7 +63,7 @@ class TestDownload(object):
         headers = {download_mod._HASH_HEADER: header_value}
         response = _mock_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
-        ret_val = download._write_to_stream(response, checksum=checksum)
+        ret_val = download._write_to_stream(response)
         assert ret_val is None
 
         assert stream.getvalue() == chunk1 + chunk2 + chunk3
@@ -78,7 +78,7 @@ class TestDownload(object):
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
     def test__write_to_stream_with_hash_check_fail(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.Download(EXAMPLE_URL, stream=stream)
+        download = download_mod.Download(EXAMPLE_URL, stream=stream, checksum=checksum)
 
         chunk1 = b"first chunk, count starting at 0. "
         chunk2 = b"second chunk, or chunk 1, which is better? "
@@ -89,7 +89,7 @@ class TestDownload(object):
         response = _mock_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
         with pytest.raises(common.DataCorruption) as exc_info:
-            download._write_to_stream(response, checksum=checksum)
+            download._write_to_stream(response)
 
         assert not download.finished
 
@@ -116,7 +116,9 @@ class TestDownload(object):
         BAD_CHECKSUM_TYPE = "badsum"
 
         stream = io.BytesIO()
-        download = download_mod.Download(EXAMPLE_URL, stream=stream)
+        download = download_mod.Download(
+            EXAMPLE_URL, stream=stream, checksum=BAD_CHECKSUM_TYPE
+        )
 
         chunk1 = b"first chunk, count starting at 0. "
         chunk2 = b"second chunk, or chunk 1, which is better? "
@@ -127,7 +129,7 @@ class TestDownload(object):
         response = _mock_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
         with pytest.raises(ValueError) as exc_info:
-            download._write_to_stream(response, checksum=BAD_CHECKSUM_TYPE)
+            download._write_to_stream(response)
 
         assert not download.finished
 
@@ -144,7 +146,7 @@ class TestDownload(object):
         checksum="md5",
     ):
         download = download_mod.Download(
-            EXAMPLE_URL, stream=stream, end=end, headers=headers
+            EXAMPLE_URL, stream=stream, end=end, headers=headers, checksum=checksum
         )
         transport = mock.Mock(spec=["request"])
         transport.request.return_value = _mock_response(
@@ -152,7 +154,7 @@ class TestDownload(object):
         )
 
         assert not download.finished
-        ret_val = download.consume(transport, checksum=checksum)
+        ret_val = download.consume(transport)
         assert ret_val is transport.request.return_value
 
         called_kwargs = {u"data": None, u"headers": download._headers}
@@ -213,7 +215,7 @@ class TestDownload(object):
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
     def test_consume_with_stream_hash_check_fail(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.Download(EXAMPLE_URL, stream=stream)
+        download = download_mod.Download(EXAMPLE_URL, stream=stream, checksum=checksum)
 
         chunks = (b"zero zero", b"niner tango")
         bad_checksum = u"anVzdCBub3QgdGhpcyAxLA=="
@@ -224,7 +226,7 @@ class TestDownload(object):
 
         assert not download.finished
         with pytest.raises(common.DataCorruption) as exc_info:
-            download.consume(transport, checksum=checksum)
+            download.consume(transport)
 
         assert stream.getvalue() == b"".join(chunks)
         assert download.finished
@@ -285,7 +287,9 @@ class TestRawDownload(object):
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c", None])
     def test__write_to_stream_with_hash_check_success(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.RawDownload(EXAMPLE_URL, stream=stream)
+        download = download_mod.RawDownload(
+            EXAMPLE_URL, stream=stream, checksum=checksum
+        )
 
         chunk1 = b"first chunk, count starting at 0. "
         chunk2 = b"second chunk, or chunk 1, which is better? "
@@ -294,7 +298,7 @@ class TestRawDownload(object):
         headers = {download_mod._HASH_HEADER: header_value}
         response = _mock_raw_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
-        ret_val = download._write_to_stream(response, checksum=checksum)
+        ret_val = download._write_to_stream(response)
         assert ret_val is None
 
         assert stream.getvalue() == chunk1 + chunk2 + chunk3
@@ -309,7 +313,9 @@ class TestRawDownload(object):
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
     def test__write_to_stream_with_hash_check_fail(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.RawDownload(EXAMPLE_URL, stream=stream)
+        download = download_mod.RawDownload(
+            EXAMPLE_URL, stream=stream, checksum=checksum
+        )
 
         chunk1 = b"first chunk, count starting at 0. "
         chunk2 = b"second chunk, or chunk 1, which is better? "
@@ -320,7 +326,7 @@ class TestRawDownload(object):
         response = _mock_raw_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
         with pytest.raises(common.DataCorruption) as exc_info:
-            download._write_to_stream(response, checksum)
+            download._write_to_stream(response)
 
         assert not download.finished
 
@@ -347,7 +353,9 @@ class TestRawDownload(object):
         BAD_CHECKSUM_TYPE = "badsum"
 
         stream = io.BytesIO()
-        download = download_mod.RawDownload(EXAMPLE_URL, stream=stream)
+        download = download_mod.RawDownload(
+            EXAMPLE_URL, stream=stream, checksum=BAD_CHECKSUM_TYPE
+        )
 
         chunk1 = b"first chunk, count starting at 0. "
         chunk2 = b"second chunk, or chunk 1, which is better? "
@@ -358,7 +366,7 @@ class TestRawDownload(object):
         response = _mock_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
         with pytest.raises(ValueError) as exc_info:
-            download._write_to_stream(response, checksum=BAD_CHECKSUM_TYPE)
+            download._write_to_stream(response)
 
         assert not download.finished
 
@@ -375,7 +383,7 @@ class TestRawDownload(object):
         checksum=None,
     ):
         download = download_mod.RawDownload(
-            EXAMPLE_URL, stream=stream, end=end, headers=headers
+            EXAMPLE_URL, stream=stream, end=end, headers=headers, checksum=checksum
         )
         transport = mock.Mock(spec=["request"])
         transport.request.return_value = _mock_raw_response(
@@ -383,7 +391,7 @@ class TestRawDownload(object):
         )
 
         assert not download.finished
-        ret_val = download.consume(transport, checksum=checksum)
+        ret_val = download.consume(transport)
         assert ret_val is transport.request.return_value
 
         if chunks:
@@ -447,7 +455,9 @@ class TestRawDownload(object):
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
     def test_consume_with_stream_hash_check_fail(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.RawDownload(EXAMPLE_URL, stream=stream)
+        download = download_mod.RawDownload(
+            EXAMPLE_URL, stream=stream, checksum=checksum
+        )
 
         chunks = (b"zero zero", b"niner tango")
         bad_checksum = u"anVzdCBub3QgdGhpcyAxLA=="
@@ -460,7 +470,7 @@ class TestRawDownload(object):
 
         assert not download.finished
         with pytest.raises(common.DataCorruption) as exc_info:
-            download.consume(transport, checksum=checksum)
+            download.consume(transport)
 
         assert stream.getvalue() == b"".join(chunks)
         assert download.finished

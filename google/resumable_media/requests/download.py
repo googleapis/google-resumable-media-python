@@ -65,6 +65,13 @@ class Download(_helpers.RequestsMixin, _download.Download):
             ``start`` to the end of the media.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
+        checksum Optional([str]: The type of checksum to compute to verify
+            the integrity of the object. The response headers must contain
+            a checksum of the requested type. If the headers lack an
+            appropriate checksum (for instance in the case of transcoded or
+            ranged downloads where the remote service does not know the
+            correct checksum) an INFO-level log will be emitted. Supported
+            values are "md5", "crc32c" and None.
 
     Attributes:
         media_url (str): The URL containing the media to be downloaded.
@@ -72,7 +79,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
         end (Optional[int]): The last byte in a range to be downloaded.
     """
 
-    def _write_to_stream(self, response, checksum="md5"):
+    def _write_to_stream(self, response):
         """Write response body to a write-able stream.
 
         .. note:
@@ -82,33 +89,26 @@ class Download(_helpers.RequestsMixin, _download.Download):
 
         Args:
             response (~requests.Response): The HTTP response object.
-            checksum Optional([str]: The type of checksum to compute to verify
-                the integrity of the object. The response headers must contain
-                a checksum of the requested type. If the headers lack an
-                appropriate checksum (for instance in the case of transcoded or
-                ranged downloads where the remote service does not know the
-                correct checksum) an INFO-level log will be emitted. Supported
-                values are "md5", "crc32c" and None.
 
         Raises:
             ~google.resumable_media.common.DataCorruption: If the download's
                 checksum doesn't agree with server-computed checksum.
         """
-        if checksum not in ["md5", "crc32c", None]:
+        if self.checksum not in ["md5", "crc32c", None]:
             raise ValueError("checksum must be ``'md5'``, ``'crc32c'`` or ``None``")
 
-        if checksum:
+        if self.checksum:
             # `_get_expected_checksum()` may return None, in which case it will
             # emit the info log `_MISSING_CHECKSUM`.
             expected_checksum = _get_expected_checksum(
-                response, self._get_headers, self.media_url, checksum_type=checksum
+                response, self._get_headers, self.media_url, checksum_type=self.checksum
             )
         else:
             expected_checksum = None
 
-        if expected_checksum is not None and checksum == "md5":
+        if expected_checksum is not None and self.checksum == "md5":
             checksum_object = hashlib.md5()
-        elif expected_checksum is not None and checksum == "crc32c":
+        elif expected_checksum is not None and self.checksum == "crc32c":
             checksum_object = _helpers._get_crc32c_object()
         else:
             checksum_object = _DoNothingHash()
@@ -138,11 +138,11 @@ class Download(_helpers.RequestsMixin, _download.Download):
                     self.media_url,
                     expected_checksum,
                     actual_checksum,
-                    checksum_type=checksum.upper(),
+                    checksum_type=self.checksum.upper(),
                 )
                 raise common.DataCorruption(response, msg)
 
-    def consume(self, transport, checksum="md5"):
+    def consume(self, transport):
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded
@@ -151,13 +151,6 @@ class Download(_helpers.RequestsMixin, _download.Download):
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
-            checksum Optional([str]: The type of checksum to compute to verify
-                the integrity of the object. The response headers must contain
-                a checksum of the requested type. If the headers lack an
-                appropriate checksum (for instance in the case of transcoded or
-                ranged downloads where the remote service does not know the
-                correct checksum) an INFO-level log will be emitted. Supported
-                values are "md5", "crc32c" and None.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -183,7 +176,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
         self._process_response(result)
 
         if self._stream is not None:
-            self._write_to_stream(result, checksum=checksum)
+            self._write_to_stream(result)
 
         return result
 
@@ -207,14 +200,20 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
             ``start`` to the end of the media.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
-
+        checksum Optional([str]: The type of checksum to compute to verify
+            the integrity of the object. The response headers must contain
+            a checksum of the requested type. If the headers lack an
+            appropriate checksum (for instance in the case of transcoded or
+            ranged downloads where the remote service does not know the
+            correct checksum) an INFO-level log will be emitted. Supported
+            values are "md5", "crc32c" and None.
     Attributes:
         media_url (str): The URL containing the media to be downloaded.
         start (Optional[int]): The first byte in a range to be downloaded.
         end (Optional[int]): The last byte in a range to be downloaded.
     """
 
-    def _write_to_stream(self, response, checksum="md5"):
+    def _write_to_stream(self, response):
         """Write response body to a write-able stream.
 
         .. note:
@@ -224,34 +223,27 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
 
         Args:
             response (~requests.Response): The HTTP response object.
-            checksum Optional([str]: The type of checksum to compute to verify
-                the integrity of the object. The response headers must contain
-                a checksum of the requested type. If the headers lack an
-                appropriate checksum (for instance in the case of transcoded or
-                ranged downloads where the remote service does not know the
-                correct checksum) an INFO-level log will be emitted. Supported
-                values are "md5", "crc32c" and None.
 
         Raises:
             ~google.resumable_media.common.DataCorruption: If the download's
                 checksum doesn't agree with server-computed checksum.
         """
 
-        if checksum not in ["md5", "crc32c", None]:
+        if self.checksum not in ["md5", "crc32c", None]:
             raise ValueError("checksum must be ``'md5'``, ``'crc32c'`` or ``None``")
 
-        if checksum:
+        if self.checksum:
             # `_get_expected_checksum()` may return None, in which case it will
             # emit the info log `_MISSING_CHECKSUM`.
             expected_checksum = _get_expected_checksum(
-                response, self._get_headers, self.media_url, checksum_type=checksum
+                response, self._get_headers, self.media_url, checksum_type=self.checksum
             )
         else:
             expected_checksum = None
 
-        if expected_checksum is not None and checksum == "md5":
+        if expected_checksum is not None and self.checksum == "md5":
             checksum_object = hashlib.md5()
-        elif expected_checksum is not None and checksum == "crc32c":
+        elif expected_checksum is not None and self.checksum == "crc32c":
             checksum_object = _helpers._get_crc32c_object()
         else:
             checksum_object = _DoNothingHash()
@@ -269,6 +261,7 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
             return
         else:
             actual_checksum = base64.b64encode(checksum_object.digest())
+
             # NOTE: ``b64encode`` returns ``bytes``, but ``expected_checksum``
             #       came from a header, so it will be ``str``.
             actual_checksum = actual_checksum.decode(u"utf-8")
@@ -277,11 +270,11 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
                     self.media_url,
                     expected_checksum,
                     actual_checksum,
-                    checksum_type=checksum.upper(),
+                    checksum_type=self.checksum.upper(),
                 )
                 raise common.DataCorruption(response, msg)
 
-    def consume(self, transport, checksum="md5"):
+    def consume(self, transport):
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded
@@ -290,13 +283,6 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
-            checksum Optional([str]: The type of checksum to compute to verify
-                the integrity of the object. The response headers must contain
-                a checksum of the requested type. If the headers lack an
-                appropriate checksum (for instance in the case of transcoded or
-                ranged downloads where the remote service does not know the
-                correct checksum) an INFO-level log will be emitted. Supported
-                values are "md5", "crc32c" and None.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -322,7 +308,7 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
         self._process_response(result)
 
         if self._stream is not None:
-            self._write_to_stream(result, checksum=checksum)
+            self._write_to_stream(result)
 
         return result
 

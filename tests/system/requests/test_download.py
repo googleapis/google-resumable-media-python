@@ -266,9 +266,9 @@ class TestDownload(object):
 
             # Create the actual download object.
             media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
-            download = self._make_one(media_url)
+            download = self._make_one(media_url, checksum=checksum)
             # Consume the resource.
-            response = download.consume(authorized_transport, checksum=checksum)
+            response = download.consume(authorized_transport)
             assert response.status_code == http_client.OK
             assert self._read_response_content(response) == actual_contents
             check_tombstoned(download, authorized_transport)
@@ -390,10 +390,10 @@ class TestRawDownload(TestDownload):
             # Create the actual download object.
             media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
             stream = io.BytesIO()
-            download = self._make_one(media_url, stream=stream)
+            download = self._make_one(media_url, stream=stream, checksum=checksum)
             # Consume the resource.
             with pytest.raises(common.DataCorruption) as exc_info:
-                download.consume(corrupting_transport, checksum=checksum)
+                download.consume(corrupting_transport)
 
             assert download.finished
 
@@ -416,9 +416,9 @@ class TestRawDownload(TestDownload):
             # Create the actual download object.
             media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
             stream = io.BytesIO()
-            download = self._make_one(media_url, stream=stream)
+            download = self._make_one(media_url, stream=stream, checksum=None)
             # Consume the resource.
-            download.consume(corrupting_transport, checksum=None)
+            download.consume(corrupting_transport)
 
             assert download.finished
 
