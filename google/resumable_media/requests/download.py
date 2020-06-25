@@ -506,8 +506,8 @@ def _parse_checksum_header(header_value, response, checksum_label):
 class _DoNothingHash(object):
     """Do-nothing hash object.
 
-    Intended as a stand-in for ``hashlib.md5`` or another checksum in cases
-    where it isn't necessary to compute the hash.
+    Intended as a stand-in for ``hashlib.md5`` or a crc32c checksum
+    implementation in cases where it isn't necessary to compute the hash.
     """
 
     def update(self, unused_chunk):
