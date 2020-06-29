@@ -144,6 +144,7 @@ class TestDownload(object):
         chunks=(),
         response_headers=None,
         checksum="md5",
+        timeout=None,
     ):
         download = download_mod.Download(
             EXAMPLE_URL, stream=stream, end=end, headers=headers, checksum=checksum
@@ -154,16 +155,24 @@ class TestDownload(object):
         )
 
         assert not download.finished
-        ret_val = download.consume(transport)
+
+        if timeout is not None:
+            ret_val = download.consume(transport, timeout=timeout)
+        else:
+            ret_val = download.consume(transport)
+
         assert ret_val is transport.request.return_value
 
-        called_kwargs = {u"data": None, u"headers": download._headers}
+        called_kwargs = {
+            u"data": None,
+            u"headers": download._headers,
+            u"timeout": EXPECTED_TIMEOUT if timeout is None else timeout,
+        }
         if chunks:
             assert stream is not None
             called_kwargs[u"stream"] = True
-        transport.request.assert_called_once_with(
-            u"GET", EXAMPLE_URL, timeout=EXPECTED_TIMEOUT, **called_kwargs
-        )
+
+        transport.request.assert_called_once_with(u"GET", EXAMPLE_URL, **called_kwargs)
 
         range_bytes = u"bytes={:d}-{:d}".format(0, end)
         assert download._headers[u"range"] == range_bytes
@@ -173,6 +182,9 @@ class TestDownload(object):
 
     def test_consume(self):
         self._consume_helper()
+
+    def test_consume_with_custom_timeout(self):
+        self._consume_helper(timeout=14.7)
 
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c", None])
     def test_consume_with_stream(self, checksum):
@@ -381,6 +393,7 @@ class TestRawDownload(object):
         chunks=(),
         response_headers=None,
         checksum=None,
+        timeout=None,
     ):
         download = download_mod.RawDownload(
             EXAMPLE_URL, stream=stream, end=end, headers=headers, checksum=checksum
@@ -391,7 +404,12 @@ class TestRawDownload(object):
         )
 
         assert not download.finished
-        ret_val = download.consume(transport)
+
+        if timeout is not None:
+            ret_val = download.consume(transport, timeout=timeout)
+        else:
+            ret_val = download.consume(transport)
+
         assert ret_val is transport.request.return_value
 
         if chunks:
@@ -402,7 +420,7 @@ class TestRawDownload(object):
             data=None,
             headers=download._headers,
             stream=True,
-            timeout=EXPECTED_TIMEOUT,
+            timeout=EXPECTED_TIMEOUT if timeout is None else timeout,
         )
 
         range_bytes = u"bytes={:d}-{:d}".format(0, end)
@@ -413,6 +431,9 @@ class TestRawDownload(object):
 
     def test_consume(self):
         self._consume_helper()
+
+    def test_consume_with_custom_timeout(self):
+        self._consume_helper(timeout=14.7)
 
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c", None])
     def test_consume_with_stream(self, checksum):
@@ -583,6 +604,26 @@ class TestChunkedDownload(object):
         assert download.bytes_downloaded == chunk_size
         assert download.total_bytes == total_bytes
 
+    def test_consume_next_chunk_with_custom_timeout(self):
+        start = 1536
+        stream = io.BytesIO()
+        data = b"Just one chunk."
+        chunk_size = len(data)
+        download = download_mod.ChunkedDownload(
+            EXAMPLE_URL, chunk_size, stream, start=start
+        )
+        total_bytes = 16384
+        transport = self._mock_transport(start, chunk_size, total_bytes, content=data)
+
+        # Actually consume the chunk and check the output.
+        download.consume_next_chunk(transport, timeout=14.7)
+
+        range_bytes = u"bytes={:d}-{:d}".format(start, start + chunk_size - 1)
+        download_headers = {u"range": range_bytes}
+        transport.request.assert_called_once_with(
+            u"GET", EXAMPLE_URL, data=None, headers=download_headers, timeout=14.7,
+        )
+
 
 class TestRawChunkedDownload(object):
     @staticmethod
@@ -654,6 +695,36 @@ class TestRawChunkedDownload(object):
             headers=download_headers,
             stream=True,
             timeout=EXPECTED_TIMEOUT,
+        )
+        assert stream.getvalue() == data
+        # Go back and check the internal state after consuming the chunk.
+        assert not download.finished
+        assert download.bytes_downloaded == chunk_size
+        assert download.total_bytes == total_bytes
+
+    def test_consume_next_chunk_with_custom_timeout(self):
+        start = 1536
+        stream = io.BytesIO()
+        data = b"Just one chunk."
+        chunk_size = len(data)
+        download = download_mod.RawChunkedDownload(
+            EXAMPLE_URL, chunk_size, stream, start=start
+        )
+        total_bytes = 16384
+        transport = self._mock_transport(start, chunk_size, total_bytes, content=data)
+
+        # Actually consume the chunk and check the output.
+        download.consume_next_chunk(transport, timeout=14.7)
+
+        range_bytes = u"bytes={:d}-{:d}".format(start, start + chunk_size - 1)
+        download_headers = {u"range": range_bytes}
+        transport.request.assert_called_once_with(
+            u"GET",
+            EXAMPLE_URL,
+            data=None,
+            headers=download_headers,
+            stream=True,
+            timeout=14.7,
         )
         assert stream.getvalue() == data
         # Go back and check the internal state after consuming the chunk.

@@ -142,7 +142,11 @@ class Download(_helpers.RequestsMixin, _download.Download):
                 )
                 raise common.DataCorruption(response, msg)
 
-    def consume(self, transport):
+    def consume(
+        self,
+        transport,
+        timeout=(_helpers._DEFAULT_CONNECT_TIMEOUT, _helpers._DEFAULT_READ_TIMEOUT),
+    ):
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded
@@ -151,6 +155,13 @@ class Download(_helpers.RequestsMixin, _download.Download):
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -167,6 +178,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
             u"data": payload,
             u"headers": headers,
             u"retry_strategy": self._retry_strategy,
+            u"timeout": timeout,
         }
         if self._stream is not None:
             request_kwargs[u"stream"] = True
@@ -274,7 +286,11 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
                 )
                 raise common.DataCorruption(response, msg)
 
-    def consume(self, transport):
+    def consume(
+        self,
+        transport,
+        timeout=(_helpers._DEFAULT_CONNECT_TIMEOUT, _helpers._DEFAULT_READ_TIMEOUT),
+    ):
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded
@@ -283,6 +299,13 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -303,6 +326,7 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
             headers=headers,
             retry_strategy=self._retry_strategy,
             stream=True,
+            timeout=timeout,
         )
 
         self._process_response(result)
@@ -341,12 +365,23 @@ class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
         ValueError: If ``start`` is negative.
     """
 
-    def consume_next_chunk(self, transport):
+    def consume_next_chunk(
+        self,
+        transport,
+        timeout=(_helpers._DEFAULT_CONNECT_TIMEOUT, _helpers._DEFAULT_READ_TIMEOUT),
+    ):
         """Consume the next chunk of the resource to be downloaded.
 
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -363,6 +398,7 @@ class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
             data=payload,
             headers=headers,
             retry_strategy=self._retry_strategy,
+            timeout=timeout,
         )
         self._process_response(result)
         return result
@@ -396,12 +432,23 @@ class RawChunkedDownload(_helpers.RawRequestsMixin, _download.ChunkedDownload):
         ValueError: If ``start`` is negative.
     """
 
-    def consume_next_chunk(self, transport):
+    def consume_next_chunk(
+        self,
+        transport,
+        timeout=(_helpers._DEFAULT_CONNECT_TIMEOUT, _helpers._DEFAULT_READ_TIMEOUT),
+    ):
         """Consume the next chunk of the resource to be downloaded.
 
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -419,6 +466,7 @@ class RawChunkedDownload(_helpers.RawRequestsMixin, _download.ChunkedDownload):
             headers=headers,
             stream=True,
             retry_strategy=self._retry_strategy,
+            timeout=timeout,
         )
         self._process_response(result)
         return result
