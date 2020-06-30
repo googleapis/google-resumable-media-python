@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import hashlib
 import io
 
 import mock
@@ -745,10 +746,11 @@ class Test__get_expected_checksum(object):
         def _get_headers(response):
             return response.headers
 
-        expected_checksum = download_mod._get_expected_checksum(
+        expected_checksum, checksum_obj = download_mod._get_expected_checksum(
             response, _get_headers, EXAMPLE_URL, checksum_type=checksum
         )
         assert expected_checksum == checksums[checksum]
+        assert isinstance(checksum_obj, _get_checksum_type(checksum))
         _LOGGER.info.assert_not_called()
 
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
@@ -760,10 +762,11 @@ class Test__get_expected_checksum(object):
         def _get_headers(response):
             return response.headers
 
-        expected_checksum = download_mod._get_expected_checksum(
+        expected_checksum, checksum_obj = download_mod._get_expected_checksum(
             response, _get_headers, EXAMPLE_URL, checksum_type=checksum
         )
         assert expected_checksum is None
+        assert isinstance(checksum_obj, download_mod._DoNothingHash)
         expected_msg = download_mod._MISSING_CHECKSUM.format(
             EXAMPLE_URL, checksum_type=checksum.upper()
         )
@@ -937,3 +940,10 @@ def _mock_raw_response(status_code=http_client.OK, chunks=(), headers=None):
     response.__enter__.return_value = response
     response.__exit__.return_value = None
     return response
+
+
+def _get_checksum_type(checksum_type):
+    if checksum_type == "md5":
+        return type(hashlib.md5())
+    elif checksum_type == "crc32c":
+        return type(_helpers._get_crc32c_object())
