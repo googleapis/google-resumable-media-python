@@ -36,8 +36,8 @@ _DEFAULT_READ_TIMEOUT = 60
 
 _SLOW_CRC32C_WARNING = (
     "Currently using crcmod in pure python form. This is a slow "
-    "implementation. You may consider installing `google-crc32c` for a "
-    "precompiled wheel with fast crc32c support."
+    "implementation. Python 3 has a faster implementation, `google-crc32c`, "
+    "which will be used if it is installed."
 )
 
 
