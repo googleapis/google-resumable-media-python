@@ -467,8 +467,7 @@ def _get_expected_checksum(response, get_headers, media_url, checksum_type):
     """
     if checksum_type not in ["md5", "crc32c", None]:
         raise ValueError("checksum must be ``'md5'``, ``'crc32c'`` or ``None``")
-
-    if checksum_type:
+    elif checksum_type in ["md5", "crc32c"]:
         headers = get_headers(response)
         expected_checksum = _parse_checksum_header(
             headers.get(_HASH_HEADER), response, checksum_label=checksum_type
@@ -480,10 +479,11 @@ def _get_expected_checksum(response, get_headers, media_url, checksum_type):
             )
             _LOGGER.info(msg)
             checksum_object = _DoNothingHash()
-        elif checksum_type == "md5":
-            checksum_object = hashlib.md5()
-        elif checksum_type == "crc32c":
-            checksum_object = _helpers._get_crc32c_object()
+        else:
+            if checksum_type == "md5":
+                checksum_object = hashlib.md5()
+            else:
+                checksum_object = _helpers._get_crc32c_object()
     else:
         expected_checksum = None
         checksum_object = _DoNothingHash()

@@ -750,7 +750,13 @@ class Test__get_expected_checksum(object):
             response, _get_headers, EXAMPLE_URL, checksum_type=checksum
         )
         assert expected_checksum == checksums[checksum]
-        assert isinstance(checksum_obj, _get_checksum_type(checksum))
+
+        checksum_types = {
+            "md5": type(hashlib.md5()),
+            "crc32c": type(_helpers._get_crc32c_object())
+        }
+        assert isinstance(checksum_obj, checksum_types[checksum])
+
         _LOGGER.info.assert_not_called()
 
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
@@ -940,10 +946,3 @@ def _mock_raw_response(status_code=http_client.OK, chunks=(), headers=None):
     response.__enter__.return_value = response
     response.__exit__.return_value = None
     return response
-
-
-def _get_checksum_type(checksum_type):
-    if checksum_type == "md5":
-        return type(hashlib.md5())
-    elif checksum_type == "crc32c":
-        return type(_helpers._get_crc32c_object())
