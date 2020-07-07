@@ -4,6 +4,20 @@
 
 [1]: https://pypi.org/project/google-resumable-media/#history
 
+## [0.6.0](https://www.github.com/googleapis/google-resumable-media-python/compare/v0.5.1...v0.6.0) (2020-07-07)
+
+
+### Features
+
+* **resumable-media:** add customizable timeouts to upload/download methods ([#116](https://www.github.com/googleapis/google-resumable-media-python/issues/116)) ([5310921](https://www.github.com/googleapis/google-resumable-media-python/commit/5310921dacf5232ad58a5d6e324f3df6b320eca7))
+* add configurable crc32c checksumming for downloads ([#135](https://www.github.com/googleapis/google-resumable-media-python/issues/135)) ([db31bf5](https://www.github.com/googleapis/google-resumable-media-python/commit/db31bf56560109f19b49cf38c494ecacfa74b0b2))
+* add templates for python samples projects ([#506](https://www.github.com/googleapis/google-resumable-media-python/issues/506)) ([#132](https://www.github.com/googleapis/google-resumable-media-python/issues/132)) ([8e60cc4](https://www.github.com/googleapis/google-resumable-media-python/commit/8e60cc45d4fefe63d7353e978d15d6e238b7a1a1))
+
+
+### Documentation
+
+* update client_documentation link ([#136](https://www.github.com/googleapis/google-resumable-media-python/issues/136)) ([063b4f9](https://www.github.com/googleapis/google-resumable-media-python/commit/063b4f9f3ea3dff850d9ae46b2abf25d08312320))
+
 ### [0.5.1](https://www.github.com/googleapis/google-resumable-media-python/compare/v0.5.0...v0.5.1) (2020-05-26)
 
 
