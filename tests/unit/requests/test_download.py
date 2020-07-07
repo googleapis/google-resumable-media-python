@@ -753,7 +753,7 @@ class Test__get_expected_checksum(object):
 
         checksum_types = {
             "md5": type(hashlib.md5()),
-            "crc32c": type(_helpers._get_crc32c_object())
+            "crc32c": type(_helpers._get_crc32c_object()),
         }
         assert isinstance(checksum_obj, checksum_types[checksum])
 
