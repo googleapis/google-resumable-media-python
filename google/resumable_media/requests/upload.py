@@ -33,6 +33,11 @@ class SimpleUpload(_helpers.RequestsMixin, _upload.SimpleUpload):
         upload_url (str): The URL where the content will be uploaded.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
+        checksum Optional([str]): The type of checksum to compute to verify
+            the integrity of the object. The request headers will be amended to
+            include the computed value. Using this option will override a
+            manually-set checksum value. Supported values are "md5",
+            "crc32c" and None. The default is None.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
@@ -88,6 +93,11 @@ class MultipartUpload(_helpers.RequestsMixin, _upload.MultipartUpload):
         upload_url (str): The URL where the content will be uploaded.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
+        checksum Optional([str]): The type of checksum to compute to verify
+            the integrity of the object. The request headers will be amended to
+            include the computed value. Using this option will override a
+            manually-set checksum value. Supported values are "md5",
+            "crc32c" and None. The default is None.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
@@ -312,6 +322,11 @@ class ResumableUpload(_helpers.RequestsMixin, _upload.ResumableUpload):
             be sent with the :meth:`initiate` request, e.g. headers for
             encrypted data. These **will not** be sent with
             :meth:`transmit_next_chunk` or :meth:`recover` requests.
+        checksum Optional([str]): The type of checksum to compute to verify
+            the integrity of the object. The request headers will be amended to
+            include the computed value. Using this option will override a
+            manually-set checksum value. Supported values are "md5",
+            "crc32c" and None. The default is None.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.

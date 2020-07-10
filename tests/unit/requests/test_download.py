@@ -20,6 +20,7 @@ import pytest
 from six.moves import http_client
 
 from google.resumable_media import common
+from google.resumable_media import _helpers as _root_helpers
 from google.resumable_media.requests import download as download_mod
 from google.resumable_media.requests import _helpers
 
@@ -753,7 +754,7 @@ class Test__get_expected_checksum(object):
 
         checksum_types = {
             "md5": type(hashlib.md5()),
-            "crc32c": type(_helpers._get_crc32c_object()),
+            "crc32c": type(_root_helpers._get_crc32c_object()),
         }
         assert isinstance(checksum_obj, checksum_types[checksum])
 

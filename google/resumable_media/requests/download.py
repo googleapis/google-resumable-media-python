@@ -14,7 +14,6 @@
 
 """Support for downloading media from Google APIs."""
 
-import base64
 import hashlib
 import logging
 
@@ -22,6 +21,7 @@ import urllib3.response
 
 from google.resumable_media import _download
 from google.resumable_media import common
+from google.resumable_media import _helpers as _root_helpers
 from google.resumable_media.requests import _helpers
 
 
@@ -118,10 +118,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
         if expected_checksum is None:
             return
         else:
-            actual_checksum = base64.b64encode(checksum_object.digest())
-            # NOTE: ``b64encode`` returns ``bytes``, but ``expected_checksum``
-            #       came from a header, so it will be ``str``.
-            actual_checksum = actual_checksum.decode(u"utf-8")
+            actual_checksum = _root_helpers.prepare_checksum_digest(checksum_object)
             if actual_checksum != expected_checksum:
                 msg = _CHECKSUM_MISMATCH.format(
                     self.media_url,
@@ -249,11 +246,8 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
         if expected_checksum is None:
             return
         else:
-            actual_checksum = base64.b64encode(checksum_object.digest())
+            actual_checksum = _root_helpers.prepare_checksum_digest(checksum_object)
 
-            # NOTE: ``b64encode`` returns ``bytes``, but ``expected_checksum``
-            #       came from a header, so it will be ``str``.
-            actual_checksum = actual_checksum.decode(u"utf-8")
             if actual_checksum != expected_checksum:
                 msg = _CHECKSUM_MISMATCH.format(
                     self.media_url,
@@ -483,7 +477,7 @@ def _get_expected_checksum(response, get_headers, media_url, checksum_type):
             if checksum_type == "md5":
                 checksum_object = hashlib.md5()
             else:
-                checksum_object = _helpers._get_crc32c_object()
+                checksum_object = _root_helpers._get_crc32c_object()
     else:
         expected_checksum = None
         checksum_object = _DoNothingHash()

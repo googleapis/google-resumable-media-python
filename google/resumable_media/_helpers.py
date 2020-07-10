@@ -14,9 +14,10 @@
 
 """Shared utilities used by both downloads and uploads."""
 
-
+import base64
 import random
 import time
+import warnings
 
 from six.moves import http_client
 
@@ -31,6 +32,12 @@ RETRYABLE = (
     http_client.BAD_GATEWAY,
     http_client.SERVICE_UNAVAILABLE,
     http_client.GATEWAY_TIMEOUT,
+)
+
+_SLOW_CRC32C_WARNING = (
+    "Currently using crcmod in pure python form. This is a slow "
+    "implementation. Python 3 has a faster implementation, `google-crc32c`, "
+    "which will be used if it is installed."
 )
 
 
@@ -164,3 +171,41 @@ def wait_and_retry(func, get_status_code, retry_strategy):
             return response
 
     return response
+
+
+def _get_crc32c_object():
+    """ Get crc32c object
+    Attempt to use the Google-CRC32c package. If it isn't available, try
+    to use CRCMod. CRCMod might be using a 'slow' varietal. If so, warn...
+    """
+    try:
+        import crc32c
+
+        crc_obj = crc32c.Checksum()
+    except ImportError:
+        try:
+            import crcmod
+
+            crc_obj = crcmod.predefined.Crc("crc-32c")
+            _is_fast_crcmod()
+
+        except ImportError:
+            raise ImportError("Failed to import either `google-crc32c` or `crcmod`")
+
+    return crc_obj
+
+
+def _is_fast_crcmod():
+    # Determine if this is using the slow form of crcmod.
+    nested_crcmod = __import__(
+        "crcmod.crcmod", globals(), locals(), ["_usingExtension"], 0,
+    )
+    fast_crc = getattr(nested_crcmod, "_usingExtension", False)
+    if not fast_crc:
+        warnings.warn(_SLOW_CRC32C_WARNING, RuntimeWarning, stacklevel=2)
+    return fast_crc
+
+def prepare_checksum_digest(checksum_object):
+    actual_checksum = base64.b64encode(checksum_object.digest())
+    # NOTE: ``b64encode`` returns ``bytes``, but HTTP headers expect ``str``.
+    return actual_checksum.decode(u"utf-8")

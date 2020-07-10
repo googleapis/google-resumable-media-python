@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import hashlib
 import io
 import sys
 
@@ -20,6 +21,7 @@ import pytest
 from six.moves import http_client
 
 from google import resumable_media
+from google.resumable_media import _helpers
 from google.resumable_media import _upload
 from google.resumable_media import common
 
@@ -47,14 +49,16 @@ class TestUploadBase(object):
         upload = _upload.UploadBase(SIMPLE_URL)
         assert upload.upload_url == SIMPLE_URL
         assert upload._headers == {}
+        assert upload._checksum_type == None
         assert not upload._finished
         _check_retry_strategy(upload)
 
     def test_constructor_explicit(self):
         headers = {u"spin": u"doctors"}
-        upload = _upload.UploadBase(SIMPLE_URL, headers=headers)
+        upload = _upload.UploadBase(SIMPLE_URL, headers=headers, checksum="md5")
         assert upload.upload_url == SIMPLE_URL
         assert upload._headers is headers
+        assert upload._checksum_type == "md5"
         assert not upload._finished
         _check_retry_strategy(upload)
 
@@ -101,6 +105,23 @@ class TestUploadBase(object):
         assert ret_val is None
         # Make sure **finished** after.
         assert upload.finished
+
+    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c", None])
+    def test__get_checksum_object(self, checksum):
+        upload = _upload.UploadBase(SIMPLE_URL, checksum=checksum)
+        checksum_object = upload._get_checksum_object()
+
+        checksum_types = {
+            "md5": type(hashlib.md5()),
+            "crc32c": type(_helpers._get_crc32c_object()),
+            None: type(None),
+        }
+        assert isinstance(checksum_object, checksum_types[checksum])
+
+    def test__get_checksum_object_invalid(self):
+        upload = _upload.UploadBase(SIMPLE_URL, checksum="invalid")
+        with pytest.raises(ValueError):
+            checksum_object = upload._get_checksum_object()
 
     def test__get_status_code(self):
         with pytest.raises(NotImplementedError) as exc_info:
@@ -163,6 +184,24 @@ class TestSimpleUpload(object):
         expected = {u"content-type": content_type, u"x-goog-cheetos": u"spicy"}
         assert headers == expected
 
+    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
+    def test__prepare_request_with_checksum(self, checksum):
+        upload = _upload.SimpleUpload(SIMPLE_URL, checksum=checksum)
+        content_type = u"image/jpeg"
+        data = b"cheetos and eetos"
+        checksums = {
+            "md5": "iGIE+aKn8N/mocJmfa1JXA==",
+            "crc32c": "8H8frA==",
+        }
+        method, url, payload, headers = upload._prepare_request(data, content_type)
+
+        assert method == u"POST"
+        assert url == SIMPLE_URL
+        assert payload == data
+        assert headers == {
+            u"content-type": content_type,
+            checksum: checksums[checksum]}
+
     def test_transmit(self):
         upload = _upload.SimpleUpload(SIMPLE_URL)
         with pytest.raises(NotImplementedError) as exc_info:
@@ -185,8 +224,10 @@ class TestMultipartUpload(object):
             upload._prepare_request(data, {}, BASIC_CONTENT)
 
     @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==3==")
-    def _prepare_request_helper(self, mock_get_boundary, headers=None):
-        upload = _upload.MultipartUpload(MULTIPART_URL, headers=headers)
+    def _prepare_request_helper(self, mock_get_boundary, headers=None, checksum=None):
+        upload = _upload.MultipartUpload(
+            MULTIPART_URL, headers=headers, checksum=checksum
+        )
         data = b"Hi"
         metadata = {u"Some": u"Stuff"}
         content_type = BASIC_CONTENT
@@ -225,6 +266,17 @@ class TestMultipartUpload(object):
             u"worst": u"hat",
         }
         assert expected_headers == headers
+
+    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
+    def test__prepare_request_with_checksum(self, checksum):
+        headers, multipart_type = self._prepare_request_helper(checksum=checksum)
+        checksums = {
+            "md5": "waUpj5Oeh+j5YqXt/CBpGA==",
+            "crc32c": "ihY6wA==",
+        }
+        assert headers == {
+            u"content-type": multipart_type, checksum: checksums[checksum]
+        }
 
     def test_transmit(self):
         upload = _upload.MultipartUpload(MULTIPART_URL)

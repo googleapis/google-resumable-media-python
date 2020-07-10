@@ -22,6 +22,7 @@ Supported here are:
 """
 
 
+import hashlib
 import json
 import os
 import random
@@ -69,16 +70,22 @@ class UploadBase(object):
         upload_url (str): The URL where the content will be uploaded.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
+        checksum Optional([str]): The type of checksum to compute to verify
+            the integrity of the object. The request headers will be amended to
+            include the computed value. Using this option will override a
+            manually-set checksum value. Supported values are "md5",
+            "crc32c" and None. The default is None.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
     """
 
-    def __init__(self, upload_url, headers=None):
+    def __init__(self, upload_url, headers=None, checksum=None):
         self.upload_url = upload_url
         if headers is None:
             headers = {}
         self._headers = headers
+        self._checksum_type = checksum
         self._finished = False
         self._retry_strategy = common.RetryStrategy()
 
@@ -86,6 +93,18 @@ class UploadBase(object):
     def finished(self):
         """bool: Flag indicating if the upload has completed."""
         return self._finished
+
+    def _get_checksum_object(self):
+        if self._checksum_type == "md5":
+            return hashlib.md5()
+        elif self._checksum_type == "crc32c":
+            return _helpers._get_crc32c_object()
+        elif self._checksum_type is None:
+            return None
+        else:
+            raise ValueError(
+                "checksum must be ``'md5'``, ``'crc32c'`` or ``None``"
+            )
 
     def _process_response(self, response):
         """Process the response from an HTTP request.
@@ -155,6 +174,11 @@ class SimpleUpload(UploadBase):
         upload_url (str): The URL where the content will be uploaded.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
+        checksum Optional([str]): The type of checksum to compute to verify
+            the integrity of the object. The request headers will be amended to
+            include the computed value. Using this option will override a
+            manually-set checksum value. Supported values are "md5",
+            "crc32c" and None. The default is None.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
@@ -196,6 +220,13 @@ class SimpleUpload(UploadBase):
         if not isinstance(data, six.binary_type):
             raise TypeError(u"`data` must be bytes, received", type(data))
         self._headers[_CONTENT_TYPE_HEADER] = content_type
+
+        checksum_object = self._get_checksum_object()
+        if checksum_object:
+            checksum_object.update(data)
+            actual_checksum = _helpers.prepare_checksum_digest(checksum_object)
+            self._headers[self._checksum_type] = actual_checksum
+
         return _POST, self.upload_url, data, self._headers
 
     def transmit(self, transport, data, content_type, timeout=None):
@@ -231,6 +262,11 @@ class MultipartUpload(UploadBase):
         upload_url (str): The URL where the content will be uploaded.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
+        checksum Optional([str]): The type of checksum to compute to verify
+            the integrity of the object. The request headers will be amended to
+            include the computed value. Using this option will override a
+            manually-set checksum value. Supported values are "md5",
+            "crc32c" and None. The default is None.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
@@ -279,6 +315,13 @@ class MultipartUpload(UploadBase):
         )
         multipart_content_type = _RELATED_HEADER + multipart_boundary + b'"'
         self._headers[_CONTENT_TYPE_HEADER] = multipart_content_type
+
+        checksum_object = self._get_checksum_object()
+        if checksum_object:
+            checksum_object.update(data)
+            actual_checksum = _helpers.prepare_checksum_digest(checksum_object)
+            self._headers[self._checksum_type] = actual_checksum
+
         return _POST, self.upload_url, content, self._headers
 
     def transmit(self, transport, data, metadata, content_type, timeout=None):
@@ -321,6 +364,11 @@ class ResumableUpload(UploadBase):
             be sent with the :meth:`initiate` request, e.g. headers for
             encrypted data. These **will not** be sent with
             :meth:`transmit_next_chunk` or :meth:`recover` requests.
+        checksum Optional([str]): The type of checksum to compute to verify
+            the integrity of the object. The request headers will be amended to
+            include the computed value. Using this option will override a
+            manually-set checksum value. Supported values are "md5",
+            "crc32c" and None. The default is None.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
@@ -330,8 +378,10 @@ class ResumableUpload(UploadBase):
             :data:`.UPLOAD_CHUNK_SIZE`.
     """
 
-    def __init__(self, upload_url, chunk_size, headers=None):
-        super(ResumableUpload, self).__init__(upload_url, headers=headers)
+    def __init__(self, upload_url, chunk_size, checksum=None, headers=None):
+        super(ResumableUpload, self).__init__(
+            upload_url, checksum=checksum, headers=headers
+        )
         if chunk_size % resumable_media.UPLOAD_CHUNK_SIZE != 0:
             raise ValueError(
                 u"{} KB must divide chunk size".format(
