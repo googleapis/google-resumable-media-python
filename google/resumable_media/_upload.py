@@ -71,10 +71,8 @@ class UploadBase(object):
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
         checksum Optional([str]): The type of checksum to compute to verify
-            the integrity of the object. The request headers will be amended to
-            include the computed value. Using this option will override a
-            manually-set checksum value. Supported values are "md5",
-            "crc32c" and None. The default is None.
+            the integrity of the object. Supported values are "md5", "crc32c"
+            and None. The default is None.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
@@ -365,10 +363,12 @@ class ResumableUpload(UploadBase):
             encrypted data. These **will not** be sent with
             :meth:`transmit_next_chunk` or :meth:`recover` requests.
         checksum Optional([str]): The type of checksum to compute to verify
-            the integrity of the object. The request headers will be amended to
-            include the computed value. Using this option will override a
-            manually-set checksum value. Supported values are "md5",
-            "crc32c" and None. The default is None.
+            the integrity of the object. After the upload is complete, the
+            server-computed checksum of the resulting object will be checked in
+            a separate request. If the checksum does not match, the corrupted
+            object will be deleted from the remote host and
+            google.resumable_media.common.DataCorruption will be raised.
+            Supported values are "md5", "crc32c" and None. The default is None.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
@@ -392,6 +392,8 @@ class ResumableUpload(UploadBase):
         self._stream = None
         self._content_type = None
         self._bytes_uploaded = 0
+        self._bytes_checksummed = 0
+        self._checksum_object = None
         self._total_bytes = None
         self._resumable_url = None
         self._invalid = False
@@ -626,11 +628,35 @@ class ResumableUpload(UploadBase):
             msg = _STREAM_ERROR_TEMPLATE.format(start_byte, self.bytes_uploaded)
             raise ValueError(msg)
 
+        self._update_checksum(start_byte, payload)
+
         headers = {
             _CONTENT_TYPE_HEADER: self._content_type,
             _helpers.CONTENT_RANGE_HEADER: content_range,
         }
         return _PUT, self.resumable_url, payload, headers
+
+    def _update_checksum(self, start_byte, payload):
+        """Update the checksum with the payload if not already updated.
+
+        Because error recovery can result in bytes being transmitted more than
+        once, the checksum tracks the number of bytes checked in
+        self._bytes_checksummed and skips bytes that have already been summed.
+        """
+        if not self._checksum_type:
+            return
+
+        if not self._checksum_object:
+            self._checksum_object = self._get_checksum_object()
+
+        if start_byte < self._bytes_checksummed:
+            offset = self._bytes_checksummed - start_byte
+            data = payload[offset:]
+        else:
+            data = payload
+
+        self._checksum_object.update(data)
+        self._bytes_checksummed += len(data)
 
     def _make_invalid(self):
         """Simple setter for ``invalid``.
