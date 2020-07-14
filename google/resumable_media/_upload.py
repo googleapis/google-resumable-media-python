@@ -59,6 +59,13 @@ _STREAM_READ_PAST_TEMPLATE = (
 )
 _POST = u"POST"
 _PUT = u"PUT"
+_UPLOAD_CHECKSUM_MISMATCH_MESSAGE = (
+    "The computed ``{}`` checksum, ``{}``, and the checksum reported by the "
+    "remote host, ``{}``, did not match."
+)
+_UPLOAD_HEADER_NO_APPROPRIATE_CHECKSUM_MESSAGE = (
+    "X-Goog-Hash header had no ``{}`` value; checksum could not be validated."
+)
 
 
 class UploadBase(object):
@@ -100,9 +107,7 @@ class UploadBase(object):
         elif self._checksum_type is None:
             return None
         else:
-            raise ValueError(
-                "checksum must be ``'md5'``, ``'crc32c'`` or ``None``"
-            )
+            raise ValueError("checksum must be ``'md5'``, ``'crc32c'`` or ``None``")
 
     def _process_response(self, response):
         """Process the response from an HTTP request.
@@ -222,7 +227,7 @@ class SimpleUpload(UploadBase):
         checksum_object = self._get_checksum_object()
         if checksum_object:
             checksum_object.update(data)
-            actual_checksum = _helpers.prepare_checksum_digest(checksum_object)
+            actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())
             self._headers[self._checksum_type] = actual_checksum
 
         return _POST, self.upload_url, data, self._headers
@@ -317,7 +322,7 @@ class MultipartUpload(UploadBase):
         checksum_object = self._get_checksum_object()
         if checksum_object:
             checksum_object.update(data)
-            actual_checksum = _helpers.prepare_checksum_digest(checksum_object)
+            actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())
             self._headers[self._checksum_type] = actual_checksum
 
         return _POST, self.upload_url, content, self._headers
@@ -364,11 +369,11 @@ class ResumableUpload(UploadBase):
             :meth:`transmit_next_chunk` or :meth:`recover` requests.
         checksum Optional([str]): The type of checksum to compute to verify
             the integrity of the object. After the upload is complete, the
-            server-computed checksum of the resulting object will be checked in
-            a separate request. If the checksum does not match, the corrupted
-            object will be deleted from the remote host and
-            google.resumable_media.common.DataCorruption will be raised.
-            Supported values are "md5", "crc32c" and None. The default is None.
+            server-computed checksum of the resulting object will be checked
+            and google.resumable_media.common.DataCorruption will be raised on
+            a mismatch. The corrupted file will not be deleted from the remote
+            host automatically. Supported values are "md5", "crc32c" and None.
+            The default is None.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
@@ -706,6 +711,8 @@ class ResumableUpload(UploadBase):
             self._bytes_uploaded = self._bytes_uploaded + bytes_sent
             # Tombstone the current upload so it cannot be used again.
             self._finished = True
+            # Validate the checksum. This can raise an exception on failure.
+            self._validate_checksum(response)
         else:
             bytes_range = _helpers.header_required(
                 response,
@@ -723,6 +730,43 @@ class ResumableUpload(UploadBase):
                     u'Expected to be of the form "bytes=0-{end}"',
                 )
             self._bytes_uploaded = int(match.group(u"end_byte")) + 1
+
+    def _validate_checksum(self, response):
+        """Check the computed checksum, if any, against the response headers.
+
+        Args:
+            response (object): The HTTP response object.
+
+        Raises:
+            ~google.resumable_media.common.DataCorruption: If the checksum
+            computed locally and the checksum reported by the remote host do
+            not match.
+        """
+        if self._checksum_type is None:
+            return
+        remote_checksum = _helpers._parse_checksum_header(
+            self._get_headers(response).get(_helpers._HASH_HEADER),
+            response,
+            self._checksum_type,
+        )
+        if remote_checksum is None:
+            raise common.InvalidResponse(
+                response,
+                _UPLOAD_HEADER_NO_APPROPRIATE_CHECKSUM_MESSAGE.format(
+                    self._checksum_type.upper()
+                ),
+                self._get_headers(response),
+            )
+        local_checksum = _helpers.prepare_checksum_digest(
+            self._checksum_object.digest()
+        )
+        if local_checksum != remote_checksum:
+            raise common.DataCorruption(
+                response,
+                _UPLOAD_CHECKSUM_MISMATCH_MESSAGE.format(
+                    self._checksum_type.upper(), local_checksum, remote_checksum
+                ),
+            )
 
     def transmit_next_chunk(self, transport, timeout=None):
         """Transmit the next chunk of the resource to be uploaded.

@@ -15,7 +15,6 @@
 """Support for downloading media from Google APIs."""
 
 import hashlib
-import logging
 
 import urllib3.response
 
@@ -25,12 +24,6 @@ from google.resumable_media import _helpers as _root_helpers
 from google.resumable_media.requests import _helpers
 
 
-_LOGGER = logging.getLogger(__name__)
-_HASH_HEADER = u"x-goog-hash"
-_MISSING_CHECKSUM = u"""\
-No {checksum_type} checksum was returned from the service while downloading {}
-(which happens for composite objects), so client-side content integrity
-checking is not being performed."""
 _CHECKSUM_MISMATCH = u"""\
 Checksum mismatch while downloading:
 
@@ -98,7 +91,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
         # `_get_expected_checksum()` may return None even if a checksum was
         # requested, in which case it will emit an info log _MISSING_CHECKSUM.
         # If an invalid checksum type is specified, this will raise ValueError.
-        expected_checksum, checksum_object = _get_expected_checksum(
+        expected_checksum, checksum_object = _root_helpers._get_expected_checksum(
             response, self._get_headers, self.media_url, checksum_type=self.checksum
         )
 
@@ -118,7 +111,9 @@ class Download(_helpers.RequestsMixin, _download.Download):
         if expected_checksum is None:
             return
         else:
-            actual_checksum = _root_helpers.prepare_checksum_digest(checksum_object)
+            actual_checksum = _root_helpers.prepare_checksum_digest(
+                checksum_object.digest()
+            )
             if actual_checksum != expected_checksum:
                 msg = _CHECKSUM_MISMATCH.format(
                     self.media_url,
@@ -230,7 +225,7 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
         # `_get_expected_checksum()` may return None even if a checksum was
         # requested, in which case it will emit an info log _MISSING_CHECKSUM.
         # If an invalid checksum type is specified, this will raise ValueError.
-        expected_checksum, checksum_object = _get_expected_checksum(
+        expected_checksum, checksum_object = _root_helpers._get_expected_checksum(
             response, self._get_headers, self.media_url, checksum_type=self.checksum
         )
 
@@ -246,7 +241,9 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
         if expected_checksum is None:
             return
         else:
-            actual_checksum = _root_helpers.prepare_checksum_digest(checksum_object)
+            actual_checksum = _root_helpers.prepare_checksum_digest(
+                checksum_object.digest()
+            )
 
             if actual_checksum != expected_checksum:
                 msg = _CHECKSUM_MISMATCH.format(
@@ -443,117 +440,6 @@ class RawChunkedDownload(_helpers.RawRequestsMixin, _download.ChunkedDownload):
         return result
 
 
-def _get_expected_checksum(response, get_headers, media_url, checksum_type):
-    """Get the expected checksum and checksum object for the response.
-
-    Args:
-        response (~requests.Response): The HTTP response object.
-        get_headers (callable: response->dict): returns response headers.
-        media_url (str): The URL containing the media to be downloaded.
-        checksum_type Optional(str): The checksum type to read from the headers,
-            exactly as it will appear in the headers (case-sensitive). Must be
-            "md5", "crc32c" or None.
-
-    Returns:
-        Tuple (Optional[str], object): The expected checksum of the response,
-        if it can be detected from the ``X-Goog-Hash`` header, and the
-        appropriate checksum object for the expected checksum.
-    """
-    if checksum_type not in ["md5", "crc32c", None]:
-        raise ValueError("checksum must be ``'md5'``, ``'crc32c'`` or ``None``")
-    elif checksum_type in ["md5", "crc32c"]:
-        headers = get_headers(response)
-        expected_checksum = _parse_checksum_header(
-            headers.get(_HASH_HEADER), response, checksum_label=checksum_type
-        )
-
-        if expected_checksum is None:
-            msg = _MISSING_CHECKSUM.format(
-                media_url, checksum_type=checksum_type.upper()
-            )
-            _LOGGER.info(msg)
-            checksum_object = _DoNothingHash()
-        else:
-            if checksum_type == "md5":
-                checksum_object = hashlib.md5()
-            else:
-                checksum_object = _root_helpers._get_crc32c_object()
-    else:
-        expected_checksum = None
-        checksum_object = _DoNothingHash()
-
-    return (expected_checksum, checksum_object)
-
-
-def _parse_checksum_header(header_value, response, checksum_label):
-    """Parses the MD5 header from an ``X-Goog-Hash`` value.
-
-    .. _header reference: https://cloud.google.com/storage/docs/\
-                          xml-api/reference-headers#xgooghash
-
-    Expects ``header_value`` (if not :data:`None`) to be in one of the three
-    following formats:
-
-    * ``crc32c=n03x6A==``
-    * ``md5=Ojk9c3dhfxgoKVVHYwFbHQ==``
-    * ``crc32c=n03x6A==,md5=Ojk9c3dhfxgoKVVHYwFbHQ==``
-
-    See the `header reference`_ for more information.
-
-    Args:
-        header_value (Optional[str]): The ``X-Goog-Hash`` header from
-            a download response.
-        response (~requests.Response): The HTTP response object.
-        checksum_label (str): The label of the header value to read, as in the
-            examples above. Typically "md5" or "crc32c"
-
-    Returns:
-        Optional[str]: The expected checksum of the response, if it
-        can be detected from the ``X-Goog-Hash`` header; otherwise, None.
-
-    Raises:
-        ~google.resumable_media.common.InvalidResponse: If there are
-            multiple checksums of the requested type in ``header_value``.
-    """
-    if header_value is None:
-        return None
-
-    matches = []
-    for checksum in header_value.split(u","):
-        name, value = checksum.split(u"=", 1)
-        if name == checksum_label:
-            matches.append(value)
-
-    if len(matches) == 0:
-        return None
-    elif len(matches) == 1:
-        return matches[0]
-    else:
-        raise common.InvalidResponse(
-            response,
-            u"X-Goog-Hash header had multiple ``{}`` values.".format(checksum_label),
-            header_value,
-            matches,
-        )
-
-
-class _DoNothingHash(object):
-    """Do-nothing hash object.
-
-    Intended as a stand-in for ``hashlib.md5`` or a crc32c checksum
-    implementation in cases where it isn't necessary to compute the hash.
-    """
-
-    def update(self, unused_chunk):
-        """Do-nothing ``update`` method.
-
-        Intended to match the interface of ``hashlib.md5`` and other checksums.
-
-        Args:
-            unused_chunk (bytes): A chunk of data.
-        """
-
-
 def _add_decoder(response_raw, checksum):
     """Patch the ``_decoder`` on a ``urllib3`` response.
 
@@ -578,7 +464,7 @@ def _add_decoder(response_raw, checksum):
         return checksum
 
     response_raw._decoder = _GzipDecoder(checksum)
-    return _DoNothingHash()
+    return _root_helpers._DoNothingHash()
 
 
 class _GzipDecoder(urllib3.response.GzipDecoder):

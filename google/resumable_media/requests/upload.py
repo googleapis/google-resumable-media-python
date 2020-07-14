@@ -324,11 +324,11 @@ class ResumableUpload(_helpers.RequestsMixin, _upload.ResumableUpload):
             :meth:`transmit_next_chunk` or :meth:`recover` requests.
         checksum Optional([str]): The type of checksum to compute to verify
             the integrity of the object. After the upload is complete, the
-            server-computed checksum of the resulting object will be checked in
-            a separate request. If the checksum does not match, the corrupted
-            object will be deleted from the remote host and
-            google.resumable_media.common.DataCorruption will be raised.
-            Supported values are "md5", "crc32c" and None. The default is None.
+            server-computed checksum of the resulting object will be checked
+            and google.resumable_media.common.DataCorruption will be raised on
+            a mismatch. The corrupted file will not be deleted from the remote
+            host automatically. Supported values are "md5", "crc32c" and None.
+            The default is None.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
@@ -480,6 +480,9 @@ class ResumableUpload(_helpers.RequestsMixin, _upload.ResumableUpload):
         Raises:
             ~google.resumable_media.common.InvalidResponse: If the status
                 code is not 200 or 308.
+            ~google.resumable_media.common.DataCorruption: If this is the final
+                chunk, a checksum validation was requested, and the checksum
+                does not match or is not available.
         """
         method, url, payload, headers = self._prepare_request()
         response = _helpers.http_request(
