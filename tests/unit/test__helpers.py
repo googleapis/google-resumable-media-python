@@ -244,6 +244,23 @@ def _get_headers(response):
     return response.headers
 
 
+@pytest.mark.parametrize("checksum", [u"md5", u"crc32c", None])
+def test__get_checksum_object(checksum):
+    checksum_object = _helpers._get_checksum_object(checksum)
+
+    checksum_types = {
+        "md5": type(hashlib.md5()),
+        "crc32c": type(_helpers._get_crc32c_object()),
+        None: type(None),
+    }
+    assert isinstance(checksum_object, checksum_types[checksum])
+
+
+def test__get_checksum_object_invalid():
+    with pytest.raises(ValueError):
+        checksum_object = _helpers._get_checksum_object("invalid")
+
+
 def test_crc32c_throws_import_error():
     try:
         import builtins

@@ -216,6 +216,13 @@ def _is_fast_crcmod():
     return fast_crc
 
 
+def _get_metadata_key(checksum_type):
+    if checksum_type == "md5":
+        return "md5Hash"
+    else:
+        return checksum_type
+
+
 def prepare_checksum_digest(digest_bytestring):
     """Convert a checksum object into a digest encoded for an HTTP header.
 
@@ -319,6 +326,21 @@ def _parse_checksum_header(header_value, response, checksum_label):
             header_value,
             matches,
         )
+
+
+def _get_checksum_object(checksum_type):
+    """Respond with a checksum object for a supported type, if not None.
+    
+    Raises ValueError if checksum_type is unsupported.
+    """
+    if checksum_type == "md5":
+        return hashlib.md5()
+    elif checksum_type == "crc32c":
+        return _get_crc32c_object()
+    elif checksum_type is None:
+        return None
+    else:
+        raise ValueError("checksum must be ``'md5'``, ``'crc32c'`` or ``None``")
 
 
 class _DoNothingHash(object):

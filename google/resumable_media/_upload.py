@@ -63,8 +63,8 @@ _UPLOAD_CHECKSUM_MISMATCH_MESSAGE = (
     "The computed ``{}`` checksum, ``{}``, and the checksum reported by the "
     "remote host, ``{}``, did not match."
 )
-_UPLOAD_HEADER_NO_APPROPRIATE_CHECKSUM_MESSAGE = (
-    "X-Goog-Hash header had no ``{}`` value; checksum could not be validated."
+_UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE = (
+    "Response metadata had no ``{}`` value; checksum could not be validated."
 )
 
 
@@ -77,20 +77,16 @@ class UploadBase(object):
         upload_url (str): The URL where the content will be uploaded.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
-        checksum Optional([str]): The type of checksum to compute to verify
-            the integrity of the object. Supported values are "md5", "crc32c"
-            and None. The default is None.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
     """
 
-    def __init__(self, upload_url, headers=None, checksum=None):
+    def __init__(self, upload_url, headers=None):
         self.upload_url = upload_url
         if headers is None:
             headers = {}
         self._headers = headers
-        self._checksum_type = checksum
         self._finished = False
         self._retry_strategy = common.RetryStrategy()
 
@@ -98,16 +94,6 @@ class UploadBase(object):
     def finished(self):
         """bool: Flag indicating if the upload has completed."""
         return self._finished
-
-    def _get_checksum_object(self):
-        if self._checksum_type == "md5":
-            return hashlib.md5()
-        elif self._checksum_type == "crc32c":
-            return _helpers._get_crc32c_object()
-        elif self._checksum_type is None:
-            return None
-        else:
-            raise ValueError("checksum must be ``'md5'``, ``'crc32c'`` or ``None``")
 
     def _process_response(self, response):
         """Process the response from an HTTP request.
@@ -177,11 +163,6 @@ class SimpleUpload(UploadBase):
         upload_url (str): The URL where the content will be uploaded.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
-        checksum Optional([str]): The type of checksum to compute to verify
-            the integrity of the object. The request headers will be amended to
-            include the computed value. Using this option will override a
-            manually-set checksum value. Supported values are "md5",
-            "crc32c" and None. The default is None.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
@@ -223,13 +204,6 @@ class SimpleUpload(UploadBase):
         if not isinstance(data, six.binary_type):
             raise TypeError(u"`data` must be bytes, received", type(data))
         self._headers[_CONTENT_TYPE_HEADER] = content_type
-
-        checksum_object = self._get_checksum_object()
-        if checksum_object:
-            checksum_object.update(data)
-            actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())
-            self._headers[self._checksum_type] = actual_checksum
-
         return _POST, self.upload_url, data, self._headers
 
     def transmit(self, transport, data, content_type, timeout=None):
@@ -266,14 +240,18 @@ class MultipartUpload(UploadBase):
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
         checksum Optional([str]): The type of checksum to compute to verify
-            the integrity of the object. The request headers will be amended to
-            include the computed value. Using this option will override a
-            manually-set checksum value. Supported values are "md5",
-            "crc32c" and None. The default is None.
+            the integrity of the object. The request metadata will be amended
+            to include the computed value. Using this option will override a
+            manually-set checksum value. Supported values are "md5", "crc32c"
+            and None. The default is None.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
     """
+
+    def __init__(self, upload_url, headers=None, checksum=None):
+        super(MultipartUpload, self).__init__(upload_url, headers=headers)
+        self._checksum_type = checksum
 
     def _prepare_request(self, data, metadata, content_type):
         """Prepare the contents of an HTTP request.
@@ -313,17 +291,19 @@ class MultipartUpload(UploadBase):
 
         if not isinstance(data, six.binary_type):
             raise TypeError(u"`data` must be bytes, received", type(data))
+
+        checksum_object = _helpers._get_checksum_object(self._checksum_type)
+        if checksum_object:
+            checksum_object.update(data)
+            actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())
+            metadata_key = _helpers._get_metadata_key(self._checksum_type)
+            metadata[metadata_key] = actual_checksum
+
         content, multipart_boundary = construct_multipart_request(
             data, metadata, content_type
         )
         multipart_content_type = _RELATED_HEADER + multipart_boundary + b'"'
         self._headers[_CONTENT_TYPE_HEADER] = multipart_content_type
-
-        checksum_object = self._get_checksum_object()
-        if checksum_object:
-            checksum_object.update(data)
-            actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())
-            self._headers[self._checksum_type] = actual_checksum
 
         return _POST, self.upload_url, content, self._headers
 
@@ -369,7 +349,7 @@ class ResumableUpload(UploadBase):
             :meth:`transmit_next_chunk` or :meth:`recover` requests.
         checksum Optional([str]): The type of checksum to compute to verify
             the integrity of the object. After the upload is complete, the
-            server-computed checksum of the resulting object will be checked
+            server-computed checksum of the resulting object will be read
             and google.resumable_media.common.DataCorruption will be raised on
             a mismatch. The corrupted file will not be deleted from the remote
             host automatically. Supported values are "md5", "crc32c" and None.
@@ -384,9 +364,7 @@ class ResumableUpload(UploadBase):
     """
 
     def __init__(self, upload_url, chunk_size, checksum=None, headers=None):
-        super(ResumableUpload, self).__init__(
-            upload_url, checksum=checksum, headers=headers
-        )
+        super(ResumableUpload, self).__init__(upload_url, headers=headers)
         if chunk_size % resumable_media.UPLOAD_CHUNK_SIZE != 0:
             raise ValueError(
                 u"{} KB must divide chunk size".format(
@@ -398,6 +376,7 @@ class ResumableUpload(UploadBase):
         self._content_type = None
         self._bytes_uploaded = 0
         self._bytes_checksummed = 0
+        self._checksum_type = checksum
         self._checksum_object = None
         self._total_bytes = None
         self._resumable_url = None
@@ -652,7 +631,7 @@ class ResumableUpload(UploadBase):
             return
 
         if not self._checksum_object:
-            self._checksum_object = self._get_checksum_object()
+            self._checksum_object = _helpers._get_checksum_object(self._checksum_type)
 
         if start_byte < self._bytes_checksummed:
             offset = self._bytes_checksummed - start_byte
@@ -744,17 +723,13 @@ class ResumableUpload(UploadBase):
         """
         if self._checksum_type is None:
             return
-        remote_checksum = _helpers._parse_checksum_header(
-            self._get_headers(response).get(_helpers._HASH_HEADER),
-            response,
-            self._checksum_type,
-        )
+        metadata_key = _helpers._get_metadata_key(self._checksum_type)
+        metadata = response.json()
+        remote_checksum = metadata.get(metadata_key)
         if remote_checksum is None:
             raise common.InvalidResponse(
                 response,
-                _UPLOAD_HEADER_NO_APPROPRIATE_CHECKSUM_MESSAGE.format(
-                    self._checksum_type.upper()
-                ),
+                _UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE.format(metadata_key),
                 self._get_headers(response),
             )
         local_checksum = _helpers.prepare_checksum_digest(
