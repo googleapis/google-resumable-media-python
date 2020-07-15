@@ -17,13 +17,11 @@
 import base64
 import hashlib
 import logging
-import mock
 import random
 import time
 import warnings
 
 from six.moves import http_client
-import pytest
 
 from google.resumable_media import common
 
@@ -330,7 +328,7 @@ def _parse_checksum_header(header_value, response, checksum_label):
 
 def _get_checksum_object(checksum_type):
     """Respond with a checksum object for a supported type, if not None.
-    
+
     Raises ValueError if checksum_type is unsupported.
     """
     if checksum_type == "md5":

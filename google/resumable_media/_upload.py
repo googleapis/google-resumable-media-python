@@ -22,7 +22,6 @@ Supported here are:
 """
 
 
-import hashlib
 import json
 import os
 import random

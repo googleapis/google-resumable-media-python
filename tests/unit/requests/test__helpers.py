@@ -13,7 +13,6 @@
 # limitations under the License.
 
 import mock
-import pytest
 from six.moves import http_client
 
 from google.resumable_media.requests import _helpers

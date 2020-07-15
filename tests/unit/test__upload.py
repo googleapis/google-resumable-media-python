@@ -12,8 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import base64
-import hashlib
 import io
 import sys
 
@@ -179,7 +177,7 @@ class TestMultipartUpload(object):
         upload = _upload.MultipartUpload(MULTIPART_URL)
         assert upload.upload_url == MULTIPART_URL
         assert upload._headers == {}
-        assert upload._checksum_type == None
+        assert upload._checksum_type is None
         assert not upload._finished
         _check_retry_strategy(upload)
 
@@ -669,7 +667,7 @@ class TestResumableUpload(object):
         upload = self._upload_in_flight(data, checksum=None)
         start_byte, payload, _ = _upload.get_next_chunk(upload._stream, 8, len(data))
         upload._update_checksum(start_byte, payload)
-        assert upload._checksum_object == None
+        assert upload._checksum_object is None
 
     def test__update_checksum_invalid(self):
         data = b"All of the data goes in a stream."

@@ -14,8 +14,6 @@
 
 """Support for downloading media from Google APIs."""
 
-import hashlib
-
 import urllib3.response
 
 from google.resumable_media import _download

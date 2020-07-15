@@ -258,7 +258,7 @@ def test__get_checksum_object(checksum):
 
 def test__get_checksum_object_invalid():
     with pytest.raises(ValueError):
-        checksum_object = _helpers._get_checksum_object("invalid")
+        _helpers._get_checksum_object("invalid")
 
 
 def test_crc32c_throws_import_error():
