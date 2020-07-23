@@ -19,9 +19,9 @@ import pytest
 from six.moves import http_client
 
 from google.resumable_media import common
-from google.resumable_media import _helpers as _root_helpers
+from google.resumable_media import _helpers
 from google.resumable_media.requests import download as download_mod
-from google.resumable_media.requests import _helpers
+from google.resumable_media.requests import _request_helpers
 
 
 EXAMPLE_URL = (
@@ -49,7 +49,7 @@ class TestDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.iter_content.assert_called_once_with(
-            chunk_size=_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+            chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
         )
 
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c", None])
@@ -61,7 +61,7 @@ class TestDownload(object):
         chunk2 = b"second chunk, or chunk 1, which is better? "
         chunk3 = b"ordinals and numerals and stuff."
         header_value = u"crc32c=qmNCyg==,md5=fPAJHnnoi/+NadyNxT2c2w=="
-        headers = {_root_helpers._HASH_HEADER: header_value}
+        headers = {_helpers._HASH_HEADER: header_value}
         response = _mock_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
         ret_val = download._write_to_stream(response)
@@ -73,7 +73,7 @@ class TestDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.iter_content.assert_called_once_with(
-            chunk_size=_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+            chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
         )
 
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
@@ -86,7 +86,7 @@ class TestDownload(object):
         chunk3 = b"ordinals and numerals and stuff."
         bad_checksum = u"d3JvbmcgbiBtYWRlIHVwIQ=="
         header_value = u"crc32c={bad},md5={bad}".format(bad=bad_checksum)
-        headers = {_root_helpers._HASH_HEADER: header_value}
+        headers = {_helpers._HASH_HEADER: header_value}
         response = _mock_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
         with pytest.raises(common.DataCorruption) as exc_info:
@@ -110,7 +110,7 @@ class TestDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.iter_content.assert_called_once_with(
-            chunk_size=_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+            chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
         )
 
     def test__write_to_stream_with_invalid_checksum_type(self):
@@ -126,7 +126,7 @@ class TestDownload(object):
         chunk3 = b"ordinals and numerals and stuff."
         bad_checksum = u"d3JvbmcgbiBtYWRlIHVwIQ=="
         header_value = u"crc32c={bad},md5={bad}".format(bad=bad_checksum)
-        headers = {_root_helpers._HASH_HEADER: header_value}
+        headers = {_helpers._HASH_HEADER: header_value}
         response = _mock_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
         with pytest.raises(ValueError) as exc_info:
@@ -202,7 +202,7 @@ class TestDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.iter_content.assert_called_once_with(
-            chunk_size=_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+            chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
         )
 
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
@@ -210,7 +210,7 @@ class TestDownload(object):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
         header_value = u"crc32c=UNIQxg==,md5=JvS1wjMvfbCXgEGeaJJLDQ=="
-        headers = {_root_helpers._HASH_HEADER: header_value}
+        headers = {_helpers._HASH_HEADER: header_value}
         transport = self._consume_helper(
             stream=stream, chunks=chunks, response_headers=headers, checksum=checksum
         )
@@ -222,7 +222,7 @@ class TestDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.iter_content.assert_called_once_with(
-            chunk_size=_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+            chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
         )
 
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
@@ -233,7 +233,7 @@ class TestDownload(object):
         chunks = (b"zero zero", b"niner tango")
         bad_checksum = u"anVzdCBub3QgdGhpcyAxLA=="
         header_value = u"crc32c={bad},md5={bad}".format(bad=bad_checksum)
-        headers = {_root_helpers._HASH_HEADER: header_value}
+        headers = {_helpers._HASH_HEADER: header_value}
         transport = mock.Mock(spec=["request"])
         transport.request.return_value = _mock_response(chunks=chunks, headers=headers)
 
@@ -294,7 +294,7 @@ class TestRawDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.raw.stream.assert_called_once_with(
-            _helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
+            _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
         )
 
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c", None])
@@ -308,7 +308,7 @@ class TestRawDownload(object):
         chunk2 = b"second chunk, or chunk 1, which is better? "
         chunk3 = b"ordinals and numerals and stuff."
         header_value = u"crc32c=qmNCyg==,md5=fPAJHnnoi/+NadyNxT2c2w=="
-        headers = {_root_helpers._HASH_HEADER: header_value}
+        headers = {_helpers._HASH_HEADER: header_value}
         response = _mock_raw_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
         ret_val = download._write_to_stream(response)
@@ -320,7 +320,7 @@ class TestRawDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.raw.stream.assert_called_once_with(
-            _helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
+            _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
         )
 
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
@@ -335,7 +335,7 @@ class TestRawDownload(object):
         chunk3 = b"ordinals and numerals and stuff."
         bad_checksum = u"d3JvbmcgbiBtYWRlIHVwIQ=="
         header_value = u"crc32c={bad},md5={bad}".format(bad=bad_checksum)
-        headers = {_root_helpers._HASH_HEADER: header_value}
+        headers = {_helpers._HASH_HEADER: header_value}
         response = _mock_raw_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
         with pytest.raises(common.DataCorruption) as exc_info:
@@ -359,7 +359,7 @@ class TestRawDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.raw.stream.assert_called_once_with(
-            _helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
+            _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
         )
 
     def test__write_to_stream_with_invalid_checksum_type(self):
@@ -375,7 +375,7 @@ class TestRawDownload(object):
         chunk3 = b"ordinals and numerals and stuff."
         bad_checksum = u"d3JvbmcgbiBtYWRlIHVwIQ=="
         header_value = u"crc32c={bad},md5={bad}".format(bad=bad_checksum)
-        headers = {_root_helpers._HASH_HEADER: header_value}
+        headers = {_helpers._HASH_HEADER: header_value}
         response = _mock_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
         with pytest.raises(ValueError) as exc_info:
@@ -451,7 +451,7 @@ class TestRawDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.raw.stream.assert_called_once_with(
-            _helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
+            _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
         )
 
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
@@ -459,7 +459,7 @@ class TestRawDownload(object):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
         header_value = u"crc32c=UNIQxg==,md5=JvS1wjMvfbCXgEGeaJJLDQ=="
-        headers = {_root_helpers._HASH_HEADER: header_value}
+        headers = {_helpers._HASH_HEADER: header_value}
         transport = self._consume_helper(
             stream=stream, chunks=chunks, response_headers=headers, checksum=checksum
         )
@@ -471,7 +471,7 @@ class TestRawDownload(object):
         response.__enter__.assert_called_once_with()
         response.__exit__.assert_called_once_with(None, None, None)
         response.raw.stream.assert_called_once_with(
-            _helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
+            _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
         )
 
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
@@ -484,7 +484,7 @@ class TestRawDownload(object):
         chunks = (b"zero zero", b"niner tango")
         bad_checksum = u"anVzdCBub3QgdGhpcyAxLA=="
         header_value = u"crc32c={bad},md5={bad}".format(bad=bad_checksum)
-        headers = {_root_helpers._HASH_HEADER: header_value}
+        headers = {_helpers._HASH_HEADER: header_value}
         transport = mock.Mock(spec=["request"])
         transport.request.return_value = _mock_raw_response(
             chunks=chunks, headers=headers
@@ -747,7 +747,7 @@ class Test__add_decoder(object):
         md5_hash = download_mod._add_decoder(response_raw, mock.sentinel.md5_hash)
 
         assert md5_hash is not mock.sentinel.md5_hash
-        assert isinstance(md5_hash, _root_helpers._DoNothingHash)
+        assert isinstance(md5_hash, _helpers._DoNothingHash)
         assert isinstance(response_raw._decoder, download_mod._GzipDecoder)
         assert response_raw._decoder._checksum is mock.sentinel.md5_hash
 

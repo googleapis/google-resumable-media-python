@@ -18,8 +18,8 @@ import urllib3.response
 
 from google.resumable_media import _download
 from google.resumable_media import common
-from google.resumable_media import _helpers as _root_helpers
-from google.resumable_media.requests import _helpers
+from google.resumable_media import _helpers
+from google.resumable_media.requests import _request_helpers
 
 
 _CHECKSUM_MISMATCH = u"""\
@@ -37,7 +37,7 @@ but the actual {checksum_type} checksum of the downloaded contents was:
 """
 
 
-class Download(_helpers.RequestsMixin, _download.Download):
+class Download(_request_helpers.RequestsMixin, _download.Download):
     """Helper to manage downloading a resource from a Google API.
 
     "Slices" of the resource can be retrieved by specifying a range
@@ -89,7 +89,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
         # `_get_expected_checksum()` may return None even if a checksum was
         # requested, in which case it will emit an info log _MISSING_CHECKSUM.
         # If an invalid checksum type is specified, this will raise ValueError.
-        expected_checksum, checksum_object = _root_helpers._get_expected_checksum(
+        expected_checksum, checksum_object = _helpers._get_expected_checksum(
             response, self._get_headers, self.media_url, checksum_type=self.checksum
         )
 
@@ -100,7 +100,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
             # object to the decoder and return a _DoNothingHash here.
             local_checksum_object = _add_decoder(response.raw, checksum_object)
             body_iter = response.iter_content(
-                chunk_size=_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
+                chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
             )
             for chunk in body_iter:
                 self._stream.write(chunk)
@@ -109,7 +109,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
         if expected_checksum is None:
             return
         else:
-            actual_checksum = _root_helpers.prepare_checksum_digest(
+            actual_checksum = _helpers.prepare_checksum_digest(
                 checksum_object.digest()
             )
             if actual_checksum != expected_checksum:
@@ -124,7 +124,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
     def consume(
         self,
         transport,
-        timeout=(_helpers._DEFAULT_CONNECT_TIMEOUT, _helpers._DEFAULT_READ_TIMEOUT),
+        timeout=(_request_helpers._DEFAULT_CONNECT_TIMEOUT, _request_helpers._DEFAULT_READ_TIMEOUT),
     ):
         """Consume the resource to be downloaded.
 
@@ -162,7 +162,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
         if self._stream is not None:
             request_kwargs[u"stream"] = True
 
-        result = _helpers.http_request(transport, method, url, **request_kwargs)
+        result = _request_helpers.http_request(transport, method, url, **request_kwargs)
 
         self._process_response(result)
 
@@ -172,7 +172,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
         return result
 
 
-class RawDownload(_helpers.RawRequestsMixin, _download.Download):
+class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
     """Helper to manage downloading a raw resource from a Google API.
 
     "Slices" of the resource can be retrieved by specifying a range
@@ -223,13 +223,13 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
         # `_get_expected_checksum()` may return None even if a checksum was
         # requested, in which case it will emit an info log _MISSING_CHECKSUM.
         # If an invalid checksum type is specified, this will raise ValueError.
-        expected_checksum, checksum_object = _root_helpers._get_expected_checksum(
+        expected_checksum, checksum_object = _helpers._get_expected_checksum(
             response, self._get_headers, self.media_url, checksum_type=self.checksum
         )
 
         with response:
             body_iter = response.raw.stream(
-                _helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
+                _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
             )
             for chunk in body_iter:
                 self._stream.write(chunk)
@@ -239,7 +239,7 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
         if expected_checksum is None:
             return
         else:
-            actual_checksum = _root_helpers.prepare_checksum_digest(
+            actual_checksum = _helpers.prepare_checksum_digest(
                 checksum_object.digest()
             )
 
@@ -255,7 +255,7 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
     def consume(
         self,
         transport,
-        timeout=(_helpers._DEFAULT_CONNECT_TIMEOUT, _helpers._DEFAULT_READ_TIMEOUT),
+        timeout=(_request_helpers._DEFAULT_CONNECT_TIMEOUT, _request_helpers._DEFAULT_READ_TIMEOUT),
     ):
         """Consume the resource to be downloaded.
 
@@ -284,7 +284,7 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
         """
         method, url, payload, headers = self._prepare_request()
         # NOTE: We assume "payload is None" but pass it along anyway.
-        result = _helpers.http_request(
+        result = _request_helpers.http_request(
             transport,
             method,
             url,
@@ -303,7 +303,7 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
         return result
 
 
-class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
+class ChunkedDownload(_request_helpers.RequestsMixin, _download.ChunkedDownload):
     """Download a resource in chunks from a Google API.
 
     Args:
@@ -334,7 +334,7 @@ class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
     def consume_next_chunk(
         self,
         transport,
-        timeout=(_helpers._DEFAULT_CONNECT_TIMEOUT, _helpers._DEFAULT_READ_TIMEOUT),
+        timeout=(_request_helpers._DEFAULT_CONNECT_TIMEOUT, _request_helpers._DEFAULT_READ_TIMEOUT),
     ):
         """Consume the next chunk of the resource to be downloaded.
 
@@ -357,7 +357,7 @@ class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
         """
         method, url, payload, headers = self._prepare_request()
         # NOTE: We assume "payload is None" but pass it along anyway.
-        result = _helpers.http_request(
+        result = _request_helpers.http_request(
             transport,
             method,
             url,
@@ -370,7 +370,7 @@ class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
         return result
 
 
-class RawChunkedDownload(_helpers.RawRequestsMixin, _download.ChunkedDownload):
+class RawChunkedDownload(_request_helpers.RawRequestsMixin, _download.ChunkedDownload):
     """Download a raw resource in chunks from a Google API.
 
     Args:
@@ -401,7 +401,7 @@ class RawChunkedDownload(_helpers.RawRequestsMixin, _download.ChunkedDownload):
     def consume_next_chunk(
         self,
         transport,
-        timeout=(_helpers._DEFAULT_CONNECT_TIMEOUT, _helpers._DEFAULT_READ_TIMEOUT),
+        timeout=(_request_helpers._DEFAULT_CONNECT_TIMEOUT, _request_helpers._DEFAULT_READ_TIMEOUT),
     ):
         """Consume the next chunk of the resource to be downloaded.
 
@@ -424,7 +424,7 @@ class RawChunkedDownload(_helpers.RawRequestsMixin, _download.ChunkedDownload):
         """
         method, url, payload, headers = self._prepare_request()
         # NOTE: We assume "payload is None" but pass it along anyway.
-        result = _helpers.http_request(
+        result = _request_helpers.http_request(
             transport,
             method,
             url,
@@ -462,7 +462,7 @@ def _add_decoder(response_raw, checksum):
         return checksum
 
     response_raw._decoder = _GzipDecoder(checksum)
-    return _root_helpers._DoNothingHash()
+    return _helpers._DoNothingHash()
 
 
 class _GzipDecoder(urllib3.response.GzipDecoder):

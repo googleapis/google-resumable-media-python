@@ -204,15 +204,24 @@ class TestMultipartUpload(object):
 
     @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==3==")
     def _prepare_request_helper(
-        self, mock_get_boundary, headers=None, checksum=None, expected_checksum=None
+        self, mock_get_boundary, headers=None, checksum=None, expected_checksum=None, test_overwrite=False
     ):
         upload = _upload.MultipartUpload(
             MULTIPART_URL, headers=headers, checksum=checksum
         )
         data = b"Hi"
-        # To simplify parsing the response, omit other test metadata if a
-        # checksum is specified.
-        metadata = {u"Some": u"Stuff"} if not checksum else {}
+        if test_overwrite and checksum:
+            # Deliberately set metadata that conflicts with the chosen checksum.
+            # This should be fully overwritten by the calculated checksum, so
+            # the output should not change even if this is set.
+            if checksum == "md5":
+                metadata = {u"md5hash": u"ZZZZZZZZZZZZZZZZZZZZZZ=="}
+            else:
+                metadata = {u"crc32c": u"ZZZZZZ=="}
+        else:
+            # To simplify parsing the response, omit other test metadata if a
+            # checksum is specified.
+            metadata = {u"Some": u"Stuff"} if not checksum else {}
         content_type = BASIC_CONTENT
         method, url, payload, new_headers = upload._prepare_request(
             data, metadata, content_type
@@ -224,13 +233,13 @@ class TestMultipartUpload(object):
         preamble = b"--==3==\r\n" + JSON_TYPE_LINE + b"\r\n"
 
         if checksum == "md5" and expected_checksum:
-            metadata = '{{"md5Hash": "{}"}}\r\n'.format(expected_checksum).encode(
+            metadata_payload = '{{"md5Hash": "{}"}}\r\n'.format(expected_checksum).encode(
                 "utf8"
             )
         elif checksum == "crc32c" and expected_checksum:
-            metadata = '{{"crc32c": "{}"}}\r\n'.format(expected_checksum).encode("utf8")
+            metadata_payload = '{{"crc32c": "{}"}}\r\n'.format(expected_checksum).encode("utf8")
         else:
-            metadata = b'{"Some": "Stuff"}\r\n'
+            metadata_payload = b'{"Some": "Stuff"}\r\n'
         remainder = (
             b"--==3==\r\n"
             b"content-type: text/plain\r\n"
@@ -269,6 +278,19 @@ class TestMultipartUpload(object):
         }
         headers, multipart_type = self._prepare_request_helper(
             checksum=checksum, expected_checksum=checksums[checksum]
+        )
+        assert headers == {
+            u"content-type": multipart_type,
+        }
+
+    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
+    def test__prepare_request_with_checksum_overwrite(self, checksum):
+        checksums = {
+            "md5": "waUpj5Oeh+j5YqXt/CBpGA==",
+            "crc32c": "ihY6wA==",
+        }
+        headers, multipart_type = self._prepare_request_helper(
+            checksum=checksum, expected_checksum=checksums[checksum], test_overwrite=True
         )
         assert headers == {
             u"content-type": multipart_type,

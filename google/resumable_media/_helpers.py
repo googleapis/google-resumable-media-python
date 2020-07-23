@@ -226,6 +226,9 @@ def prepare_checksum_digest(digest_bytestring):
 
     Args:
         bytes: A checksum digest bytestring.
+
+    Returns:
+        str: A base64 string representation of the input.
     """
     encoded_digest = base64.b64encode(digest_bytestring)
     # NOTE: ``b64encode`` returns ``bytes``, but HTTP headers expect ``str``.

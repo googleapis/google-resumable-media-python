@@ -25,8 +25,8 @@ from six.moves import http_client
 
 from google.resumable_media import common
 import google.resumable_media.requests as resumable_requests
-from google.resumable_media import _helpers as _root_helpers
-from google.resumable_media.requests import _helpers
+from google.resumable_media import _helpers
+from google.resumable_media.requests import _request_helpers
 import google.resumable_media.requests.download as download_mod
 from tests.system import utils
 
@@ -61,7 +61,7 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
     """
 
     EMPTY_MD5 = base64.b64encode(hashlib.md5(b"").digest()).decode(u"utf-8")
-    crc32c = _root_helpers._get_crc32c_object()
+    crc32c = _helpers._get_crc32c_object()
     crc32c.update(b"")
     EMPTY_CRC32C = base64.b64encode(crc32c.digest()).decode(u"utf-8")
 
@@ -70,7 +70,7 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
         response = tr_requests.AuthorizedSession.request(
             self, method, url, data=data, headers=headers, **kwargs
         )
-        response.headers[_root_helpers._HASH_HEADER] = u"crc32c={},md5={}".format(
+        response.headers[_helpers._HASH_HEADER] = u"crc32c={},md5={}".format(
             self.EMPTY_CRC32C, self.EMPTY_MD5
         )
         return response
@@ -380,7 +380,7 @@ class TestRawDownload(TestDownload):
     @staticmethod
     def _read_response_content(response):
         return b"".join(
-            response.raw.stream(_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False)
+            response.raw.stream(_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False)
         )
 
     @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
