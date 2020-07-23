@@ -52,7 +52,7 @@ class TestDownload(object):
             chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
         )
 
-    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c", None])
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
     def test__write_to_stream_with_hash_check_success(self, checksum):
         stream = io.BytesIO()
         download = download_mod.Download(EXAMPLE_URL, stream=stream, checksum=checksum)
@@ -76,7 +76,7 @@ class TestDownload(object):
             chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
         )
 
-    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     def test__write_to_stream_with_hash_check_fail(self, checksum):
         stream = io.BytesIO()
         download = download_mod.Download(EXAMPLE_URL, stream=stream, checksum=checksum)
@@ -187,7 +187,7 @@ class TestDownload(object):
     def test_consume_with_custom_timeout(self):
         self._consume_helper(timeout=14.7)
 
-    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c", None])
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
     def test_consume_with_stream(self, checksum):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
@@ -205,7 +205,7 @@ class TestDownload(object):
             chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
         )
 
-    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     def test_consume_with_stream_hash_check_success(self, checksum):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
@@ -225,7 +225,7 @@ class TestDownload(object):
             chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
         )
 
-    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     def test_consume_with_stream_hash_check_fail(self, checksum):
         stream = io.BytesIO()
         download = download_mod.Download(EXAMPLE_URL, stream=stream, checksum=checksum)
@@ -297,7 +297,7 @@ class TestRawDownload(object):
             _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
         )
 
-    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c", None])
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
     def test__write_to_stream_with_hash_check_success(self, checksum):
         stream = io.BytesIO()
         download = download_mod.RawDownload(
@@ -323,7 +323,7 @@ class TestRawDownload(object):
             _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
         )
 
-    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     def test__write_to_stream_with_hash_check_fail(self, checksum):
         stream = io.BytesIO()
         download = download_mod.RawDownload(
@@ -436,7 +436,7 @@ class TestRawDownload(object):
     def test_consume_with_custom_timeout(self):
         self._consume_helper(timeout=14.7)
 
-    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c", None])
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
     def test_consume_with_stream(self, checksum):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
@@ -454,7 +454,7 @@ class TestRawDownload(object):
             _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
         )
 
-    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     def test_consume_with_stream_hash_check_success(self, checksum):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
@@ -474,7 +474,7 @@ class TestRawDownload(object):
             _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
         )
 
-    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     def test_consume_with_stream_hash_check_fail(self, checksum):
         stream = io.BytesIO()
         download = download_mod.RawDownload(

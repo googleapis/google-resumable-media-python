@@ -43,7 +43,10 @@ class SimpleUpload(_request_helpers.RequestsMixin, _upload.SimpleUpload):
         transport,
         data,
         content_type,
-        timeout=(_request_helpers._DEFAULT_CONNECT_TIMEOUT, _request_helpers._DEFAULT_READ_TIMEOUT),
+        timeout=(
+            _request_helpers._DEFAULT_CONNECT_TIMEOUT,
+            _request_helpers._DEFAULT_READ_TIMEOUT,
+        ),
     ):
         """Transmit the resource to be uploaded.
 
@@ -104,7 +107,10 @@ class MultipartUpload(_request_helpers.RequestsMixin, _upload.MultipartUpload):
         data,
         metadata,
         content_type,
-        timeout=(_request_helpers._DEFAULT_CONNECT_TIMEOUT, _request_helpers._DEFAULT_READ_TIMEOUT),
+        timeout=(
+            _request_helpers._DEFAULT_CONNECT_TIMEOUT,
+            _request_helpers._DEFAULT_READ_TIMEOUT,
+        ),
     ):
         """Transmit the resource to be uploaded.
 
@@ -341,7 +347,10 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
         content_type,
         total_bytes=None,
         stream_final=True,
-        timeout=(_request_helpers._DEFAULT_CONNECT_TIMEOUT, _request_helpers._DEFAULT_READ_TIMEOUT),
+        timeout=(
+            _request_helpers._DEFAULT_CONNECT_TIMEOUT,
+            _request_helpers._DEFAULT_READ_TIMEOUT,
+        ),
     ):
         """Initiate a resumable upload.
 
@@ -406,7 +415,10 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
     def transmit_next_chunk(
         self,
         transport,
-        timeout=(_request_helpers._DEFAULT_CONNECT_TIMEOUT, _request_helpers._DEFAULT_READ_TIMEOUT),
+        timeout=(
+            _request_helpers._DEFAULT_CONNECT_TIMEOUT,
+            _request_helpers._DEFAULT_READ_TIMEOUT,
+        ),
     ):
         """Transmit the next chunk of the resource to be uploaded.
 

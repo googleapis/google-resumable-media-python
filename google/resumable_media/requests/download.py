@@ -109,9 +109,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
         if expected_checksum is None:
             return
         else:
-            actual_checksum = _helpers.prepare_checksum_digest(
-                checksum_object.digest()
-            )
+            actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())
             if actual_checksum != expected_checksum:
                 msg = _CHECKSUM_MISMATCH.format(
                     self.media_url,
@@ -124,7 +122,10 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
     def consume(
         self,
         transport,
-        timeout=(_request_helpers._DEFAULT_CONNECT_TIMEOUT, _request_helpers._DEFAULT_READ_TIMEOUT),
+        timeout=(
+            _request_helpers._DEFAULT_CONNECT_TIMEOUT,
+            _request_helpers._DEFAULT_READ_TIMEOUT,
+        ),
     ):
         """Consume the resource to be downloaded.
 
@@ -239,9 +240,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
         if expected_checksum is None:
             return
         else:
-            actual_checksum = _helpers.prepare_checksum_digest(
-                checksum_object.digest()
-            )
+            actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())
 
             if actual_checksum != expected_checksum:
                 msg = _CHECKSUM_MISMATCH.format(
@@ -255,7 +254,10 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
     def consume(
         self,
         transport,
-        timeout=(_request_helpers._DEFAULT_CONNECT_TIMEOUT, _request_helpers._DEFAULT_READ_TIMEOUT),
+        timeout=(
+            _request_helpers._DEFAULT_CONNECT_TIMEOUT,
+            _request_helpers._DEFAULT_READ_TIMEOUT,
+        ),
     ):
         """Consume the resource to be downloaded.
 
@@ -334,7 +336,10 @@ class ChunkedDownload(_request_helpers.RequestsMixin, _download.ChunkedDownload)
     def consume_next_chunk(
         self,
         transport,
-        timeout=(_request_helpers._DEFAULT_CONNECT_TIMEOUT, _request_helpers._DEFAULT_READ_TIMEOUT),
+        timeout=(
+            _request_helpers._DEFAULT_CONNECT_TIMEOUT,
+            _request_helpers._DEFAULT_READ_TIMEOUT,
+        ),
     ):
         """Consume the next chunk of the resource to be downloaded.
 
@@ -401,7 +406,10 @@ class RawChunkedDownload(_request_helpers.RawRequestsMixin, _download.ChunkedDow
     def consume_next_chunk(
         self,
         transport,
-        timeout=(_request_helpers._DEFAULT_CONNECT_TIMEOUT, _request_helpers._DEFAULT_READ_TIMEOUT),
+        timeout=(
+            _request_helpers._DEFAULT_CONNECT_TIMEOUT,
+            _request_helpers._DEFAULT_READ_TIMEOUT,
+        ),
     ):
         """Consume the next chunk of the resource to be downloaded.
 

@@ -244,7 +244,7 @@ def _get_headers(response):
     return response.headers
 
 
-@pytest.mark.parametrize("checksum", [u"md5", u"crc32c", None])
+@pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
 def test__get_checksum_object(checksum):
     checksum_object = _helpers._get_checksum_object(checksum)
 
@@ -311,7 +311,7 @@ def test__DoNothingHash():
 
 
 class Test__get_expected_checksum(object):
-    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @mock.patch("google.resumable_media._helpers._LOGGER")
     def test__w_header_present(self, _LOGGER, checksum):
         checksums = {"md5": u"b2twdXNodGhpc2J1dHRvbg==", "crc32c": u"3q2+7w=="}
@@ -336,7 +336,7 @@ class Test__get_expected_checksum(object):
 
         _LOGGER.info.assert_not_called()
 
-    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @mock.patch("google.resumable_media._helpers._LOGGER")
     def test__w_header_missing(self, _LOGGER, checksum):
         headers = {}

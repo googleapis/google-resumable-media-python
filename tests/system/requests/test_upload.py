@@ -230,7 +230,7 @@ def test_simple_upload_with_headers(authorized_transport, bucket, cleanup):
     check_tombstoned(upload, authorized_transport, data, BYTES_CONTENT_TYPE)
 
 
-@pytest.mark.parametrize("checksum", [u"md5", u"crc32c", None])
+@pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
 def test_multipart_upload(authorized_transport, bucket, cleanup, checksum):
     with open(ICO_FILE, u"rb") as file_obj:
         actual_contents = file_obj.read()

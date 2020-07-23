@@ -259,7 +259,7 @@ class TestDownload(object):
     def _read_response_content(response):
         return response.content
 
-    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c", None])
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
     def test_download_full(self, add_files, authorized_transport, checksum):
         for info in ALL_FILES:
             actual_contents = self._get_contents(info)
@@ -380,10 +380,12 @@ class TestRawDownload(TestDownload):
     @staticmethod
     def _read_response_content(response):
         return b"".join(
-            response.raw.stream(_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False)
+            response.raw.stream(
+                _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
+            )
         )
 
-    @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     def test_corrupt_download(self, add_files, corrupting_transport, checksum):
         for info in ALL_FILES:
             blob_name = get_blob_name(info)
