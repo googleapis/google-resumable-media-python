@@ -14,6 +14,7 @@
 
 from __future__ import absolute_import
 import os
+import shutil
 
 import nox
 
@@ -51,19 +52,24 @@ def unit(session):
 
 @nox.session(python='3.8')
 def docs(session):
-    """Build the docs."""
+    """Build the docs for this library."""
 
-    # Install Sphinx and other dependencies.
-    session.chdir(os.path.realpath(os.path.dirname(__file__)))
-    session.install(
-        'Sphinx == 2.1.2',
-        'sphinx_rtd_theme == 0.4.3',
-        'sphinx-docstring-typing >= 0.0.3',
+    session.install("-e", ".")
+    session.install("sphinx", "alabaster", "recommonmark")
+
+    shutil.rmtree(os.path.join("docs", "_build"), ignore_errors=True)
+    session.run(
+        "sphinx-build",
+        "-W",  # warnings as errors
+        "-T",  # show full traceback on exception
+        "-N",  # no colors
+        "-b",
+        "html",
+        "-d",
+        os.path.join("docs", "_build", "doctrees", ""),
+        os.path.join("docs", ""),
+        os.path.join("docs", "_build", "html", ""),
     )
-    session.install('-e', '.[requests]')
-
-    # Build the docs!
-    session.run('bash', os.path.join('scripts', 'build_docs.sh'))
 
 
 @nox.session(python='3.8')

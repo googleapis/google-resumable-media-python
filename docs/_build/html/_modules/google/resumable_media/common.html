@@ -1,0 +1,273 @@
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>google.resumable_media.common &#8212; google-resumable-media  documentation</title>
+    <link rel="stylesheet" href="../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../" src="../../../_static/documentation_options.js"></script>
+    <script src="../../../_static/jquery.js"></script>
+    <script src="../../../_static/underscore.js"></script>
+    <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+          	<div class="admonition" id="python2-eol"> 
+          	 As of January 1, 2020 this library no longer supports Python 2 on the latest released version. 
+          	 Library versions released prior to that date will continue to be available. For more information please
+          	 visit <a href="https://cloud.google.com/python/docs/python2-sunset/">Python 2 support on Google Cloud</a>.
+          	</div>
+            
+  <h1>Source code for google.resumable_media.common</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2017 Google Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="sd">&quot;&quot;&quot;Common utilities for Google Media Downloads and Resumable Uploads.</span>
+
+<span class="sd">Includes custom exception types, useful constants and shared helpers.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<span class="n">_SLEEP_RETRY_ERROR_MSG</span> <span class="o">=</span> <span class="p">(</span>
+    <span class="sa">u</span><span class="s2">&quot;At most one of `max_cumulative_retry` and `max_retries` &quot;</span> <span class="sa">u</span><span class="s2">&quot;can be specified.&quot;</span>
+<span class="p">)</span>
+
+<span class="n">UPLOAD_CHUNK_SIZE</span> <span class="o">=</span> <span class="mi">262144</span>  <span class="c1"># 256 * 1024</span>
+<span class="sd">&quot;&quot;&quot;int: Chunks in a resumable upload must come in multiples of 256 KB.&quot;&quot;&quot;</span>
+<span class="n">PERMANENT_REDIRECT</span> <span class="o">=</span> <span class="mi">308</span>
+<span class="sd">&quot;&quot;&quot;int: Permanent redirect status code.</span>
+
+<span class="sd">It is used by Google services to indicate some (but not all) of</span>
+<span class="sd">a resumable upload has been completed.</span>
+
+<span class="sd">``http.client.PERMANENT_REDIRECT`` was added in Python 3.5, so</span>
+<span class="sd">can&#39;t be used in a &quot;general&quot; code base.</span>
+
+<span class="sd">For more information, see `RFC 7238`_.</span>
+
+<span class="sd">.. _RFC 7238: https://tools.ietf.org/html/rfc7238</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="n">TOO_MANY_REQUESTS</span> <span class="o">=</span> <span class="mi">429</span>
+<span class="sd">&quot;&quot;&quot;int: Status code indicating rate-limiting.</span>
+
+<span class="sd">``http.client.TOO_MANY_REQUESTS`` was added in Python 3.3, so</span>
+<span class="sd">can&#39;t be used in a &quot;general&quot; code base.</span>
+
+<span class="sd">For more information, see `RFC 6585`_.</span>
+
+<span class="sd">.. _RFC 6585: https://tools.ietf.org/html/rfc6585#section-4</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="n">MAX_SLEEP</span> <span class="o">=</span> <span class="mf">64.0</span>
+<span class="sd">&quot;&quot;&quot;float: Maximum amount of time allowed between requests.</span>
+
+<span class="sd">Used during the retry process for sleep after a failed request.</span>
+<span class="sd">Chosen since it is the power of two nearest to one minute.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="n">MAX_CUMULATIVE_RETRY</span> <span class="o">=</span> <span class="mf">600.0</span>
+<span class="sd">&quot;&quot;&quot;float: Maximum total sleep time allowed during retry process.</span>
+
+<span class="sd">This is provided (10 minutes) as a default. When the cumulative sleep</span>
+<span class="sd">exceeds this limit, no more retries will occur.</span>
+<span class="sd">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="InvalidResponse"><a class="viewcode-back" href="../../../resumable_media/common.html#google.resumable_media.common.InvalidResponse">[docs]</a><span class="k">class</span> <span class="nc">InvalidResponse</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Error class for responses which are not in the correct state.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        response (object): The HTTP response which caused the failure.</span>
+<span class="sd">        args (tuple): The positional arguments typically passed to an</span>
+<span class="sd">            exception class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">InvalidResponse</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">response</span> <span class="o">=</span> <span class="n">response</span>
+        <span class="sd">&quot;&quot;&quot;object: The HTTP response object that caused the failure.&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="DataCorruption"><a class="viewcode-back" href="../../../resumable_media/common.html#google.resumable_media.common.DataCorruption">[docs]</a><span class="k">class</span> <span class="nc">DataCorruption</span><span class="p">(</span><span class="ne">Exception</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Error class for corrupt media transfers.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        response (object): The HTTP response which caused the failure.</span>
+<span class="sd">        args (tuple): The positional arguments typically passed to an</span>
+<span class="sd">            exception class.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">DataCorruption</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">response</span> <span class="o">=</span> <span class="n">response</span>
+        <span class="sd">&quot;&quot;&quot;object: The HTTP response object that caused the failure.&quot;&quot;&quot;</span></div>
+
+
+<div class="viewcode-block" id="RetryStrategy"><a class="viewcode-back" href="../../../resumable_media/common.html#google.resumable_media.common.RetryStrategy">[docs]</a><span class="k">class</span> <span class="nc">RetryStrategy</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Configuration class for retrying failed requests.</span>
+
+<span class="sd">    At most one of ``max_cumulative_retry`` and ``max_retries`` can be</span>
+<span class="sd">    specified (they are both caps on the total number of retries). If</span>
+<span class="sd">    neither are specified, then ``max_cumulative_retry`` is set as</span>
+<span class="sd">    :data:`MAX_CUMULATIVE_RETRY`.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        max_sleep (Optional[float]): The maximum amount of time to sleep after</span>
+<span class="sd">            a failed request. Default is :attr:`MAX_SLEEP`.</span>
+<span class="sd">        max_cumulative_retry (Optional[float]): The maximum **total** amount of</span>
+<span class="sd">            time to sleep during retry process.</span>
+<span class="sd">        max_retries (Optional[int]): The number of retries to attempt.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        max_sleep (float): Maximum amount of time allowed between requests.</span>
+<span class="sd">        max_cumulative_retry (Optional[float]): Maximum total sleep time</span>
+<span class="sd">            allowed during retry process.</span>
+<span class="sd">        max_retries (Optional[int]): The number retries to attempt.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If both of ``max_cumulative_retry`` and ``max_retries``</span>
+<span class="sd">            are passed.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span> <span class="n">max_sleep</span><span class="o">=</span><span class="n">MAX_SLEEP</span><span class="p">,</span> <span class="n">max_cumulative_retry</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">max_retries</span><span class="o">=</span><span class="kc">None</span>
+    <span class="p">):</span>
+        <span class="k">if</span> <span class="n">max_cumulative_retry</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">max_retries</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="n">_SLEEP_RETRY_ERROR_MSG</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">max_cumulative_retry</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">max_retries</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">max_cumulative_retry</span> <span class="o">=</span> <span class="n">MAX_CUMULATIVE_RETRY</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_sleep</span> <span class="o">=</span> <span class="n">max_sleep</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_cumulative_retry</span> <span class="o">=</span> <span class="n">max_cumulative_retry</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_retries</span> <span class="o">=</span> <span class="n">max_retries</span>
+
+<div class="viewcode-block" id="RetryStrategy.retry_allowed"><a class="viewcode-back" href="../../../resumable_media/common.html#google.resumable_media.common.RetryStrategy.retry_allowed">[docs]</a>    <span class="k">def</span> <span class="nf">retry_allowed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">total_sleep</span><span class="p">,</span> <span class="n">num_retries</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Check if another retry is allowed.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            total_sleep (float): The amount of sleep accumulated by the caller.</span>
+<span class="sd">            num_retries (int): The number of retries already attempted by</span>
+<span class="sd">                the caller.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bool: Indicating if another retry is allowed (depending on either</span>
+<span class="sd">            the cumulative sleep allowed or the maximum number of retries</span>
+<span class="sd">            allowed.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_cumulative_retry</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">num_retries</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_retries</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">total_sleep</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_cumulative_retry</span></div></div>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../index.html">google-resumable-media</a></h1>
+
+
+
+<p class="blurb">Google Cloud Client Libraries for google-resumable-media</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=googleapis&repo=google-resumable-media-python&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../resumable_media/common.html">Common Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../resumable_media/requests.html">Requests Utilities</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../changelog.html">Changelog</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, Google.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/googleapis/google-resumable-media-python" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>

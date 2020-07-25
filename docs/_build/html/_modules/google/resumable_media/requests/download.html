@@ -1,0 +1,626 @@
+
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>google.resumable_media.requests.download &#8212; google-resumable-media  documentation</title>
+    <link rel="stylesheet" href="../../../../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../../../../_static/pygments.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../../../" src="../../../../_static/documentation_options.js"></script>
+    <script src="../../../../_static/jquery.js"></script>
+    <script src="../../../../_static/underscore.js"></script>
+    <script src="../../../../_static/doctools.js"></script>
+    <script src="../../../../_static/language_data.js"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+          	<div class="admonition" id="python2-eol"> 
+          	 As of January 1, 2020 this library no longer supports Python 2 on the latest released version. 
+          	 Library versions released prior to that date will continue to be available. For more information please
+          	 visit <a href="https://cloud.google.com/python/docs/python2-sunset/">Python 2 support on Google Cloud</a>.
+          	</div>
+            
+  <h1>Source code for google.resumable_media.requests.download</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Copyright 2017 Google Inc.</span>
+<span class="c1">#</span>
+<span class="c1"># Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);</span>
+<span class="c1"># you may not use this file except in compliance with the License.</span>
+<span class="c1"># You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#     http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing, software</span>
+<span class="c1"># distributed under the License is distributed on an &quot;AS IS&quot; BASIS,</span>
+<span class="c1"># WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.</span>
+<span class="c1"># See the License for the specific language governing permissions and</span>
+<span class="c1"># limitations under the License.</span>
+
+<span class="sd">&quot;&quot;&quot;Support for downloading media from Google APIs.&quot;&quot;&quot;</span>
+
+<span class="kn">import</span> <span class="nn">urllib3.response</span>
+
+<span class="kn">from</span> <span class="nn">google.resumable_media</span> <span class="kn">import</span> <span class="n">_download</span>
+<span class="kn">from</span> <span class="nn">google.resumable_media</span> <span class="kn">import</span> <span class="n">common</span>
+<span class="kn">from</span> <span class="nn">google.resumable_media</span> <span class="kn">import</span> <span class="n">_helpers</span>
+<span class="kn">from</span> <span class="nn">google.resumable_media.requests</span> <span class="kn">import</span> <span class="n">_request_helpers</span>
+
+
+<span class="n">_CHECKSUM_MISMATCH</span> <span class="o">=</span> <span class="sa">u</span><span class="s2">&quot;&quot;&quot;</span><span class="se">\</span>
+<span class="s2">Checksum mismatch while downloading:</span>
+
+<span class="s2">  </span><span class="si">{}</span><span class="s2"></span>
+
+<span class="s2">The X-Goog-Hash header indicated an </span><span class="si">{checksum_type}</span><span class="s2"> checksum of:</span>
+
+<span class="s2">  </span><span class="si">{}</span><span class="s2"></span>
+
+<span class="s2">but the actual </span><span class="si">{checksum_type}</span><span class="s2"> checksum of the downloaded contents was:</span>
+
+<span class="s2">  </span><span class="si">{}</span><span class="s2"></span>
+<span class="s2">&quot;&quot;&quot;</span>
+
+
+<div class="viewcode-block" id="Download"><a class="viewcode-back" href="../../../../resumable_media/requests.html#google.resumable_media.requests.Download">[docs]</a><span class="k">class</span> <span class="nc">Download</span><span class="p">(</span><span class="n">_request_helpers</span><span class="o">.</span><span class="n">RequestsMixin</span><span class="p">,</span> <span class="n">_download</span><span class="o">.</span><span class="n">Download</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper to manage downloading a resource from a Google API.</span>
+
+<span class="sd">    &quot;Slices&quot; of the resource can be retrieved by specifying a range</span>
+<span class="sd">    with ``start`` and / or ``end``. However, in typical usage, neither</span>
+<span class="sd">    ``start`` nor ``end`` is expected to be provided.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        media_url (str): The URL containing the media to be downloaded.</span>
+<span class="sd">        stream (IO[bytes]): A write-able stream (i.e. file-like object) that</span>
+<span class="sd">            the downloaded resource can be written to.</span>
+<span class="sd">        start (int): The first byte in a range to be downloaded. If not</span>
+<span class="sd">            provided, but ``end`` is provided, will download from the</span>
+<span class="sd">            beginning to ``end`` of the media.</span>
+<span class="sd">        end (int): The last byte in a range to be downloaded. If not</span>
+<span class="sd">            provided, but ``start`` is provided, will download from the</span>
+<span class="sd">            ``start`` to the end of the media.</span>
+<span class="sd">        headers (Optional[Mapping[str, str]]): Extra headers that should</span>
+<span class="sd">            be sent with the request, e.g. headers for encrypted data.</span>
+<span class="sd">        checksum Optional([str]): The type of checksum to compute to verify</span>
+<span class="sd">            the integrity of the object. The response headers must contain</span>
+<span class="sd">            a checksum of the requested type. If the headers lack an</span>
+<span class="sd">            appropriate checksum (for instance in the case of transcoded or</span>
+<span class="sd">            ranged downloads where the remote service does not know the</span>
+<span class="sd">            correct checksum) an INFO-level log will be emitted. Supported</span>
+<span class="sd">            values are &quot;md5&quot;, &quot;crc32c&quot; and None. The default is &quot;md5&quot;.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        media_url (str): The URL containing the media to be downloaded.</span>
+<span class="sd">        start (Optional[int]): The first byte in a range to be downloaded.</span>
+<span class="sd">        end (Optional[int]): The last byte in a range to be downloaded.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_write_to_stream</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Write response body to a write-able stream.</span>
+
+<span class="sd">        .. note:</span>
+
+<span class="sd">            This method assumes that the ``_stream`` attribute is set on the</span>
+<span class="sd">            current download.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            response (~requests.Response): The HTTP response object.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ~google.resumable_media.common.DataCorruption: If the download&#39;s</span>
+<span class="sd">                checksum doesn&#39;t agree with server-computed checksum.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># `_get_expected_checksum()` may return None even if a checksum was</span>
+        <span class="c1"># requested, in which case it will emit an info log _MISSING_CHECKSUM.</span>
+        <span class="c1"># If an invalid checksum type is specified, this will raise ValueError.</span>
+        <span class="n">expected_checksum</span><span class="p">,</span> <span class="n">checksum_object</span> <span class="o">=</span> <span class="n">_helpers</span><span class="o">.</span><span class="n">_get_expected_checksum</span><span class="p">(</span>
+            <span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_headers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">media_url</span><span class="p">,</span> <span class="n">checksum_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">checksum</span>
+        <span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">response</span><span class="p">:</span>
+            <span class="c1"># NOTE: In order to handle compressed streams gracefully, we try</span>
+            <span class="c1"># to insert our checksum object into the decompression stream. If</span>
+            <span class="c1"># the stream is indeed compressed, this will delegate the checksum</span>
+            <span class="c1"># object to the decoder and return a _DoNothingHash here.</span>
+            <span class="n">local_checksum_object</span> <span class="o">=</span> <span class="n">_add_decoder</span><span class="p">(</span><span class="n">response</span><span class="o">.</span><span class="n">raw</span><span class="p">,</span> <span class="n">checksum_object</span><span class="p">)</span>
+            <span class="n">body_iter</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">iter_content</span><span class="p">(</span>
+                <span class="n">chunk_size</span><span class="o">=</span><span class="n">_request_helpers</span><span class="o">.</span><span class="n">_SINGLE_GET_CHUNK_SIZE</span><span class="p">,</span> <span class="n">decode_unicode</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">body_iter</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+                <span class="n">local_checksum_object</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">expected_checksum</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">actual_checksum</span> <span class="o">=</span> <span class="n">_helpers</span><span class="o">.</span><span class="n">prepare_checksum_digest</span><span class="p">(</span><span class="n">checksum_object</span><span class="o">.</span><span class="n">digest</span><span class="p">())</span>
+            <span class="k">if</span> <span class="n">actual_checksum</span> <span class="o">!=</span> <span class="n">expected_checksum</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="n">_CHECKSUM_MISMATCH</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">media_url</span><span class="p">,</span>
+                    <span class="n">expected_checksum</span><span class="p">,</span>
+                    <span class="n">actual_checksum</span><span class="p">,</span>
+                    <span class="n">checksum_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">checksum</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span>
+                <span class="p">)</span>
+                <span class="k">raise</span> <span class="n">common</span><span class="o">.</span><span class="n">DataCorruption</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+
+<div class="viewcode-block" id="Download.consume"><a class="viewcode-back" href="../../../../resumable_media/requests.html#google.resumable_media.requests.Download.consume">[docs]</a>    <span class="k">def</span> <span class="nf">consume</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">transport</span><span class="p">,</span>
+        <span class="n">timeout</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">_request_helpers</span><span class="o">.</span><span class="n">_DEFAULT_CONNECT_TIMEOUT</span><span class="p">,</span>
+            <span class="n">_request_helpers</span><span class="o">.</span><span class="n">_DEFAULT_READ_TIMEOUT</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Consume the resource to be downloaded.</span>
+
+<span class="sd">        If a ``stream`` is attached to this download, then the downloaded</span>
+<span class="sd">        resource will be written to the stream.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            transport (~requests.Session): A ``requests`` object which can</span>
+<span class="sd">                make authenticated requests.</span>
+<span class="sd">            timeout (Optional[Union[float, Tuple[float, float]]]):</span>
+<span class="sd">                The number of seconds to wait for the server response.</span>
+<span class="sd">                Depending on the retry strategy, a request may be repeated</span>
+<span class="sd">                several times using the same timeout each time.</span>
+
+<span class="sd">                Can also be passed as a tuple (connect_timeout, read_timeout).</span>
+<span class="sd">                See :meth:`requests.Session.request` documentation for details.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ~requests.Response: The HTTP response returned by ``transport``.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ~google.resumable_media.common.DataCorruption: If the download&#39;s</span>
+<span class="sd">                checksum doesn&#39;t agree with server-computed checksum.</span>
+<span class="sd">            ValueError: If the current :class:`Download` has already</span>
+<span class="sd">                finished.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">payload</span><span class="p">,</span> <span class="n">headers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_request</span><span class="p">()</span>
+        <span class="c1"># NOTE: We assume &quot;payload is None&quot; but pass it along anyway.</span>
+        <span class="n">request_kwargs</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="sa">u</span><span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="n">payload</span><span class="p">,</span>
+            <span class="sa">u</span><span class="s2">&quot;headers&quot;</span><span class="p">:</span> <span class="n">headers</span><span class="p">,</span>
+            <span class="sa">u</span><span class="s2">&quot;retry_strategy&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">_retry_strategy</span><span class="p">,</span>
+            <span class="sa">u</span><span class="s2">&quot;timeout&quot;</span><span class="p">:</span> <span class="n">timeout</span><span class="p">,</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stream</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">request_kwargs</span><span class="p">[</span><span class="sa">u</span><span class="s2">&quot;stream&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="n">result</span> <span class="o">=</span> <span class="n">_request_helpers</span><span class="o">.</span><span class="n">http_request</span><span class="p">(</span><span class="n">transport</span><span class="p">,</span> <span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="o">**</span><span class="n">request_kwargs</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_process_response</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stream</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_write_to_stream</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div></div>
+
+
+<div class="viewcode-block" id="RawDownload"><a class="viewcode-back" href="../../../../resumable_media/requests.html#google.resumable_media.requests.RawDownload">[docs]</a><span class="k">class</span> <span class="nc">RawDownload</span><span class="p">(</span><span class="n">_request_helpers</span><span class="o">.</span><span class="n">RawRequestsMixin</span><span class="p">,</span> <span class="n">_download</span><span class="o">.</span><span class="n">Download</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Helper to manage downloading a raw resource from a Google API.</span>
+
+<span class="sd">    &quot;Slices&quot; of the resource can be retrieved by specifying a range</span>
+<span class="sd">    with ``start`` and / or ``end``. However, in typical usage, neither</span>
+<span class="sd">    ``start`` nor ``end`` is expected to be provided.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        media_url (str): The URL containing the media to be downloaded.</span>
+<span class="sd">        stream (IO[bytes]): A write-able stream (i.e. file-like object) that</span>
+<span class="sd">            the downloaded resource can be written to.</span>
+<span class="sd">        start (int): The first byte in a range to be downloaded. If not</span>
+<span class="sd">            provided, but ``end`` is provided, will download from the</span>
+<span class="sd">            beginning to ``end`` of the media.</span>
+<span class="sd">        end (int): The last byte in a range to be downloaded. If not</span>
+<span class="sd">            provided, but ``start`` is provided, will download from the</span>
+<span class="sd">            ``start`` to the end of the media.</span>
+<span class="sd">        headers (Optional[Mapping[str, str]]): Extra headers that should</span>
+<span class="sd">            be sent with the request, e.g. headers for encrypted data.</span>
+<span class="sd">        checksum Optional([str]): The type of checksum to compute to verify</span>
+<span class="sd">            the integrity of the object. The response headers must contain</span>
+<span class="sd">            a checksum of the requested type. If the headers lack an</span>
+<span class="sd">            appropriate checksum (for instance in the case of transcoded or</span>
+<span class="sd">            ranged downloads where the remote service does not know the</span>
+<span class="sd">            correct checksum) an INFO-level log will be emitted. Supported</span>
+<span class="sd">            values are &quot;md5&quot;, &quot;crc32c&quot; and None. The default is &quot;md5&quot;.</span>
+<span class="sd">    Attributes:</span>
+<span class="sd">        media_url (str): The URL containing the media to be downloaded.</span>
+<span class="sd">        start (Optional[int]): The first byte in a range to be downloaded.</span>
+<span class="sd">        end (Optional[int]): The last byte in a range to be downloaded.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="nf">_write_to_stream</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">response</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Write response body to a write-able stream.</span>
+
+<span class="sd">        .. note:</span>
+
+<span class="sd">            This method assumes that the ``_stream`` attribute is set on the</span>
+<span class="sd">            current download.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            response (~requests.Response): The HTTP response object.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ~google.resumable_media.common.DataCorruption: If the download&#39;s</span>
+<span class="sd">                checksum doesn&#39;t agree with server-computed checksum.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="c1"># `_get_expected_checksum()` may return None even if a checksum was</span>
+        <span class="c1"># requested, in which case it will emit an info log _MISSING_CHECKSUM.</span>
+        <span class="c1"># If an invalid checksum type is specified, this will raise ValueError.</span>
+        <span class="n">expected_checksum</span><span class="p">,</span> <span class="n">checksum_object</span> <span class="o">=</span> <span class="n">_helpers</span><span class="o">.</span><span class="n">_get_expected_checksum</span><span class="p">(</span>
+            <span class="n">response</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_headers</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">media_url</span><span class="p">,</span> <span class="n">checksum_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">checksum</span>
+        <span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">response</span><span class="p">:</span>
+            <span class="n">body_iter</span> <span class="o">=</span> <span class="n">response</span><span class="o">.</span><span class="n">raw</span><span class="o">.</span><span class="n">stream</span><span class="p">(</span>
+                <span class="n">_request_helpers</span><span class="o">.</span><span class="n">_SINGLE_GET_CHUNK_SIZE</span><span class="p">,</span> <span class="n">decode_content</span><span class="o">=</span><span class="kc">False</span>
+            <span class="p">)</span>
+            <span class="k">for</span> <span class="n">chunk</span> <span class="ow">in</span> <span class="n">body_iter</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_stream</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+                <span class="n">checksum_object</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">chunk</span><span class="p">)</span>
+            <span class="n">response</span><span class="o">.</span><span class="n">_content_consumed</span> <span class="o">=</span> <span class="kc">True</span>
+
+        <span class="k">if</span> <span class="n">expected_checksum</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">actual_checksum</span> <span class="o">=</span> <span class="n">_helpers</span><span class="o">.</span><span class="n">prepare_checksum_digest</span><span class="p">(</span><span class="n">checksum_object</span><span class="o">.</span><span class="n">digest</span><span class="p">())</span>
+
+            <span class="k">if</span> <span class="n">actual_checksum</span> <span class="o">!=</span> <span class="n">expected_checksum</span><span class="p">:</span>
+                <span class="n">msg</span> <span class="o">=</span> <span class="n">_CHECKSUM_MISMATCH</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">media_url</span><span class="p">,</span>
+                    <span class="n">expected_checksum</span><span class="p">,</span>
+                    <span class="n">actual_checksum</span><span class="p">,</span>
+                    <span class="n">checksum_type</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">checksum</span><span class="o">.</span><span class="n">upper</span><span class="p">(),</span>
+                <span class="p">)</span>
+                <span class="k">raise</span> <span class="n">common</span><span class="o">.</span><span class="n">DataCorruption</span><span class="p">(</span><span class="n">response</span><span class="p">,</span> <span class="n">msg</span><span class="p">)</span>
+
+<div class="viewcode-block" id="RawDownload.consume"><a class="viewcode-back" href="../../../../resumable_media/requests.html#google.resumable_media.requests.RawDownload.consume">[docs]</a>    <span class="k">def</span> <span class="nf">consume</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">transport</span><span class="p">,</span>
+        <span class="n">timeout</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">_request_helpers</span><span class="o">.</span><span class="n">_DEFAULT_CONNECT_TIMEOUT</span><span class="p">,</span>
+            <span class="n">_request_helpers</span><span class="o">.</span><span class="n">_DEFAULT_READ_TIMEOUT</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Consume the resource to be downloaded.</span>
+
+<span class="sd">        If a ``stream`` is attached to this download, then the downloaded</span>
+<span class="sd">        resource will be written to the stream.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            transport (~requests.Session): A ``requests`` object which can</span>
+<span class="sd">                make authenticated requests.</span>
+<span class="sd">            timeout (Optional[Union[float, Tuple[float, float]]]):</span>
+<span class="sd">                The number of seconds to wait for the server response.</span>
+<span class="sd">                Depending on the retry strategy, a request may be repeated</span>
+<span class="sd">                several times using the same timeout each time.</span>
+
+<span class="sd">                Can also be passed as a tuple (connect_timeout, read_timeout).</span>
+<span class="sd">                See :meth:`requests.Session.request` documentation for details.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ~requests.Response: The HTTP response returned by ``transport``.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ~google.resumable_media.common.DataCorruption: If the download&#39;s</span>
+<span class="sd">                checksum doesn&#39;t agree with server-computed checksum.</span>
+<span class="sd">            ValueError: If the current :class:`Download` has already</span>
+<span class="sd">                finished.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">payload</span><span class="p">,</span> <span class="n">headers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_request</span><span class="p">()</span>
+        <span class="c1"># NOTE: We assume &quot;payload is None&quot; but pass it along anyway.</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">_request_helpers</span><span class="o">.</span><span class="n">http_request</span><span class="p">(</span>
+            <span class="n">transport</span><span class="p">,</span>
+            <span class="n">method</span><span class="p">,</span>
+            <span class="n">url</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">payload</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span>
+            <span class="n">retry_strategy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_retry_strategy</span><span class="p">,</span>
+            <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+        <span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">_process_response</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_stream</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_write_to_stream</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">result</span></div></div>
+
+
+<div class="viewcode-block" id="ChunkedDownload"><a class="viewcode-back" href="../../../../resumable_media/requests.html#google.resumable_media.requests.ChunkedDownload">[docs]</a><span class="k">class</span> <span class="nc">ChunkedDownload</span><span class="p">(</span><span class="n">_request_helpers</span><span class="o">.</span><span class="n">RequestsMixin</span><span class="p">,</span> <span class="n">_download</span><span class="o">.</span><span class="n">ChunkedDownload</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Download a resource in chunks from a Google API.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        media_url (str): The URL containing the media to be downloaded.</span>
+<span class="sd">        chunk_size (int): The number of bytes to be retrieved in each</span>
+<span class="sd">            request.</span>
+<span class="sd">        stream (IO[bytes]): A write-able stream (i.e. file-like object) that</span>
+<span class="sd">            will be used to concatenate chunks of the resource as they are</span>
+<span class="sd">            downloaded.</span>
+<span class="sd">        start (int): The first byte in a range to be downloaded. If not</span>
+<span class="sd">            provided, defaults to ``0``.</span>
+<span class="sd">        end (int): The last byte in a range to be downloaded. If not</span>
+<span class="sd">            provided, will download to the end of the media.</span>
+<span class="sd">        headers (Optional[Mapping[str, str]]): Extra headers that should</span>
+<span class="sd">            be sent with each request, e.g. headers for data encryption</span>
+<span class="sd">            key headers.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        media_url (str): The URL containing the media to be downloaded.</span>
+<span class="sd">        start (Optional[int]): The first byte in a range to be downloaded.</span>
+<span class="sd">        end (Optional[int]): The last byte in a range to be downloaded.</span>
+<span class="sd">        chunk_size (int): The number of bytes to be retrieved in each request.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If ``start`` is negative.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="ChunkedDownload.consume_next_chunk"><a class="viewcode-back" href="../../../../resumable_media/requests.html#google.resumable_media.requests.ChunkedDownload.consume_next_chunk">[docs]</a>    <span class="k">def</span> <span class="nf">consume_next_chunk</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">transport</span><span class="p">,</span>
+        <span class="n">timeout</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">_request_helpers</span><span class="o">.</span><span class="n">_DEFAULT_CONNECT_TIMEOUT</span><span class="p">,</span>
+            <span class="n">_request_helpers</span><span class="o">.</span><span class="n">_DEFAULT_READ_TIMEOUT</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Consume the next chunk of the resource to be downloaded.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            transport (~requests.Session): A ``requests`` object which can</span>
+<span class="sd">                make authenticated requests.</span>
+<span class="sd">            timeout (Optional[Union[float, Tuple[float, float]]]):</span>
+<span class="sd">                The number of seconds to wait for the server response.</span>
+<span class="sd">                Depending on the retry strategy, a request may be repeated</span>
+<span class="sd">                several times using the same timeout each time.</span>
+
+<span class="sd">                Can also be passed as a tuple (connect_timeout, read_timeout).</span>
+<span class="sd">                See :meth:`requests.Session.request` documentation for details.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ~requests.Response: The HTTP response returned by ``transport``.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the current download has finished.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">payload</span><span class="p">,</span> <span class="n">headers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_request</span><span class="p">()</span>
+        <span class="c1"># NOTE: We assume &quot;payload is None&quot; but pass it along anyway.</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">_request_helpers</span><span class="o">.</span><span class="n">http_request</span><span class="p">(</span>
+            <span class="n">transport</span><span class="p">,</span>
+            <span class="n">method</span><span class="p">,</span>
+            <span class="n">url</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">payload</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span>
+            <span class="n">retry_strategy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_retry_strategy</span><span class="p">,</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_process_response</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div></div>
+
+
+<div class="viewcode-block" id="RawChunkedDownload"><a class="viewcode-back" href="../../../../resumable_media/requests.html#google.resumable_media.requests.RawChunkedDownload">[docs]</a><span class="k">class</span> <span class="nc">RawChunkedDownload</span><span class="p">(</span><span class="n">_request_helpers</span><span class="o">.</span><span class="n">RawRequestsMixin</span><span class="p">,</span> <span class="n">_download</span><span class="o">.</span><span class="n">ChunkedDownload</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Download a raw resource in chunks from a Google API.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        media_url (str): The URL containing the media to be downloaded.</span>
+<span class="sd">        chunk_size (int): The number of bytes to be retrieved in each</span>
+<span class="sd">            request.</span>
+<span class="sd">        stream (IO[bytes]): A write-able stream (i.e. file-like object) that</span>
+<span class="sd">            will be used to concatenate chunks of the resource as they are</span>
+<span class="sd">            downloaded.</span>
+<span class="sd">        start (int): The first byte in a range to be downloaded. If not</span>
+<span class="sd">            provided, defaults to ``0``.</span>
+<span class="sd">        end (int): The last byte in a range to be downloaded. If not</span>
+<span class="sd">            provided, will download to the end of the media.</span>
+<span class="sd">        headers (Optional[Mapping[str, str]]): Extra headers that should</span>
+<span class="sd">            be sent with each request, e.g. headers for data encryption</span>
+<span class="sd">            key headers.</span>
+
+<span class="sd">    Attributes:</span>
+<span class="sd">        media_url (str): The URL containing the media to be downloaded.</span>
+<span class="sd">        start (Optional[int]): The first byte in a range to be downloaded.</span>
+<span class="sd">        end (Optional[int]): The last byte in a range to be downloaded.</span>
+<span class="sd">        chunk_size (int): The number of bytes to be retrieved in each request.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ValueError: If ``start`` is negative.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+<div class="viewcode-block" id="RawChunkedDownload.consume_next_chunk"><a class="viewcode-back" href="../../../../resumable_media/requests.html#google.resumable_media.requests.RawChunkedDownload.consume_next_chunk">[docs]</a>    <span class="k">def</span> <span class="nf">consume_next_chunk</span><span class="p">(</span>
+        <span class="bp">self</span><span class="p">,</span>
+        <span class="n">transport</span><span class="p">,</span>
+        <span class="n">timeout</span><span class="o">=</span><span class="p">(</span>
+            <span class="n">_request_helpers</span><span class="o">.</span><span class="n">_DEFAULT_CONNECT_TIMEOUT</span><span class="p">,</span>
+            <span class="n">_request_helpers</span><span class="o">.</span><span class="n">_DEFAULT_READ_TIMEOUT</span><span class="p">,</span>
+        <span class="p">),</span>
+    <span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Consume the next chunk of the resource to be downloaded.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            transport (~requests.Session): A ``requests`` object which can</span>
+<span class="sd">                make authenticated requests.</span>
+<span class="sd">            timeout (Optional[Union[float, Tuple[float, float]]]):</span>
+<span class="sd">                The number of seconds to wait for the server response.</span>
+<span class="sd">                Depending on the retry strategy, a request may be repeated</span>
+<span class="sd">                several times using the same timeout each time.</span>
+
+<span class="sd">                Can also be passed as a tuple (connect_timeout, read_timeout).</span>
+<span class="sd">                See :meth:`requests.Session.request` documentation for details.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            ~requests.Response: The HTTP response returned by ``transport``.</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ValueError: If the current download has finished.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">method</span><span class="p">,</span> <span class="n">url</span><span class="p">,</span> <span class="n">payload</span><span class="p">,</span> <span class="n">headers</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_prepare_request</span><span class="p">()</span>
+        <span class="c1"># NOTE: We assume &quot;payload is None&quot; but pass it along anyway.</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">_request_helpers</span><span class="o">.</span><span class="n">http_request</span><span class="p">(</span>
+            <span class="n">transport</span><span class="p">,</span>
+            <span class="n">method</span><span class="p">,</span>
+            <span class="n">url</span><span class="p">,</span>
+            <span class="n">data</span><span class="o">=</span><span class="n">payload</span><span class="p">,</span>
+            <span class="n">headers</span><span class="o">=</span><span class="n">headers</span><span class="p">,</span>
+            <span class="n">stream</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+            <span class="n">retry_strategy</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_retry_strategy</span><span class="p">,</span>
+            <span class="n">timeout</span><span class="o">=</span><span class="n">timeout</span><span class="p">,</span>
+        <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_process_response</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">result</span></div></div>
+
+
+<span class="k">def</span> <span class="nf">_add_decoder</span><span class="p">(</span><span class="n">response_raw</span><span class="p">,</span> <span class="n">checksum</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Patch the ``_decoder`` on a ``urllib3`` response.</span>
+
+<span class="sd">    This is so that we can intercept the compressed bytes before they are</span>
+<span class="sd">    decoded.</span>
+
+<span class="sd">    Only patches if the content encoding is ``gzip``.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        response_raw (urllib3.response.HTTPResponse): The raw response for</span>
+<span class="sd">            an HTTP request.</span>
+<span class="sd">        checksum (object):</span>
+<span class="sd">            A checksum which will be updated with compressed bytes.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        object: Either the original ``checksum`` if ``_decoder`` is not</span>
+<span class="sd">        patched, or a ``_DoNothingHash`` if the decoder is patched, since the</span>
+<span class="sd">        caller will no longer need to hash to decoded bytes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">encoding</span> <span class="o">=</span> <span class="n">response_raw</span><span class="o">.</span><span class="n">headers</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="sa">u</span><span class="s2">&quot;content-encoding&quot;</span><span class="p">,</span> <span class="sa">u</span><span class="s2">&quot;&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">encoding</span> <span class="o">!=</span> <span class="sa">u</span><span class="s2">&quot;gzip&quot;</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">checksum</span>
+
+    <span class="n">response_raw</span><span class="o">.</span><span class="n">_decoder</span> <span class="o">=</span> <span class="n">_GzipDecoder</span><span class="p">(</span><span class="n">checksum</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">_helpers</span><span class="o">.</span><span class="n">_DoNothingHash</span><span class="p">()</span>
+
+
+<span class="k">class</span> <span class="nc">_GzipDecoder</span><span class="p">(</span><span class="n">urllib3</span><span class="o">.</span><span class="n">response</span><span class="o">.</span><span class="n">GzipDecoder</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Custom subclass of ``urllib3`` decoder for ``gzip``-ed bytes.</span>
+
+<span class="sd">    Allows a checksum function to see the compressed bytes before they are</span>
+<span class="sd">    decoded. This way the checksum of the compressed value can be computed.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        checksum (object):</span>
+<span class="sd">            A checksum which will be updated with compressed bytes.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">checksum</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">(</span><span class="n">_GzipDecoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checksum</span> <span class="o">=</span> <span class="n">checksum</span>
+
+    <span class="k">def</span> <span class="nf">decompress</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Decompress the bytes.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            data (bytes): The compressed bytes to be decompressed.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            bytes: The decompressed bytes from ``data``.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_checksum</span><span class="o">.</span><span class="n">update</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+        <span class="k">return</span> <span class="nb">super</span><span class="p">(</span><span class="n">_GzipDecoder</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="n">decompress</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">google-resumable-media</a></h1>
+
+
+
+<p class="blurb">Google Cloud Client Libraries for google-resumable-media</p>
+
+
+
+
+<p>
+<iframe src="https://ghbtns.com/github-btn.html?user=googleapis&repo=google-resumable-media-python&type=watch&count=true&size=large&v=2"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+</p>
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../resumable_media/common.html">Common Utilities</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../../resumable_media/requests.html">Requests Utilities</a></li>
+</ul>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../../changelog.html">Changelog</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2019, Google.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+    <a href="https://github.com/googleapis/google-resumable-media-python" class="github">
+        <img style="position: absolute; top: 0; right: 0; border: 0;" src="https://s3.amazonaws.com/github/ribbons/forkme_right_darkblue_121621.png" alt="Fork me on GitHub"  class="github"/>
+    </a>
+    
+
+    
+  </body>
+</html>
