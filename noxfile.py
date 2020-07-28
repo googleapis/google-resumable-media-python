@@ -75,22 +75,25 @@ def docs(session):
 @nox.session(python='3.8')
 def doctest(session):
     """Run the doctests."""
-    # Install Sphinx and other dependencies.
-    session.chdir(os.path.realpath(os.path.dirname(__file__)))
+    session.install("-e", ".[requests]")
+    session.install("sphinx", "alabaster", "recommonmark")
     session.install(
-        'sphinx',
-        'sphinx_rtd_theme',
-        'sphinx-docstring-typing >= 0.0.3',
-        'mock',
+        "sphinx",
+        "sphinx_rtd_theme",
+        "sphinx-docstring-typing >= 0.0.3",
+        "mock",
         GOOGLE_AUTH,
     )
-    session.install('-e', '.[requests]')
 
     # Run the doctests with Sphinx.
     session.run(
-        'sphinx-build', '-W', '-b', 'doctest',
-        '-d', os.path.join('docs_build', 'build', 'doctrees'),
-        'docs_build', os.path.join('docs_build', 'doctest'),
+        "sphinx-build",
+        "-W",
+        "-b",
+        "doctest",
+        "-d", os.path.join("docs", "_build", "doctrees"),
+        os.path.join("docs", ""),
+        os.path.join("docs", "_build", "doctest"),
     )
 
 
