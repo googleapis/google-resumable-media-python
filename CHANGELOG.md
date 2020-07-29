@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-resumable-media/#history
 
+### [0.7.1](https://www.github.com/googleapis/google-resumable-media-python/compare/v0.7.0...v0.7.1) (2020-07-29)
+
+
+### Documentation
+
+* use googleapis.dev docs link ([#149](https://www.github.com/googleapis/google-resumable-media-python/issues/149)) ([90bd0c1](https://www.github.com/googleapis/google-resumable-media-python/commit/90bd0c1a6a88b53c2049cd75cf73129fcecde5de))
+
 ## [0.7.0](https://www.github.com/googleapis/google-resumable-media-python/compare/v0.6.0...v0.7.0) (2020-07-23)
 
 
