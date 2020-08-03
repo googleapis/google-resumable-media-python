@@ -16,18 +16,20 @@
 
 
 import re
+import copy
 
-from six.moves import http_client
+#from six.moves import http_client
+import aiohttp
 
-from google.resumable_media import _helpers
-from google.resumable_media import common
+from google.async_resumable_media import _helpers
+from google.async_resumable_media import common
 
 
 _CONTENT_RANGE_RE = re.compile(
     r"bytes (?P<start_byte>\d+)-(?P<end_byte>\d+)/(?P<total_bytes>\d+)",
     flags=re.IGNORECASE,
 )
-_ACCEPTABLE_STATUS_CODES = (http_client.OK, http_client.PARTIAL_CONTENT)
+_ACCEPTABLE_STATUS_CODES = (200, 206)
 _GET = u"GET"
 _ZERO_CONTENT_RANGE_HEADER = u"bytes */0"
 
@@ -124,22 +126,7 @@ class Download(DownloadBase):
             ``start`` to the end of the media.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
-        checksum Optional([str]): The type of checksum to compute to verify
-            the integrity of the object. The response headers must contain
-            a checksum of the requested type. If the headers lack an
-            appropriate checksum (for instance in the case of transcoded or
-            ranged downloads where the remote service does not know the
-            correct checksum) an INFO-level log will be emitted. Supported
-            values are "md5", "crc32c" and None.
     """
-
-    def __init__(
-        self, media_url, stream=None, start=None, end=None, headers=None, checksum="md5"
-    ):
-        super(Download, self).__init__(
-            media_url, stream=stream, start=start, end=end, headers=headers
-        )
-        self.checksum = checksum
 
     def _prepare_request(self):
         """Prepare the contents of an HTTP request.
@@ -186,7 +173,7 @@ class Download(DownloadBase):
             response, _ACCEPTABLE_STATUS_CODES, self._get_status_code
         )
 
-    def consume(self, transport, timeout=None):
+    def consume(self, transport):
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded
@@ -195,13 +182,6 @@ class Download(DownloadBase):
         Args:
             transport (object): An object which can make authenticated
                 requests.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
-                The number of seconds to wait for the server response.
-                Depending on the retry strategy, a request may be repeated
-                several times using the same timeout each time.
-
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
 
         Raises:
             NotImplementedError: Always, since virtual.
@@ -330,7 +310,7 @@ class ChunkedDownload(DownloadBase):
         """
         self._invalid = True
 
-    def _process_response(self, response):
+    async def _process_response(self, response):
         """Process the response from an HTTP request.
 
         This is everything that must be done after a request that doesn't
@@ -379,6 +359,9 @@ class ChunkedDownload(DownloadBase):
         headers = self._get_headers(response)
         response_body = self._get_body(response)
 
+        responsebody1 = copy.copy(response_body)
+        responsebody = await responsebody1.read()
+
         start_byte, end_byte, total_bytes = get_range_info(
             response, self._get_headers, callback=self._make_invalid
         )
@@ -393,7 +376,8 @@ class ChunkedDownload(DownloadBase):
                 callback=self._make_invalid,
             )
             num_bytes = int(content_length)
-            if len(response_body) != num_bytes:
+
+            if len(responsebody) != num_bytes:
                 self._make_invalid()
                 raise common.InvalidResponse(
                     response,
@@ -401,7 +385,7 @@ class ChunkedDownload(DownloadBase):
                     u"Expected",
                     num_bytes,
                     u"Received",
-                    len(response_body),
+                    len(responsebody),
                 )
         else:
             # 'content-length' header not allowed with chunked encoding.
@@ -418,21 +402,14 @@ class ChunkedDownload(DownloadBase):
         if self.total_bytes is None:
             self._total_bytes = total_bytes
         # Write the response body to the stream.
-        self._stream.write(response_body)
+        self._stream.write(responsebody)
 
-    def consume_next_chunk(self, transport, timeout=None):
+    def consume_next_chunk(self, transport):
         """Consume the next chunk of the resource to be downloaded.
 
         Args:
             transport (object): An object which can make authenticated
                 requests.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
-                The number of seconds to wait for the server response.
-                Depending on the retry strategy, a request may be repeated
-                several times using the same timeout each time.
-
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
 
         Raises:
             NotImplementedError: Always, since virtual.
@@ -544,7 +521,7 @@ def _check_for_zero_content_range(response, get_status_code, get_headers):
     Returns:
         bool: True if content range total bytes is zero, false otherwise.
     """
-    if get_status_code(response) == http_client.REQUESTED_RANGE_NOT_SATISFIABLE:
+    if get_status_code(response) == 416:
         content_range = _helpers.header_required(
             response,
             _helpers.CONTENT_RANGE_HEADER,

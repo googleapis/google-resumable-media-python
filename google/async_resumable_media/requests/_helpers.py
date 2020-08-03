@@ -20,8 +20,8 @@ This utilities are explicitly catered to ``requests``-like transports.
 
 import functools
 
-from google.resumable_media import _helpers
-from google.resumable_media import common
+from google.async_resumable_media import _helpers
+from google.async_resumable_media import common
 
 
 _DEFAULT_RETRY_STRATEGY = common.RetryStrategy()
@@ -51,7 +51,7 @@ class RequestsMixin(object):
         Returns:
             int: The status code.
         """
-        return response.status_code
+        return response.status
 
     @staticmethod
     def _get_headers(response):
@@ -91,14 +91,12 @@ class RawRequestsMixin(RequestsMixin):
             bytes: The body of the ``response``.
         """
         if response._content is False:
-            response._content = b"".join(
-                response.raw.stream(_SINGLE_GET_CHUNK_SIZE, decode_content=False)
-            )
+            response._content = response.content
             response._content_consumed = True
         return response._content
 
 
-def http_request(
+async def http_request(
     transport,
     method,
     url,
@@ -127,10 +125,16 @@ def http_request(
     Returns:
         ~requests.Response: The return value of ``transport.request()``.
     """
+
+    #TODO(anirudhbaddepu) - look at default connect timeout and default read timeout
+
     if "timeout" not in transport_kwargs:
-        transport_kwargs["timeout"] = (_DEFAULT_CONNECT_TIMEOUT, _DEFAULT_READ_TIMEOUT)
+        #transport_kwargs["timeout"] = (_DEFAULT_CONNECT_TIMEOUT, _DEFAULT_READ_TIMEOUT)
+        transport_kwargs["timeout"] = _DEFAULT_CONNECT_TIMEOUT
 
     func = functools.partial(
         transport.request, method, url, data=data, headers=headers, **transport_kwargs
     )
-    return _helpers.wait_and_retry(func, RequestsMixin._get_status_code, retry_strategy)
+
+    resp = await _helpers.wait_and_retry(func, RequestsMixin._get_status_code, retry_strategy)
+    return resp

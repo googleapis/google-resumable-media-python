@@ -17,9 +17,10 @@ import io
 import mock
 import pytest
 from six.moves import http_client
+import asyncio
 
-from google.resumable_media import _download
-from google.resumable_media import common
+from google.async_resumable_media import _download
+from google.async_resumable_media import common
 
 
 EXAMPLE_URL = (
@@ -122,26 +123,28 @@ class TestDownload(object):
         assert new_headers is headers
         assert headers == {u"range": u"bytes=11-111", u"spoonge": u"borb"}
 
-    def test__process_response(self):
+    @pytest.mark.asyncio
+    async def test__process_response(self):
         download = _download.Download(EXAMPLE_URL)
         _fix_up_virtual(download)
 
         # Make sure **not finished** before.
         assert not download.finished
-        response = mock.Mock(status_code=int(http_client.OK), spec=["status_code"])
+        response = mock.AsyncMock(status=int(http_client.OK), spec=["status"])
         ret_val = download._process_response(response)
         assert ret_val is None
         # Make sure **finished** after.
         assert download.finished
 
-    def test__process_response_bad_status(self):
+    @pytest.mark.asyncio
+    async def test__process_response_bad_status(self):
         download = _download.Download(EXAMPLE_URL)
         _fix_up_virtual(download)
 
         # Make sure **not finished** before.
         assert not download.finished
-        response = mock.Mock(
-            status_code=int(http_client.NOT_FOUND), spec=["status_code"]
+        response = mock.AsyncMock(
+            status=int(http_client.NOT_FOUND), spec=["status"]
         )
         with pytest.raises(common.InvalidResponse) as exc_info:
             download._process_response(response)
@@ -149,7 +152,7 @@ class TestDownload(object):
         error = exc_info.value
         assert error.response is response
         assert len(error.args) == 5
-        assert error.args[1] == response.status_code
+        assert error.args[1] == response.status
         assert error.args[3] == http_client.OK
         assert error.args[4] == http_client.PARTIAL_CONTENT
         # Make sure **finished** even after a failure.
@@ -259,11 +262,13 @@ class TestChunkedDownload(object):
         self, start_byte, end_byte, total_bytes, content=None, status_code=None
     ):
         response_headers = self._response_headers(start_byte, end_byte, total_bytes)
-        return mock.Mock(
-            content=content,
+        content_stream = mock.AsyncMock(spec = ["__call__", "read"])
+        content_stream.read = mock.AsyncMock(spec=["__call__"], return_value=content)
+        return mock.AsyncMock(
+            content=content_stream,
             headers=response_headers,
-            status_code=status_code,
-            spec=["content", "headers", "status_code"],
+            status=status_code,
+            spec=["_content", "headers", "status"],
         )
 
     def test__prepare_request_already_finished(self):
@@ -321,7 +326,8 @@ class TestChunkedDownload(object):
         download._make_invalid()
         assert download.invalid
 
-    def test__process_response(self):
+    @pytest.mark.asyncio
+    async def test__process_response(self):
         data = b"1234xyztL" * 37  # 9 * 37 == 33
         chunk_size = len(data)
         stream = io.BytesIO()
@@ -344,14 +350,16 @@ class TestChunkedDownload(object):
             content=data,
             status_code=int(http_client.PARTIAL_CONTENT),
         )
-        download._process_response(response)
+
+        await download._process_response(response)
         # Check internal state after.
         assert not download.finished
         assert download.bytes_downloaded == already + chunk_size
         assert download.total_bytes == total_bytes
         assert stream.getvalue() == data
 
-    def test__process_response_transfer_encoding(self):
+    @pytest.mark.asyncio
+    async def test__process_response_transfer_encoding(self):
         data = b"1234xyztL" * 37
         chunk_size = len(data)
         stream = io.BytesIO()
@@ -377,14 +385,15 @@ class TestChunkedDownload(object):
         )
         response.headers[u"transfer-encoding"] = "chunked"
         del response.headers[u"content-length"]
-        download._process_response(response)
+        await download._process_response(response)
         # Check internal state after.
         assert not download.finished
         assert download.bytes_downloaded == already + chunk_size
         assert download.total_bytes == total_bytes
         assert stream.getvalue() == data
 
-    def test__process_response_bad_status(self):
+    @pytest.mark.asyncio
+    async def test__process_response_bad_status(self):
         chunk_size = 384
         stream = mock.Mock(spec=["write"])
         download = _download.ChunkedDownload(EXAMPLE_URL, chunk_size, stream)
@@ -401,12 +410,12 @@ class TestChunkedDownload(object):
             0, total_bytes - 1, total_bytes, status_code=int(http_client.NOT_FOUND)
         )
         with pytest.raises(common.InvalidResponse) as exc_info:
-            download._process_response(response)
+            await download._process_response(response)
 
         error = exc_info.value
         assert error.response is response
         assert len(error.args) == 5
-        assert error.args[1] == response.status_code
+        assert error.args[1] == response.status
         assert error.args[3] == http_client.OK
         assert error.args[4] == http_client.PARTIAL_CONTENT
         # Check internal state after.
@@ -416,7 +425,8 @@ class TestChunkedDownload(object):
         assert download.invalid
         stream.write.assert_not_called()
 
-    def test__process_response_missing_content_length(self):
+    @pytest.mark.asyncio
+    async def test__process_response_missing_content_length(self):
         download = _download.ChunkedDownload(EXAMPLE_URL, 256, None)
         _fix_up_virtual(download)
 
@@ -426,14 +436,16 @@ class TestChunkedDownload(object):
         assert download.total_bytes is None
         assert not download.invalid
         # Actually call the method to update.
-        response = mock.Mock(
+        content_stream = mock.AsyncMock(spec=["__call","read"])
+        content_stream.read = mock.AsyncMock(spec=["__call__"], return_value = b"DEADBEEF")
+        response = mock.AsyncMock(
             headers={u"content-range": u"bytes 0-99/99"},
-            status_code=int(http_client.PARTIAL_CONTENT),
-            content=b"DEADBEEF",
-            spec=["headers", "status_code", "content"],
+            status=int(http_client.PARTIAL_CONTENT),
+            content=content_stream,
+            spec=["headers", "status", "content"],
         )
         with pytest.raises(common.InvalidResponse) as exc_info:
-            download._process_response(response)
+            await download._process_response(response)
 
         error = exc_info.value
         assert error.response is response
@@ -445,7 +457,8 @@ class TestChunkedDownload(object):
         assert download.total_bytes is None
         assert download.invalid
 
-    def test__process_response_bad_content_range(self):
+    @pytest.mark.asyncio
+    async def test__process_response_bad_content_range(self):
         download = _download.ChunkedDownload(EXAMPLE_URL, 256, None)
         _fix_up_virtual(download)
 
@@ -460,14 +473,16 @@ class TestChunkedDownload(object):
             u"content-length": u"{:d}".format(len(data)),
             u"content-range": u"kites x-y/58",
         }
-        response = mock.Mock(
-            content=data,
+        content_stream = mock.AsyncMock(spec=["__call","read"])
+        content_stream.read = mock.AsyncMock(spec=["__call__"], return_value = data)
+        response = mock.AsyncMock(
+            content=content_stream,
             headers=headers,
-            status_code=int(http_client.PARTIAL_CONTENT),
-            spec=["content", "headers", "status_code"],
+            status=int(http_client.PARTIAL_CONTENT),
+            spec=["content", "headers", "status"],
         )
         with pytest.raises(common.InvalidResponse) as exc_info:
-            download._process_response(response)
+            await download._process_response(response)
 
         error = exc_info.value
         assert error.response is response
@@ -479,7 +494,8 @@ class TestChunkedDownload(object):
         assert download.total_bytes is None
         assert download.invalid
 
-    def test__process_response_body_wrong_length(self):
+    @pytest.mark.asyncio
+    async def test__process_response_body_wrong_length(self):
         chunk_size = 10
         stream = mock.Mock(spec=["write"])
         download = _download.ChunkedDownload(EXAMPLE_URL, chunk_size, stream)
@@ -501,7 +517,7 @@ class TestChunkedDownload(object):
             status_code=int(http_client.PARTIAL_CONTENT),
         )
         with pytest.raises(common.InvalidResponse) as exc_info:
-            download._process_response(response)
+            await download._process_response(response)
 
         error = exc_info.value
         assert error.response is response
@@ -515,7 +531,8 @@ class TestChunkedDownload(object):
         assert download.invalid
         stream.write.assert_not_called()
 
-    def test__process_response_when_finished(self):
+    @pytest.mark.asyncio
+    async def test__process_response_when_finished(self):
         chunk_size = 256
         stream = io.BytesIO()
         download = _download.ChunkedDownload(EXAMPLE_URL, chunk_size, stream)
@@ -536,7 +553,7 @@ class TestChunkedDownload(object):
             content=data,
             status_code=int(http_client.OK),
         )
-        download._process_response(response)
+        await download._process_response(response)
         # Check internal state after.
         assert download.finished
         assert download.bytes_downloaded == total_bytes
@@ -544,7 +561,8 @@ class TestChunkedDownload(object):
         assert download.total_bytes == total_bytes
         assert stream.getvalue() == data
 
-    def test__process_response_when_reaching_end(self):
+    @pytest.mark.asyncio
+    async def test__process_response_when_reaching_end(self):
         chunk_size = 8192
         end = 65000
         stream = io.BytesIO()
@@ -568,7 +586,7 @@ class TestChunkedDownload(object):
             content=data,
             status_code=int(http_client.PARTIAL_CONTENT),
         )
-        download._process_response(response)
+        await download._process_response(response)
         # Check internal state after.
         assert download.finished
         assert download.bytes_downloaded == end + 1
@@ -576,23 +594,25 @@ class TestChunkedDownload(object):
         assert download.total_bytes == 8 * chunk_size
         assert stream.getvalue() == data
 
-    def test__process_response_when_content_range_is_zero(self):
+    @pytest.mark.asyncio
+    async def test__process_response_when_content_range_is_zero(self):
         chunk_size = 10
-        stream = mock.Mock(spec=["write"])
+        stream = mock.AsyncMock(spec=["write"])
         download = _download.ChunkedDownload(EXAMPLE_URL, chunk_size, stream)
         _fix_up_virtual(download)
 
         content_range = _download._ZERO_CONTENT_RANGE_HEADER
         headers = {u"content-range": content_range}
         status_code = http_client.REQUESTED_RANGE_NOT_SATISFIABLE
-        response = mock.Mock(
-            headers=headers, status_code=status_code, spec=["headers", "status_code"]
+        response = mock.AsyncMock(
+            headers=headers, status=status_code, spec=["headers", "status"]
         )
-        download._process_response(response)
+        await download._process_response(response)
         stream.write.assert_not_called()
         assert download.finished
         assert download.bytes_downloaded == 0
         assert download.total_bytes is None
+
 
     def test_consume_next_chunk(self):
         download = _download.ChunkedDownload(EXAMPLE_URL, 256, None)
@@ -700,8 +720,8 @@ class Test__check_for_zero_content_range(object):
     @staticmethod
     def _make_response(content_range, status_code):
         headers = {u"content-range": content_range}
-        return mock.Mock(
-            headers=headers, status_code=status_code, spec=["headers", "status_code"]
+        return mock.AsyncMock(
+            headers=headers, status=status_code, spec=["headers", "status_code"]
         )
 
     def test_status_code_416_and_test_content_range_zero_both(self):
@@ -730,7 +750,7 @@ class Test__check_for_zero_content_range(object):
 
 
 def _get_status_code(response):
-    return response.status_code
+    return response.status
 
 
 def _get_headers(response):

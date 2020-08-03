@@ -15,7 +15,7 @@
 import mock
 import pytest
 
-from google.resumable_media import common
+from google.async_resumable_media import common
 
 
 class TestInvalidResponse(object):

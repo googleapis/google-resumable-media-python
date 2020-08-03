@@ -658,13 +658,13 @@ transmitted in chunks until completion:
    >>> json_response[u'name'] == blob_name
    True
 """
-from google.resumable_media.requests.download import ChunkedDownload
-from google.resumable_media.requests.download import Download
-from google.resumable_media.requests.upload import MultipartUpload
-from google.resumable_media.requests.download import RawChunkedDownload
-from google.resumable_media.requests.download import RawDownload
-from google.resumable_media.requests.upload import ResumableUpload
-from google.resumable_media.requests.upload import SimpleUpload
+from google.async_resumable_media.requests.download import ChunkedDownload
+from google.async_resumable_media.requests.download import Download
+from google.async_resumable_media.requests.upload import MultipartUpload
+from google.async_resumable_media.requests.download import RawChunkedDownload
+from google.async_resumable_media.requests.download import RawDownload
+from google.async_resumable_media.requests.upload import ResumableUpload
+from google.async_resumable_media.requests.upload import SimpleUpload
 
 
 __all__ = [

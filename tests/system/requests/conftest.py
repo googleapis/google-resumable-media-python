@@ -19,6 +19,10 @@ import pytest
 
 from tests.system import utils
 
+import http
+
+http.client.HTTPConnection.debuglevel=5
+
 
 def ensure_bucket(transport):
     get_response = transport.get(utils.BUCKET_URL)
@@ -26,10 +30,11 @@ def ensure_bucket(transport):
         credentials = transport.credentials
         query_params = {"project": credentials.project_id}
         payload = {"name": utils.BUCKET_NAME}
+        breakpoint()
         post_response = transport.post(
             utils.BUCKET_POST_URL, params=query_params, json=payload
         )
-
+        
         if not post_response.ok:
             raise ValueError(
                 "{}: {}".format(post_response.status_code, post_response.reason)
