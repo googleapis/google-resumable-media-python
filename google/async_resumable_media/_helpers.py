@@ -14,8 +14,12 @@
 
 """Shared utilities used by both downloads and uploads."""
 
+import base64
+import hashlib
+import logging
 import random
 import time
+
 
 from six.moves import http_client
 import aiohttp
@@ -32,6 +36,18 @@ RETRYABLE = (
     http_client.SERVICE_UNAVAILABLE,
     http_client.GATEWAY_TIMEOUT,
 )
+
+_SLOW_CRC32C_WARNING = (	
+    "Currently using crcmod in pure python form. This is a slow "	
+    "implementation. Python 3 has a faster implementation, `google-crc32c`, "	
+    "which will be used if it is installed."
+)
+_HASH_HEADER = u"x-goog-hash"	
+_MISSING_CHECKSUM = u"""\	
+No {checksum_type} checksum was returned from the service while downloading {}	
+(which happens for composite objects), so client-side content integrity	
+checking is not being performed."""	
+_LOGGER = logging.getLogger(__name__)
 
 
 def do_nothing():

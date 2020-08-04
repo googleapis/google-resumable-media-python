@@ -17,7 +17,7 @@ import asyncio
 from six.moves import http_client
 import pytest
 
-from google.async_resumable_media.requests import _helpers
+from google.async_resumable_media.requests import _request_helpers as _helpers
 
 #Change expected timeout to single numeral instead of tuple for asyncio compatibility.
 EXPECTED_TIMEOUT = 61

@@ -30,7 +30,6 @@ def ensure_bucket(transport):
         credentials = transport.credentials
         query_params = {"project": credentials.project_id}
         payload = {"name": utils.BUCKET_NAME}
-        breakpoint()
         post_response = transport.post(
             utils.BUCKET_POST_URL, params=query_params, json=payload
         )

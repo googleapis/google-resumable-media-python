@@ -37,7 +37,7 @@ Checksum mismatch while downloading:
 
   {}
 
-The X-Goog-Hash header indicated an {check_sum} checksum of:
+The X-Goog-Hash header indicated an {checksum_type} checksum of:
 
   {}
 
@@ -100,9 +100,11 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             response, self._get_headers, self.media_url, checksum_type=self.checksum	
         )
 
-        async for chunk in response.content.iter_chunked(_helpers._SINGLE_GET_CHUNK_SIZE):
+        local_checksum_object = _add_decoder(response, checksum_object)
+
+        async for chunk in response.content.iter_chunked(_request_helpers._SINGLE_GET_CHUNK_SIZE):
             self._stream.write(chunk)
-            local_hash.update(chunk)
+            local_checksum_object.update(chunk)
 
         if expected_checksum is None:
             return	
@@ -160,7 +162,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
         if self._stream is not None:
             request_kwargs[u"stream"] = True
 
-        result = await _helpers.http_request(transport, method, url, **request_kwargs)
+        result = await _request_helpers.http_request(transport, method, url, **request_kwargs)
 
         self._process_response(result)
 
@@ -224,12 +226,9 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
         )
         
 
-        async for chunk in response.iter_chunked(_helpers._SINGLE_GET_CHUNK_SIZE):
+        async for chunk in response.iter_chunked(_request_helpers._SINGLE_GET_CHUNK_SIZE):
             self._stream.write(chunk)
-            md5_hash.update(chunk)
-
-        if expected_md5_hash is None:
-            return
+            checksum_object.update(chunk)
 
         if expected_checksum is None:
             return	
@@ -424,7 +423,7 @@ class RawChunkedDownload(_request_helpers.RawRequestsMixin, _download.ChunkedDow
         await self._process_response(result)
         return result
 
-def _add_decoder(response_raw, md5_hash):
+def _add_decoder(response_raw, checksum):
     """Patch the ``_decoder`` on a ``urllib3`` response.
 
     This is so that we can intercept the compressed bytes before they are
