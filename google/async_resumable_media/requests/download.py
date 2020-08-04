@@ -22,7 +22,8 @@ import urllib3.response
 
 from google.async_resumable_media import _download
 from google.async_resumable_media import common
-from google.async_resumable_media.requests import _helpers
+from google.async_resumable_media import _helpers
+from google.async_resumable_media.requests import _request_helpers
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -36,17 +37,17 @@ Checksum mismatch while downloading:
 
   {}
 
-The X-Goog-Hash header indicated an MD5 checksum of:
+The X-Goog-Hash header indicated an {check_sum} checksum of:
 
   {}
 
-but the actual MD5 checksum of the downloaded contents was:
+but the actual {checksum_type} checksum of the downloaded contents was:
 
   {}
 """
 
 
-class Download(_helpers.RequestsMixin, _download.Download):
+class Download(_request_helpers.RequestsMixin, _download.Download):
     """Helper to manage downloading a resource from a Google API.
 
     "Slices" of the resource can be retrieved by specifying a range
@@ -65,6 +66,13 @@ class Download(_helpers.RequestsMixin, _download.Download):
             ``start`` to the end of the media.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
+        checksum Optional([str]): The type of checksum to compute to verify	
+            the integrity of the object. The response headers must contain	
+            a checksum of the requested type. If the headers lack an	
+            appropriate checksum (for instance in the case of transcoded or	
+            ranged downloads where the remote service does not know the	
+            correct checksum) an INFO-level log will be emitted. Supported	
+            values are "md5", "crc32c" and None. The default is "md5".
 
     Attributes:
         media_url (str): The URL containing the media to be downloaded.
@@ -87,45 +95,35 @@ class Download(_helpers.RequestsMixin, _download.Download):
             ~google.resumable_media.common.DataCorruption: If the download's
                 checksum doesn't agree with server-computed checksum.
         """
-        expected_md5_hash = _get_expected_md5(
-            response, self._get_headers, self.media_url
+
+        expected_checksum, checksum_object = _helpers._get_expected_checksum(	
+            response, self._get_headers, self.media_url, checksum_type=self.checksum	
         )
 
-        if expected_md5_hash is None:
-            md5_hash = _DoNothingHash()
-        else:
-            md5_hash = hashlib.md5()
-
-        '''
-        while True:
-            breakpoint()
-            chunk = await response.content.read(1)
-            local_hash = _add_decoder(response, md5_hash)
-            if chunk == b'':
-                break
-            self._stream.write(chunk)
-            local_hash.update(chunk)
-        '''
-
-        local_hash = _add_decoder(response, md5_hash)     
         async for chunk in response.content.iter_chunked(_helpers._SINGLE_GET_CHUNK_SIZE):
             self._stream.write(chunk)
             local_hash.update(chunk)
 
-        if expected_md5_hash is None:
-            return
+        if expected_checksum is None:
+            return	
 
-        actual_md5_hash = base64.b64encode(md5_hash.digest())
-        # NOTE: ``b64encode`` returns ``bytes``, but ``expected_md5_hash``
-        #       came from a header, so it will be ``str``.
-        actual_md5_hash = actual_md5_hash.decode(u"utf-8")
-        if actual_md5_hash != expected_md5_hash:
-            msg = _CHECKSUM_MISMATCH.format(
-                self.media_url, expected_md5_hash, actual_md5_hash
-            )
-            raise common.DataCorruption(response, msg)
+        else:	
+            actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())	
+            if actual_checksum != expected_checksum:	
+                msg = _CHECKSUM_MISMATCH.format(	
+                    self.media_url,	
+                    expected_checksum,	
+                    actual_checksum,	
+                    checksum_type=self.checksum.upper(),	
+                )	
+                raise common.DataCorruption(response, msg)
 
-    async def consume(self, transport):
+    async def consume(
+        self, 
+        transport,
+        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
+    ):
+        #TODO(timeout tuple incompatibility in aiohttp, so singular timeout value)
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded
@@ -134,6 +132,12 @@ class Download(_helpers.RequestsMixin, _download.Download):
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
+            timeout (Optional[Union[float, Tuple[float, float]]]):	
+                The number of seconds to wait for the server response.	
+                Depending on the retry strategy, a request may be repeated	
+                several times using the same timeout each time.	
+                Can also be passed as a tuple (connect_timeout, read_timeout).	
+                See :meth:`requests.Session.request` documentation for details.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -150,16 +154,13 @@ class Download(_helpers.RequestsMixin, _download.Download):
             u"data": payload,
             u"headers": headers,
             u"retry_strategy": self._retry_strategy,
+            u"timeout": timeout,
         }
-        
-        #breakpoint()
 
         if self._stream is not None:
             request_kwargs[u"stream"] = True
 
         result = await _helpers.http_request(transport, method, url, **request_kwargs)
-
-        #breakpoint()
 
         self._process_response(result)
 
@@ -169,7 +170,7 @@ class Download(_helpers.RequestsMixin, _download.Download):
         return result
 
 
-class RawDownload(_helpers.RawRequestsMixin, _download.Download):
+class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
     """Helper to manage downloading a raw resource from a Google API.
 
     "Slices" of the resource can be retrieved by specifying a range
@@ -188,6 +189,13 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
             ``start`` to the end of the media.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
+        checksum Optional([str]): The type of checksum to compute to verify	
+            the integrity of the object. The response headers must contain	
+            a checksum of the requested type. If the headers lack an	
+            appropriate checksum (for instance in the case of transcoded or	
+            ranged downloads where the remote service does not know the	
+            correct checksum) an INFO-level log will be emitted. Supported	
+            values are "md5", "crc32c" and None. The default is "md5".
 
     Attributes:
         media_url (str): The URL containing the media to be downloaded.
@@ -210,28 +218,11 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
             ~google.resumable_media.common.DataCorruption: If the download's
                 checksum doesn't agree with server-computed checksum.
         """
-        expected_md5_hash = _get_expected_md5(
-            response, self._get_headers, self.media_url
-        )
 
-        if expected_md5_hash is None:
-            md5_hash = _DoNothingHash()
-        else:
-            md5_hash = hashlib.md5()
-
-     
-        # NOTE: This might "donate" ``md5_hash`` to the decoder and replace
-        #       it with a ``_DoNothingHash``.
-        '''
-        body_iter = response.raw.stream(
-            _helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
+        expected_checksum, checksum_object = _helpers._get_expected_checksum(
+            response, self._get_headers, self.media_url, checksum_type=self.checksum
         )
-        for chunk in body_iter:
-            self._stream.write(chunk)
-            md5_hash.update(chunk)
         
-        response._content_consumed = True
-        '''
 
         async for chunk in response.iter_chunked(_helpers._SINGLE_GET_CHUNK_SIZE):
             self._stream.write(chunk)
@@ -240,17 +231,25 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
         if expected_md5_hash is None:
             return
 
-        actual_md5_hash = base64.b64encode(md5_hash.digest())
-        # NOTE: ``b64encode`` returns ``bytes``, but ``expected_md5_hash``
-        #       came from a header, so it will be ``str``.
-        actual_md5_hash = actual_md5_hash.decode(u"utf-8")
-        if actual_md5_hash != expected_md5_hash:
-            msg = _CHECKSUM_MISMATCH.format(
-                self.media_url, expected_md5_hash, actual_md5_hash
-            )
-            raise common.DataCorruption(response, msg)
+        if expected_checksum is None:
+            return	
+        else:
+            actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())	
 
-    async def consume(self, transport):
+            if actual_checksum != expected_checksum:	
+                msg = _CHECKSUM_MISMATCH.format(	
+                    self.media_url,
+                    expected_checksum,
+                    actual_checksum,	
+                    checksum_type=self.checksum.upper(),	
+                )	
+                raise common.DataCorruption(response, msg)
+
+    async def consume(
+        self, 
+        transport,
+        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
+    ):
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded
@@ -259,6 +258,12 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
+            timeout (Optional[Union[float, Tuple[float, float]]]):	
+                The number of seconds to wait for the server response.	
+                Depending on the retry strategy, a request may be repeated	
+                several times using the same timeout each time.	
+                Can also be passed as a tuple (connect_timeout, read_timeout).	
+                See :meth:`requests.Session.request` documentation for details.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -271,25 +276,24 @@ class RawDownload(_helpers.RawRequestsMixin, _download.Download):
         """
         method, url, payload, headers = self._prepare_request()
         # NOTE: We assume "payload is None" but pass it along anyway.
-        result = await _helpers.http_request(
+        result = await _request_helpers.http_request(
             transport,
             method,
             url,
             data=payload,
             headers=headers,
             retry_strategy=self._retry_strategy,
-            #stream = True
         )
 
         self._process_response(result)
 
         if self._stream is not None:
-           await  self._write_to_stream(result)
+           await self._write_to_stream(result)
 
         return result
 
 
-class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
+class ChunkedDownload(_request_helpers.RequestsMixin, _download.ChunkedDownload):
     """Download a resource in chunks from a Google API.
 
     Args:
@@ -317,12 +321,21 @@ class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
         ValueError: If ``start`` is negative.
     """
 
-    async def consume_next_chunk(self, transport):
+    async def consume_next_chunk(
+        self, 
+        transport,
+        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT):
         """Consume the next chunk of the resource to be downloaded.
 
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
+            timeout (Optional[Union[float, Tuple[float, float]]]):	
+                The number of seconds to wait for the server response.	
+                Depending on the retry strategy, a request may be repeated	
+                several times using the same timeout each time.	
+                Can also be passed as a tuple (connect_timeout, read_timeout).	
+                See :meth:`requests.Session.request` documentation for details.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -332,20 +345,21 @@ class ChunkedDownload(_helpers.RequestsMixin, _download.ChunkedDownload):
         """
         method, url, payload, headers = self._prepare_request()
         # NOTE: We assume "payload is None" but pass it along anyway.
-        result = await _helpers.http_request(
+        result = await _request_helpers.http_request(
             transport,
             method,
             url,
             data=payload,
             headers=headers,
             retry_strategy=self._retry_strategy,
+            timeout=timeout,
         )
 
         await self._process_response(result)
         return result
 
 
-class RawChunkedDownload(_helpers.RawRequestsMixin, _download.ChunkedDownload):
+class RawChunkedDownload(_request_helpers.RawRequestsMixin, _download.ChunkedDownload):
     """Download a raw resource in chunks from a Google API.
 
     Args:
@@ -373,12 +387,22 @@ class RawChunkedDownload(_helpers.RawRequestsMixin, _download.ChunkedDownload):
         ValueError: If ``start`` is negative.
     """
 
-    async def consume_next_chunk(self, transport):
+    async def consume_next_chunk(
+        self, 
+        transport,
+        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
+    ):
         """Consume the next chunk of the resource to be downloaded.
 
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
+            timeout (Optional[Union[float, Tuple[float, float]]]):	
+                The number of seconds to wait for the server response.	
+                Depending on the retry strategy, a request may be repeated	
+                several times using the same timeout each time.	
+                Can also be passed as a tuple (connect_timeout, read_timeout).	
+                See :meth:`requests.Session.request` documentation for details.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -388,107 +412,17 @@ class RawChunkedDownload(_helpers.RawRequestsMixin, _download.ChunkedDownload):
         """
         method, url, payload, headers = self._prepare_request()
         # NOTE: We assume "payload is None" but pass it along anyway.
-        result = await _helpers.http_request(
+        result = await _request_helpers.http_request(
             transport,
             method,
             url,
             data=payload,
             headers=headers,
-            #stream=True,
             retry_strategy=self._retry_strategy,
+            timeout=timeout,
         )
         await self._process_response(result)
         return result
-
-
-def _get_expected_md5(response, get_headers, media_url):
-    """Get the expected MD5 hash from the response headers.
-
-    Args:
-        response (~requests.Response): The HTTP response object.
-        get_headers (callable: response->dict): returns response headers.
-        media_url (str): The URL containing the media to be downloaded.
-
-    Returns:
-        Optional[str]: The expected MD5 hash of the response, if it
-        can be detected from the ``X-Goog-Hash`` header.
-    """
-    headers = get_headers(response)
-    expected_md5_hash = _parse_md5_header(headers.get(_HASH_HEADER), response)
-
-    if expected_md5_hash is None:
-        msg = _MISSING_MD5.format(media_url)
-        _LOGGER.info(msg)
-
-    return expected_md5_hash
-
-
-def _parse_md5_header(header_value, response):
-    """Parses the MD5 header from an ``X-Goog-Hash`` value.
-
-    .. _header reference: https://cloud.google.com/storage/docs/\
-                          xml-api/reference-headers#xgooghash
-
-    Expects ``header_value`` (if not :data:`None`) to be in one of the three
-    following formats:
-
-    * ``crc32c=n03x6A==``
-    * ``md5=Ojk9c3dhfxgoKVVHYwFbHQ==``
-    * ``crc32c=n03x6A==,md5=Ojk9c3dhfxgoKVVHYwFbHQ==``
-
-    See the `header reference`_ for more information.
-
-    Args:
-        header_value (Optional[str]): The ``X-Goog-Hash`` header from
-            a download response.
-        response (~requests.Response): The HTTP response object.
-
-    Returns:
-        Optional[str]: The expected MD5 hash of the response, if it
-        can be detected from the ``X-Goog-Hash`` header.
-
-    Raises:
-        ~google.resumable_media.common.InvalidResponse: If there are
-            multiple ``md5`` checksums in ``header_value``.
-    """
-    if header_value is None:
-        return None
-
-    matches = []
-    for checksum in header_value.split(u","):
-        name, value = checksum.split(u"=", 1)
-        if name == u"md5":
-            matches.append(value)
-
-    if len(matches) == 0:
-        return None
-    elif len(matches) == 1:
-        return matches[0]
-    else:
-        raise common.InvalidResponse(
-            response,
-            u"X-Goog-Hash header had multiple ``md5`` values.",
-            header_value,
-            matches,
-        )
-
-
-class _DoNothingHash(object):
-    """Do-nothing hash object.
-
-    Intended as a stand-in for ``hashlib.md5`` in cases where it
-    isn't necessary to compute the hash.
-    """
-
-    def update(self, unused_chunk):
-        """Do-nothing ``update`` method.
-
-        Intended to match the interface of ``hashlib.md5``.
-
-        Args:
-            unused_chunk (bytes): A chunk of data.
-        """
-
 
 def _add_decoder(response_raw, md5_hash):
     """Patch the ``_decoder`` on a ``urllib3`` response.
@@ -501,37 +435,37 @@ def _add_decoder(response_raw, md5_hash):
     Args:
         response_raw (urllib3.response.HTTPResponse): The raw response for
             an HTTP request.
-        md5_hash (Union[_DoNothingHash, hashlib.md5]): A hash function which
-            will get updated when it encounters compressed bytes.
+        checksum (object):
+            A checksum which will be updated with compressed bytes.
 
     Returns:
-        Union[_DoNothingHash, hashlib.md5]: Either the original ``md5_hash``
-        if ``_decoder`` is not patched. Otherwise, returns a ``_DoNothingHash``
-        since the caller will no longer need to hash to decoded bytes.
+        object: Either the original ``checksum`` if ``_decoder`` is not
+        patched, or a ``_DoNothingHash`` if the decoder is patched, since the
+        caller will no longer need to hash to decoded bytes.
     """
-    #breakpoint()
+
     encoding = response_raw.headers.get(u"content-encoding", u"").lower()
     if encoding != u"gzip":
-        return md5_hash
+        return checksum
 
-    response_raw._decoder = _GzipDecoder(md5_hash)
-    return _DoNothingHash()
+    response_raw._decoder = _GzipDecoder(checksum)
+    return _helpers._DoNothingHash
 
 
 class _GzipDecoder(urllib3.response.GzipDecoder):
     """Custom subclass of ``urllib3`` decoder for ``gzip``-ed bytes.
 
-    Allows an MD5 hash function to see the compressed bytes before they are
-    decoded. This way the hash of the compressed value can be computed.
+    Allows a checksum hash function to see the compressed bytes before they are
+    decoded. This way the checksum of the compressed value can be computed.
 
     Args:
-        md5_hash (Union[_DoNothingHash, hashlib.md5]): A hash function which
-            will get updated when it encounters compressed bytes.
+        checksum (object):
+            A checksum which will be updated with compressed bytes.
     """
 
-    def __init__(self, md5_hash):
+    def __init__(self, checksum):
         super(_GzipDecoder, self).__init__()
-        self._md5_hash = md5_hash
+        self._checksum = checksum
 
     def decompress(self, data):
         """Decompress the bytes.
@@ -542,5 +476,5 @@ class _GzipDecoder(urllib3.response.GzipDecoder):
         Returns:
             bytes: The decompressed bytes from ``data``.
         """
-        self._md5_hash.update(data)
+        self._checksum.update(data)
         return super(_GzipDecoder, self).decompress(data)
