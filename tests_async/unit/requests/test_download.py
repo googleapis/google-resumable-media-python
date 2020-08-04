@@ -555,7 +555,7 @@ class TestRawChunkedDownload(object):
 
 
 class Test__get_expected_md5(object):
-    @mock.patch("google.resumable_media.requests.download._LOGGER")
+    @mock.patch("google.async_resumable_media.requests.download._LOGGER")
     def test__w_header_present(self, _LOGGER):
         checksum = u"b2twdXNodGhpc2J1dHRvbg=="
         header_value = u"crc32c=3q2+7w==,md5={}".format(checksum)
@@ -571,7 +571,7 @@ class Test__get_expected_md5(object):
         assert expected_md5_hash == checksum
         _LOGGER.info.assert_not_called()
 
-    @mock.patch("google.resumable_media.requests.download._LOGGER")
+    @mock.patch("google.async_resumable_media.requests.download._LOGGER")
     def test__w_header_missing(self, _LOGGER):
         headers = {}
         response = _mock_response(headers=headers)

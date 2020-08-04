@@ -14,13 +14,10 @@
 
 """Shared utilities used by both downloads and uploads."""
 
-#https://httpstatuses.com/
-
-
 import random
 import time
 
-#from six.moves import http_client
+from six.moves import http_client
 import aiohttp
 
 from google.async_resumable_media import common
@@ -30,10 +27,10 @@ RANGE_HEADER = u"range"
 CONTENT_RANGE_HEADER = u"content-range"
 RETRYABLE = (
     common.TOO_MANY_REQUESTS,
-    500,
-    502,
-    503,
-    504,
+    http_client.INTERNAL_SERVER_ERROR,
+    http_client.BAD_GATEWAY,
+    http_client.SERVICE_UNAVAILABLE,
+    http_client.GATEWAY_TIMEOUT,
 )
 
 
