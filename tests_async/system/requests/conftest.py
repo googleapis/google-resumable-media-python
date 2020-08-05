@@ -23,8 +23,6 @@
 # limitations under the License.
 """py.test fixtures to be shared across multiple system test modules."""
 
-#import google.auth
-#import google.auth.transport.requests as tr_requests 
 import google.auth
 import google.auth.transport.aiohttp_requests as tr_requests
 import pytest

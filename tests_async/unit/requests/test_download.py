@@ -590,10 +590,10 @@ class TestRawChunkedDownload(object):
         content_stream = mock.AsyncMock(spec = ["__call__", "read"])
         content_stream.read = mock.AsyncMock(spec=["__call__"], return_value=content)
         return mock.AsyncMock(
-            _content=content_stream,
+            content=content_stream,
             headers=response_headers,
             status=status_code,
-            spec=["_content", "headers", "status"],
+            spec=["content", "headers", "status"],
         )
 
     @pytest.mark.asyncio

@@ -147,7 +147,6 @@ async def check_tombstoned(upload, transport, *args):
     else:
         with pytest.raises(Exception):
             await upload.transmit_next_chunk(transport, *args)
-    print(a)
 
 async def check_does_not_exist(transport, blob_name):
     metadata_url = utils.METADATA_URL_TEMPLATE.format(blob_name=blob_name)

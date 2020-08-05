@@ -373,8 +373,7 @@ class ChunkedDownload(DownloadBase):
         headers = self._get_headers(response)
         response_body = self._get_body(response)
 
-        response_body_copy = copy.copy(response_body)
-        response_body_content = await response_body_copy.read()
+        response_body_content = await response_body.read()
 
         start_byte, end_byte, total_bytes = get_range_info(
             response, self._get_headers, callback=self._make_invalid

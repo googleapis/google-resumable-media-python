@@ -90,10 +90,7 @@ class RawRequestsMixin(RequestsMixin):
         Returns:
             bytes: The body of the ``response``.
         """
-        if response._content is False:
-            response._content = response.content
-            response._content_consumed = True
-        return response._content
+        return response.content
 
 
 async def http_request(

@@ -21,7 +21,7 @@ from tests.system import utils
 
 import http
 
-http.client.HTTPConnection.debuglevel=5
+http.client.HTTPConnection.debuglevel = 5
 
 
 def ensure_bucket(transport):
@@ -33,7 +33,7 @@ def ensure_bucket(transport):
         post_response = transport.post(
             utils.BUCKET_POST_URL, params=query_params, json=payload
         )
-        
+
         if not post_response.ok:
             raise ValueError(
                 "{}: {}".format(post_response.status_code, post_response.reason)

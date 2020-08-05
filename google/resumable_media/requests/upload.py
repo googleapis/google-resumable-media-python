@@ -146,7 +146,6 @@ class MultipartUpload(_request_helpers.RequestsMixin, _upload.MultipartUpload):
             timeout=timeout,
         )
 
-     
         self._process_response(response)
         return response
 

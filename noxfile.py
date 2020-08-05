@@ -26,18 +26,41 @@ SYSTEM_TEST_ENV_VARS = (
 GOOGLE_AUTH = 'google-auth >= 0.10.0'
 
 
-@nox.session(python=['2.7','3.6', '3.7', '3.8'])
+@nox.session(python=['3.6', '3.7', '3.8'])
 def unit(session):
     """Run the unit test suite."""
 
     # Install all test dependencies, then install this package in-place.
     session.install('mock', 'pytest', 'pytest-cov', 'pytest-asyncio')
     session.install('-e', '.[requests]')
-    if session.python.startswith("3"):
-        session.install('aiohttp')
+    session.install('aiohttp')
 
-    if session.python.startswith("3"):
-        session.install('aiohttp')
+    # Run py.test against the unit tests.
+    # NOTE: We don't require 100% line coverage for unit test runs since
+    #       some have branches that are Py2/Py3 specific.
+    line_coverage = '--cov-fail-under=0'
+    session.run(
+        'py.test',
+        '--cov=google.resumable_media',
+        '--cov=google.async_resumable_media',
+        '--cov=tests.unit',
+        '--cov=tests_async.unit',
+        '--cov-append',
+        '--cov-config=.coveragerc',
+        '--cov-report=',
+        line_coverage,
+        os.path.join('tests', 'unit'),
+        os.path.join('tests_async', 'unit'),
+        *session.posargs
+    )
+
+@nox.session(python=['2.7'])
+def unit_2(session):
+    """Run the unit test suite."""
+
+    # Install all test dependencies, then install this package in-place.
+    session.install('mock', 'pytest', 'pytest-cov')
+    session.install('-e', '.[requests]')
 
     # Run py.test against the unit tests.
     # NOTE: We don't require 100% line coverage for unit test runs since
@@ -52,7 +75,6 @@ def unit(session):
         '--cov-report=',
         line_coverage,
         os.path.join('tests', 'unit'),
-        os.path.join('tests_async', 'unit'),
         *session.posargs
     )
 
@@ -153,21 +175,24 @@ def system(session):
 
     # Install all test dependencies, then install this package into the
     # virutalenv's dist-packages.
-    session.install('/home/anirudhbaddepu/storage/google-auth-library-python')
+    session.install('-e', '/home/anirudhbaddepu/storage/google-auth-library-python')
     session.install('mock', 'pytest', GOOGLE_AUTH, 'pytest-asyncio')
     session.install('-e', '.[requests]')
-    if session.python.startswith("3"):
+    
+    if session.python.startswith("3.6"):
         session.install('aiohttp')
-
-    if session.python.startswith("3"):
-        session.install('aiohttp')
+        session.run(
+        'py.test',
+        '-s',
+        os.path.join('tests_async', 'system'),
+        *session.posargs
+    )
 
     # Run py.test against the system tests.
     session.run(
         'py.test',
         '-s',
-        #os.path.join('tests', 'system'),
-        os.path.join('tests_async', 'system'),
+        os.path.join('tests', 'system'),
         *session.posargs
     )
 
