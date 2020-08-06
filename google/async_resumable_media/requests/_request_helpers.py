@@ -23,6 +23,8 @@ import functools
 from google.async_resumable_media import _helpers
 from google.async_resumable_media import common
 
+import google.auth.transport.aiohttp_requests as aiohttp_requests
+
 
 _DEFAULT_RETRY_STRATEGY = common.RetryStrategy()
 _SINGLE_GET_CHUNK_SIZE = 8192
@@ -67,7 +69,7 @@ class RequestsMixin(object):
         return response.headers
 
     @staticmethod
-    def _get_body(response):
+    async def _get_body(response):
         """Access the response body from an HTTP response.
 
         Args:
@@ -76,12 +78,13 @@ class RequestsMixin(object):
         Returns:
             bytes: The body of the ``response``.
         """
-        return response.content
+        content = await response.content.read()
+        return content
 
 
 class RawRequestsMixin(RequestsMixin):
     @staticmethod
-    def _get_body(response):
+    async def _get_body(response):
         """Access the response body from an HTTP response.
 
         Args:
@@ -90,7 +93,11 @@ class RawRequestsMixin(RequestsMixin):
         Returns:
             bytes: The body of the ``response``.
         """
-        return response.content
+
+        #TODO() Used wrapper to extract raw content 
+        wrapped_response = aiohttp_requests._Response(response)
+        content = await wrapped_response.raw_content() 
+        return content
 
 
 async def http_request(
@@ -123,10 +130,10 @@ async def http_request(
         ~requests.Response: The return value of ``transport.request()``.
     """
 
-    #TODO(anirudhbaddepu) - look at default connect timeout and default read timeout
+    # TODO(anirudhbaddepu) - look at default connect timeout and default read timeout
 
     if "timeout" not in transport_kwargs:
-        #transport_kwargs["timeout"] = (_DEFAULT_CONNECT_TIMEOUT, _DEFAULT_READ_TIMEOUT)
+        #  transport_kwargs["timeout"] = (_DEFAULT_CONNECT_TIMEOUT, _DEFAULT_READ_TIMEOUT)
         transport_kwargs["timeout"] = _DEFAULT_CONNECT_TIMEOUT
 
     func = functools.partial(

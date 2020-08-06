@@ -16,10 +16,9 @@
 
 
 import re
-import copy
 
 from six.moves import http_client
-import aiohttp
+
 
 from google.async_resumable_media import _helpers
 from google.async_resumable_media import common
@@ -128,12 +127,12 @@ class Download(DownloadBase):
             be sent with the request, e.g. headers for encrypted data.
     """
 
-    def __init__(	
-        self, media_url, stream=None, start=None, end=None, headers=None, checksum="md5"	
-    ):	
-        super(Download, self).__init__(	
-            media_url, stream=stream, start=start, end=end, headers=headers	
-        )	
+    def __init__(
+        self, media_url, stream=None, start=None, end=None, headers=None, checksum="md5"
+    ):
+        super(Download, self).__init__(
+            media_url, stream=stream, start=start, end=end, headers=headers
+        )
         self.checksum = checksum
 
     def _prepare_request(self):
@@ -190,11 +189,11 @@ class Download(DownloadBase):
         Args:
             transport (object): An object which can make authenticated
                 requests.
-            timeout (Optional[Union[float, Tuple[float, float]]]):	
-                The number of seconds to wait for the server response.	
-                Depending on the retry strategy, a request may be repeated	
-                several times using the same timeout each time.	
-                Can also be passed as a tuple (connect_timeout, read_timeout).	
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+                Can also be passed as a tuple (connect_timeout, read_timeout).
                 See :meth:`requests.Session.request` documentation for details.
 
         Raises:
@@ -371,9 +370,9 @@ class ChunkedDownload(DownloadBase):
             callback=self._make_invalid,
         )
         headers = self._get_headers(response)
-        response_body = self._get_body(response)
+        response_body = await self._get_body(response)
 
-        response_body_content = await response_body.read()
+        response_body_content = response_body
 
         start_byte, end_byte, total_bytes = get_range_info(
             response, self._get_headers, callback=self._make_invalid
@@ -424,10 +423,10 @@ class ChunkedDownload(DownloadBase):
             transport (object): An object which can make authenticated
                 requests.
             timeout (Optional[Union[float, Tuple[float, float]]]):
-                The number of seconds to wait for the server response.	
-                Depending on the retry strategy, a request may be repeated	
-                several times using the same timeout each time.	
-                Can also be passed as a tuple (connect_timeout, read_timeout).	
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+                Can also be passed as a tuple (connect_timeout, read_timeout).
                 See :meth:`requests.Session.request` documentation for details.
 
         Raises:

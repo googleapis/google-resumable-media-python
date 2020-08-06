@@ -14,15 +14,13 @@
 
 """Shared utilities used by both downloads and uploads."""
 
-import base64
-import hashlib
 import logging
 import random
 import time
 
 
 from six.moves import http_client
-import aiohttp
+
 
 from google.async_resumable_media import common
 
@@ -37,16 +35,16 @@ RETRYABLE = (
     http_client.GATEWAY_TIMEOUT,
 )
 
-_SLOW_CRC32C_WARNING = (	
-    "Currently using crcmod in pure python form. This is a slow "	
-    "implementation. Python 3 has a faster implementation, `google-crc32c`, "	
+_SLOW_CRC32C_WARNING = (
+    "Currently using crcmod in pure python form. This is a slow "
+    "implementation. Python 3 has a faster implementation, `google-crc32c`, "
     "which will be used if it is installed."
 )
-_HASH_HEADER = u"x-goog-hash"	
-_MISSING_CHECKSUM = u"""\	
-No {checksum_type} checksum was returned from the service while downloading {}	
-(which happens for composite objects), so client-side content integrity	
-checking is not being performed."""	
+_HASH_HEADER = u"x-goog-hash"
+_MISSING_CHECKSUM = u"""\
+No {checksum_type} checksum was returned from the service while downloading {}
+(which happens for composite objects), so client-side content integrity
+checking is not being performed."""
 _LOGGER = logging.getLogger(__name__)
 
 
@@ -165,7 +163,7 @@ async def wait_and_retry(func, get_status_code, retry_strategy):
     """
 
     response = await func()
-   
+
     if get_status_code(response) not in RETRYABLE:
         return response
 
@@ -183,15 +181,16 @@ async def wait_and_retry(func, get_status_code, retry_strategy):
 
     return response
 
-class _DoNothingHash(object):	
-    """Do-nothing hash object.	
-    Intended as a stand-in for ``hashlib.md5`` or a crc32c checksum	
-    implementation in cases where it isn't necessary to compute the hash.	
-    """	
 
-    def update(self, unused_chunk):	
-        """Do-nothing ``update`` method.	
-        Intended to match the interface of ``hashlib.md5`` and other checksums.	
-        Args:	
-            unused_chunk (bytes): A chunk of data.	
+class _DoNothingHash(object):
+    """Do-nothing hash object.
+    Intended as a stand-in for ``hashlib.md5`` or a crc32c checksum
+    implementation in cases where it isn't necessary to compute the hash.
+    """
+
+    def update(self, unused_chunk):
+        """Do-nothing ``update`` method.
+        Intended to match the interface of ``hashlib.md5`` and other checksums.
+        Args:
+            unused_chunk (bytes): A chunk of data.
         """

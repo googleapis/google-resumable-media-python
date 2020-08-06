@@ -261,7 +261,7 @@ class TestDownload(object):
 
     @staticmethod
     async def _read_response_content(response):
-        content = await response.content.read()
+        content = await response.content()
         return content
     
     
@@ -277,6 +277,7 @@ class TestDownload(object):
             download = self._make_one(media_url, checksum=checksum)
             # Consume the resource.
             response = await download.consume(authorized_transport)
+            response = tr_requests._Response(response)
             assert response.status == http_client.OK
             content = await self._read_response_content(response) 
             assert content == actual_contents
@@ -415,7 +416,7 @@ class TestRawDownload(TestDownload):
 
     @staticmethod
     async def _read_response_content(response):
-        content = await response.content.read()
+        content = await response.raw_content()
         return content
 
     @pytest.mark.asyncio

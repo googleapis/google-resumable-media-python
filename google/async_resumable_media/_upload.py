@@ -30,8 +30,6 @@ import sys
 
 import six
 from six.moves import http_client
-import aiohttp
-import asyncio
 
 from google import async_resumable_media
 from google.async_resumable_media import _helpers
@@ -62,12 +60,12 @@ _STREAM_READ_PAST_TEMPLATE = (
 )
 _POST = u"POST"
 _PUT = u"PUT"
-_UPLOAD_CHECKSUM_MISMATCH_MESSAGE = (	
-    "The computed ``{}`` checksum, ``{}``, and the checksum reported by the "	
-    "remote host, ``{}``, did not match."	
-)	
-_UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE = (	
-    "Response metadata had no ``{}`` value; checksum could not be validated."	
+_UPLOAD_CHECKSUM_MISMATCH_MESSAGE = (
+    "The computed ``{}`` checksum, ``{}``, and the checksum reported by the "
+    "remote host, ``{}``, did not match."
+)
+_UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE = (
+    "Response metadata had no ``{}`` value; checksum could not be validated."
 )
 
 
@@ -218,11 +216,11 @@ class SimpleUpload(UploadBase):
             data (bytes): The resource content to be uploaded.
             content_type (str): The content type of the resource, e.g. a JPEG
                 image has content type ``image/jpeg``.
-            timeout (Optional[Union[float, Tuple[float, float]]]):	
-                The number of seconds to wait for the server response.	
-                Depending on the retry strategy, a request may be repeated	
-                several times using the same timeout each time.	
-                Can also be passed as a tuple (connect_timeout, read_timeout).	
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+                Can also be passed as a tuple (connect_timeout, read_timeout).
                 See :meth:`requests.Session.request` documentation for details.
 
         Raises:
@@ -241,17 +239,17 @@ class MultipartUpload(UploadBase):
         upload_url (str): The URL where the content will be uploaded.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
-        checksum Optional([str]): The type of checksum to compute to verify	
-            the integrity of the object. The request metadata will be amended	
-            to include the computed value. Using this option will override a	
-            manually-set checksum value. Supported values are "md5", "crc32c"	
+        checksum Optional([str]): The type of checksum to compute to verify
+            the integrity of the object. The request metadata will be amended
+            to include the computed value. Using this option will override a
+            manually-set checksum value. Supported values are "md5", "crc32c"
             and None. The default is None.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
     """
-    def __init__(self, upload_url, headers=None, checksum=None):	
-        super(MultipartUpload, self).__init__(upload_url, headers=headers)	
+    def __init__(self, upload_url, headers=None, checksum=None):
+        super(MultipartUpload, self).__init__(upload_url, headers=headers)
         self._checksum_type = checksum
 
     def _prepare_request(self, data, metadata, content_type):
@@ -293,20 +291,18 @@ class MultipartUpload(UploadBase):
         if not isinstance(data, six.binary_type):
             raise TypeError(u"`data` must be bytes, received", type(data))
 
-        checksum_object = sync_helpers._get_checksum_object(self._checksum_type)	
-        
-        if checksum_object:	
-            checksum_object.update(data)	
-            actual_checksum = sync_helpers.prepare_checksum_digest(checksum_object.digest())	
-            metadata_key = sync_helpers._get_metadata_key(self._checksum_type)	
+        checksum_object = sync_helpers._get_checksum_object(self._checksum_type)
+
+        if checksum_object:
+            checksum_object.update(data)
+            actual_checksum = sync_helpers.prepare_checksum_digest(checksum_object.digest())
+            metadata_key = sync_helpers._get_metadata_key(self._checksum_type)
             metadata[metadata_key] = actual_checksum
 
         content, multipart_boundary = construct_multipart_request(
             data, metadata, content_type
         )
         multipart_content_type = _RELATED_HEADER + multipart_boundary + b'"'
-
-        #self._headers[_CONTENT_TYPE_HEADER] = multipart_content_type.decode("utf-8")
 
         self._headers[_CONTENT_TYPE_HEADER] = multipart_content_type
 
@@ -323,11 +319,11 @@ class MultipartUpload(UploadBase):
                 ACL list.
             content_type (str): The content type of the resource, e.g. a JPEG
                 image has content type ``image/jpeg``.
-            timeout (Optional[Union[float, Tuple[float, float]]]):	
-                The number of seconds to wait for the server response.	
-                Depending on the retry strategy, a request may be repeated	
-                several times using the same timeout each time.	
-                Can also be passed as a tuple (connect_timeout, read_timeout).	
+            timeout (Optional[Union[float, Tuple[float, float]]])
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+                Can also be passed as a tuple (connect_timeout, read_timeout).
                 See :meth:`requests.Session.request` documentation for details.
 
         Raises:
@@ -351,12 +347,12 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
             be sent with the :meth:`initiate` request, e.g. headers for
             encrypted data. These **will not** be sent with
             :meth:`transmit_next_chunk` or :meth:`recover` requests.
-        checksum Optional([str]): The type of checksum to compute to verify	
-            the integrity of the object. After the upload is complete, the	
-            server-computed checksum of the resulting object will be read	
-            and google.resumable_media.common.DataCorruption will be raised on	
-            a mismatch. The corrupted file will not be deleted from the remote	
-            host automatically. Supported values are "md5", "crc32c" and None.	
+        checksum Optional([str]): The type of checksum to compute to verify
+            the integrity of the object. After the upload is complete, the
+            server-computed checksum of the resulting object will be read
+            and google.resumable_media.common.DataCorruption will be raised on
+            a mismatch. The corrupted file will not be deleted from the remote
+            host automatically. Supported values are "md5", "crc32c" and None.
             The default is None.
 
     Attributes:
@@ -379,8 +375,8 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
         self._stream = None
         self._content_type = None
         self._bytes_uploaded = 0
-        self._bytes_checksummed = 0	
-        self._checksum_type = checksum	
+        self._bytes_checksummed = 0
+        self._checksum_type = checksum
         self._checksum_object = None
         self._total_bytes = None
         self._resumable_url = None
@@ -554,11 +550,11 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
                 "final" (i.e. no more bytes will be added to it). In this case
                 we determine the upload size from the size of the stream. If
                 ``total_bytes`` is passed, this argument will be ignored.
-            timeout (Optional[Union[float, Tuple[float, float]]]):	
-                The number of seconds to wait for the server response.	
-                Depending on the retry strategy, a request may be repeated	
-                several times using the same timeout each time.	
-                Can also be passed as a tuple (connect_timeout, read_timeout).	
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+                Can also be passed as a tuple (connect_timeout, read_timeout).
                 See :meth:`requests.Session.request` documentation for details.
 
         Raises:
@@ -671,7 +667,7 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
             self._bytes_uploaded = self._bytes_uploaded + bytes_sent
             # Tombstone the current upload so it cannot be used again.
             self._finished = True
-            # Validate the checksum. This can raise an exception on failure.	
+            # Validate the checksum. This can raise an exception on failure.
             self._validate_checksum(response)
         else:
             bytes_range = _helpers.header_required(
@@ -702,11 +698,11 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
         Args:
             transport (object): An object which can make authenticated
                 requests.
-            timeout (Optional[Union[float, Tuple[float, float]]]):	
-                The number of seconds to wait for the server response.	
-                Depending on the retry strategy, a request may be repeated	
-                several times using the same timeout each time.	
-                Can also be passed as a tuple (connect_timeout, read_timeout).	
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+                Can also be passed as a tuple (connect_timeout, read_timeout).
                 See :meth:`requests.Session.request` documentation for details.
 
         Raises:
