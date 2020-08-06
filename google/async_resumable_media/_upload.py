@@ -35,6 +35,8 @@ import asyncio
 
 from google import async_resumable_media
 from google.async_resumable_media import _helpers
+from google.resumable_media import _helpers as sync_helpers
+from google.resumable_media import _upload as sync_upload
 from google.async_resumable_media import common
 
 
@@ -291,11 +293,11 @@ class MultipartUpload(UploadBase):
         if not isinstance(data, six.binary_type):
             raise TypeError(u"`data` must be bytes, received", type(data))
 
-        checksum_object = _helpers._get_checksum_object(self._checksum_type)	
+        checksum_object = sync_helpers._get_checksum_object(self._checksum_type)	
         if checksum_object:	
             checksum_object.update(data)	
-            actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())	
-            metadata_key = _helpers._get_metadata_key(self._checksum_type)	
+            actual_checksum = sync_helpers.prepare_checksum_digest(checksum_object.digest())	
+            metadata_key = sync_helpers._get_metadata_key(self._checksum_type)	
             metadata[metadata_key] = actual_checksum
 
         content, multipart_boundary = construct_multipart_request(
@@ -626,20 +628,7 @@ class ResumableUpload(UploadBase):
         once, the checksum tracks the number of bytes checked in	
         self._bytes_checksummed and skips bytes that have already been summed.	
         """	
-        if not self._checksum_type:	
-            return	
-
-        if not self._checksum_object:	
-            self._checksum_object = _helpers._get_checksum_object(self._checksum_type)	
-
-        if start_byte < self._bytes_checksummed:	
-            offset = self._bytes_checksummed - start_byte	
-            data = payload[offset:]	
-        else:	
-            data = payload	
-
-        self._checksum_object.update(data)	
-        self._bytes_checksummed += len(data)	
+        return sync_upload._update_checksum(self, start_byte, payload)	
 
     def _make_invalid(self):
         """Simple setter for ``invalid``.
@@ -718,27 +707,8 @@ class ResumableUpload(UploadBase):
             computed locally and the checksum reported by the remote host do	
             not match.	
         """	
-        if self._checksum_type is None:	
-            return	
-        metadata_key = _helpers._get_metadata_key(self._checksum_type)	
-        metadata = response.json()	
-        remote_checksum = metadata.get(metadata_key)	
-        if remote_checksum is None:	
-            raise common.InvalidResponse(	
-                response,	
-                _UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE.format(metadata_key),	
-                self._get_headers(response),	
-            )	
-        local_checksum = _helpers.prepare_checksum_digest(	
-            self._checksum_object.digest()	
-        )	
-        if local_checksum != remote_checksum:	
-            raise common.DataCorruption(	
-                response,	
-                _UPLOAD_CHECKSUM_MISMATCH_MESSAGE.format(	
-                    self._checksum_type.upper(), local_checksum, remote_checksum	
-                ),	
-            )	
+
+        return sync_upload._validate_checksum(self,response)
 
     def transmit_next_chunk(self, transport, timeout=None):
         """Transmit the next chunk of the resource to be uploaded.

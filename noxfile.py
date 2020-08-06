@@ -139,8 +139,11 @@ def lint(session):
         'flake8',
         os.path.join('google', 'resumable_media'),
         'tests',
+        os.path.join('google', 'async_resumable_media'),
+        'tests_async',
     )
-    session.run("black", "--check", os.path.join("google", "resumable_media"), "tests")
+    session.run("black", "--check", os.path.join("google", "resumable_media"), "tests", 
+    os.path.join("google", "async_resumable_media"), "tests_async")
 
 
 @nox.session(python='3.8')

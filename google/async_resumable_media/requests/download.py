@@ -24,6 +24,7 @@ from google.async_resumable_media import _download
 from google.async_resumable_media import common
 from google.async_resumable_media import _helpers
 from google.async_resumable_media.requests import _request_helpers
+from google.resumable_media import _helpers as sync_helpers
 
 
 _LOGGER = logging.getLogger(__name__)
@@ -96,7 +97,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                 checksum doesn't agree with server-computed checksum.
         """
 
-        expected_checksum, checksum_object = _helpers._get_expected_checksum(	
+        expected_checksum, checksum_object = sync_helpers._get_expected_checksum(	
             response, self._get_headers, self.media_url, checksum_type=self.checksum	
         )
 
@@ -110,7 +111,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             return	
 
         else:	
-            actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())	
+            actual_checksum = sync_helpers.prepare_checksum_digest(checksum_object.digest())	
             if actual_checksum != expected_checksum:	
                 msg = _CHECKSUM_MISMATCH.format(	
                     self.media_url,	
@@ -221,7 +222,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
                 checksum doesn't agree with server-computed checksum.
         """
 
-        expected_checksum, checksum_object = _helpers._get_expected_checksum(
+        expected_checksum, checksum_object = sync_helpers._get_expected_checksum(
             response, self._get_headers, self.media_url, checksum_type=self.checksum
         )
         
@@ -233,7 +234,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
         if expected_checksum is None:
             return	
         else:
-            actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())	
+            actual_checksum = sync_helpers.prepare_checksum_digest(checksum_object.digest())	
 
             if actual_checksum != expected_checksum:	
                 msg = _CHECKSUM_MISMATCH.format(	
