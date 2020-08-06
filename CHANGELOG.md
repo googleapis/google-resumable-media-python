@@ -8,7 +8,7 @@
 
 
 ### Dependencies
-* pin 'google-crc32c < 0.2dev' ([#160]((https://www.github.com/googleapis/google-resumable-media-python/issues/160)) ([52a322d](https://www.github.com/googleapis/google-resumable-media-python/commit/52a322d478e074a646e20d92ca9b2457c6e03941))
+* pin 'google-crc32c < 0.2dev' ([#160](https://www.github.com/googleapis/google-resumable-media-python/issues/160)) ([52a322d](https://www.github.com/googleapis/google-resumable-media-python/commit/52a322d478e074a646e20d92ca9b2457c6e03941))
 
 ### Documentation
 
