@@ -294,6 +294,7 @@ class MultipartUpload(UploadBase):
             raise TypeError(u"`data` must be bytes, received", type(data))
 
         checksum_object = sync_helpers._get_checksum_object(self._checksum_type)	
+        
         if checksum_object:	
             checksum_object.update(data)	
             actual_checksum = sync_helpers.prepare_checksum_digest(checksum_object.digest())	
@@ -335,7 +336,7 @@ class MultipartUpload(UploadBase):
         raise NotImplementedError(u"This implementation is virtual.")
 
 
-class ResumableUpload(UploadBase):
+class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
     """Initiate and fulfill a resumable upload to a Google API.
 
     A **resumable** upload sends an initial request with the resource metadata
@@ -622,14 +623,6 @@ class ResumableUpload(UploadBase):
         }
         return _PUT, self.resumable_url, payload, headers
 
-    def _update_checksum(self, start_byte, payload):	
-        """Update the checksum with the payload if not already updated.	
-        Because error recovery can result in bytes being transmitted more than	
-        once, the checksum tracks the number of bytes checked in	
-        self._bytes_checksummed and skips bytes that have already been summed.	
-        """	
-        return sync_upload._update_checksum(self, start_byte, payload)	
-
     def _make_invalid(self):
         """Simple setter for ``invalid``.
 
@@ -697,18 +690,6 @@ class ResumableUpload(UploadBase):
                     u'Expected to be of the form "bytes=0-{end}"',
                 )
             self._bytes_uploaded = int(match.group(u"end_byte")) + 1
-
-    def _validate_checksum(self, response):
-        """Check the computed checksum, if any, against the response headers.	
-        Args:	
-            response (object): The HTTP response object.	
-        Raises:	
-            ~google.resumable_media.common.DataCorruption: If the checksum	
-            computed locally and the checksum reported by the remote host do	
-            not match.	
-        """	
-
-        return sync_upload._validate_checksum(self,response)
 
     def transmit_next_chunk(self, transport, timeout=None):
         """Transmit the next chunk of the resource to be uploaded.

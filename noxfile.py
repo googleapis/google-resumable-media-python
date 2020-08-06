@@ -25,8 +25,12 @@ SYSTEM_TEST_ENV_VARS = (
 )
 GOOGLE_AUTH = 'google-auth >= 0.10.0'
 
+DEFAULT_PYTHON_VERSION = "3.8"
+SYSTEM_TEST_PYTHON_VERSIONS = ["2.7", "3.8"]
+UNIT_TEST_PYTHON_VERSIONS = ["3.6", "3.7", "3.8"]
+UNIT_TEST_SYNC_PYTHON_VERSIONS = ["2.7", "3.5", "3.6", "3.7", "3.8"]
 
-@nox.session(python=['3.6', '3.7', '3.8'])
+@nox.session(python=UNIT_TEST_PYTHON_VERSIONS)
 def unit(session):
     """Run the unit test suite."""
 
@@ -54,7 +58,7 @@ def unit(session):
         *session.posargs
     )
 
-@nox.session(python=['2.7'])
+@nox.session(python=UNIT_TEST_SYNC_PYTHON_VERSIONS)
 def unit_2(session):
     """Run the unit test suite."""
 
@@ -79,7 +83,7 @@ def unit_2(session):
     )
 
 
-@nox.session(python='3.8')
+@nox.session(python=DEFAULT_PYTHON_VERSION)
 def docs(session):
     """Build the docs for this library."""
 
@@ -100,8 +104,40 @@ def docs(session):
         os.path.join("docs", "_build", "html", ""),
     )
 
+@nox.session(python=DEFAULT_PYTHON_VERSION)
+def docfx(session):
+    """Build the docfx yaml files for this library."""
 
-@nox.session(python='3.8')
+    session.install("-e", ".")
+    session.install("sphinx", "alabaster", "recommonmark", "sphinx-docfx-yaml")
+
+    shutil.rmtree(os.path.join("docs", "_build"), ignore_errors=True)
+    session.run(
+        "sphinx-build",
+        "-T",  # show full traceback on exception
+        "-N",  # no colors
+        "-D",
+        (
+            "extensions=sphinx.ext.autodoc,"
+            "sphinx.ext.autosummary,"
+            "docfx_yaml.extension,"
+            "sphinx.ext.intersphinx,"
+            "sphinx.ext.coverage,"
+            "sphinx.ext.napoleon,"
+            "sphinx.ext.todo,"
+            "sphinx.ext.viewcode,"
+            "recommonmark"
+        ),
+        "-b",
+        "html",
+        "-d",
+        os.path.join("docs", "_build", "doctrees", ""),
+        os.path.join("docs", ""),
+        os.path.join("docs", "_build", "html", ""),
+    )
+
+
+@nox.session(python=DEFAULT_PYTHON_VERSION)
 def doctest(session):
     """Run the doctests."""
     session.install("-e", ".[requests]")
@@ -126,7 +162,7 @@ def doctest(session):
     )
 
 
-@nox.session(python='3.8')
+@nox.session(python=DEFAULT_PYTHON_VERSION)
 def lint(session):
     """Run flake8.
 
@@ -146,7 +182,7 @@ def lint(session):
     os.path.join("google", "async_resumable_media"), "tests_async")
 
 
-@nox.session(python='3.8')
+@nox.session(python=DEFAULT_PYTHON_VERSION)
 def lint_setup_py(session):
     """Verify that setup.py is valid (including RST check)."""
     session.install('docutils', 'Pygments')
@@ -154,13 +190,13 @@ def lint_setup_py(session):
         'python', 'setup.py', 'check', '--restructuredtext', '--strict')
 
 
-@nox.session(python='3.8')
+@nox.session(python=DEFAULT_PYTHON_VERSION)
 def blacken(session):
     session.install("black")
     session.run("black", os.path.join("google", "resumable_media"), "tests")
 
 
-@nox.session(python=['2.7', '3.8'])
+@nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)
 def system(session):
     """Run the system test suite."""
 
@@ -179,8 +215,9 @@ def system(session):
     # Install all test dependencies, then install this package into the
     # virutalenv's dist-packages.
     session.install('-e', '/home/anirudhbaddepu/storage/google-auth-library-python')
-    session.install('mock', 'pytest', GOOGLE_AUTH)
+    session.install('mock', 'pytest', GOOGLE_AUTH, 'google-cloud-testutils')
     session.install('-e', '.[requests]')
+    session.install('http')
     
     if session.python.startswith("3"):
         session.install('aiohttp', 'pytest-asyncio')
@@ -200,7 +237,7 @@ def system(session):
     )
 
 
-@nox.session(python='3.8')
+@nox.session(python=DEFAULT_PYTHON_VERSION)
 def cover(session):
     """Run the final coverage report.
 
