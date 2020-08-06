@@ -176,11 +176,11 @@ def system(session):
     # Install all test dependencies, then install this package into the
     # virutalenv's dist-packages.
     session.install('-e', '/home/anirudhbaddepu/storage/google-auth-library-python')
-    session.install('mock', 'pytest', GOOGLE_AUTH, 'pytest-asyncio')
+    session.install('mock', 'pytest', GOOGLE_AUTH)
     session.install('-e', '.[requests]')
     
-    if session.python.startswith("3.6"):
-        session.install('aiohttp')
+    if session.python.startswith("3"):
+        session.install('aiohttp', 'pytest-asyncio')
         session.run(
         'py.test',
         '-s',

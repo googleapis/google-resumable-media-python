@@ -83,9 +83,9 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
 
 def get_path(filename):
     return os.path.realpath(os.path.join(DATA_DIR, filename))
-
-
+'''
 ALL_FILES = (
+
     {
         u"path": get_path(u"image1.jpg"),
         u"content_type": IMAGE_JPEG,
@@ -114,7 +114,8 @@ ALL_FILES = (
         u"checksum": u"XHSHAr/SpIeZtZbjgQ4nGw==",
         u"slices": (),
     },
-    {
+    '''
+ALL_FILES = ({
         u"path": get_path(u"gzipped.txt.gz"),
         u"uncompressed": get_path(u"gzipped.txt"),
         u"content_type": PLAIN_TEXT,

@@ -18,7 +18,6 @@
 import re
 
 from six.moves import http_client
-import aiohttp
 
 from google.resumable_media import _helpers
 from google.resumable_media import common
