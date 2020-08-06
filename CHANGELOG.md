@@ -7,6 +7,9 @@
 ### [0.7.1](https://www.github.com/googleapis/google-resumable-media-python/compare/v0.7.0...v0.7.1) (2020-08-06)
 
 
+### Dependencies
+* pin 'google-crc32c < 0.2dev' ([#160]((https://www.github.com/googleapis/google-resumable-media-python/issues/160)) ([52a322d](https://www.github.com/googleapis/google-resumable-media-python/commit/52a322d478e074a646e20d92ca9b2457c6e03941))
+
 ### Documentation
 
 * update docs build (via synth) ([#155](https://www.github.com/googleapis/google-resumable-media-python/issues/155)) ([1c33de4](https://www.github.com/googleapis/google-resumable-media-python/commit/1c33de475585e27bba2bcb7ea5dbead9e0214660))
