@@ -70,7 +70,6 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
         response = tr_requests.AuthorizedSession.request(
             self, method, url, data=data, headers=headers, **kwargs
         )
-
         response.headers[_helpers._HASH_HEADER] = u"crc32c={},md5={}".format(
             self.EMPTY_CRC32C, self.EMPTY_MD5
         )

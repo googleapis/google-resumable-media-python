@@ -35,38 +35,27 @@ from google import async_resumable_media
 from google.async_resumable_media import _helpers
 from google.resumable_media import _helpers as sync_helpers
 from google.resumable_media import _upload as sync_upload
-from google.async_resumable_media import common
+from google.resumable_media import common
 
 
-_CONTENT_TYPE_HEADER = u"content-type"
-_CONTENT_RANGE_TEMPLATE = u"bytes {:d}-{:d}/{:d}"
-_RANGE_UNKNOWN_TEMPLATE = u"bytes {:d}-{:d}/*"
-_EMPTY_RANGE_TEMPLATE = u"bytes */{:d}"
-_BOUNDARY_WIDTH = len(str(sys.maxsize - 1))
-_BOUNDARY_FORMAT = u"==============={{:0{:d}d}}==".format(_BOUNDARY_WIDTH)
-_MULTIPART_SEP = b"--"
-_CRLF = b"\r\n"
-_MULTIPART_BEGIN = b"\r\ncontent-type: application/json; charset=UTF-8\r\n\r\n"
-_RELATED_HEADER = b'multipart/related; boundary="'
-_BYTES_RANGE_RE = re.compile(r"bytes=0-(?P<end_byte>\d+)", flags=re.IGNORECASE)
-_STREAM_ERROR_TEMPLATE = (
-    u"Bytes stream is in unexpected state. "
-    u"The local stream has had {:d} bytes read from it while "
-    u"{:d} bytes have already been updated (they should match)."
-)
-_STREAM_READ_PAST_TEMPLATE = (
-    u"{:d} bytes have been read from the stream, which exceeds "
-    u"the expected total {:d}."
-)
-_POST = u"POST"
-_PUT = u"PUT"
-_UPLOAD_CHECKSUM_MISMATCH_MESSAGE = (
-    "The computed ``{}`` checksum, ``{}``, and the checksum reported by the "
-    "remote host, ``{}``, did not match."
-)
-_UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE = (
-    "Response metadata had no ``{}`` value; checksum could not be validated."
-)
+
+_CONTENT_TYPE_HEADER = sync_upload._CONTENT_TYPE_HEADER
+_CONTENT_RANGE_TEMPLATE = sync_upload._CONTENT_RANGE_TEMPLATE
+_RANGE_UNKNOWN_TEMPLATE = sync_upload._RANGE_UNKNOWN_TEMPLATE
+_EMPTY_RANGE_TEMPLATE = sync_upload._EMPTY_RANGE_TEMPLATE
+_BOUNDARY_WIDTH = sync_upload._BOUNDARY_WIDTH
+_BOUNDARY_FORMAT = sync_upload._BOUNDARY_FORMAT
+_MULTIPART_SEP = sync_upload._MULTIPART_SEP
+_CRLF = sync_upload._CRLF
+_MULTIPART_BEGIN = sync_upload._MULTIPART_BEGIN
+_RELATED_HEADER = sync_upload._RELATED_HEADER
+_BYTES_RANGE_RE = sync_upload._BYTES_RANGE_RE
+_STREAM_ERROR_TEMPLATE = sync_upload._STREAM_ERROR_TEMPLATE
+_STREAM_READ_PAST_TEMPLATE = sync_upload._STREAM_READ_PAST_TEMPLATE
+_POST = sync_upload._POST
+_PUT = sync_upload._PUT
+_UPLOAD_CHECKSUM_MISMATCH_MESSAGE = sync_upload._UPLOAD_CHECKSUM_MISMATCH_MESSAGE
+_UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE = sync_upload._UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE
 
 
 class UploadBase(object):
@@ -319,7 +308,7 @@ class MultipartUpload(UploadBase):
                 ACL list.
             content_type (str): The content type of the resource, e.g. a JPEG
                 image has content type ``image/jpeg``.
-            timeout (Optional[Union[float, Tuple[float, float]]])
+            timeout (Optional[Union[float, Tuple[float, float]]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.

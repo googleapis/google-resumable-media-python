@@ -21,45 +21,28 @@ from six.moves import http_client
 
 from google import async_resumable_media
 from google.async_resumable_media import _upload
-from google.async_resumable_media import common
-
-
-SIMPLE_URL = (
-    u"https://www.googleapis.com/upload/storage/v1/b/{BUCKET}/o?"
-    u"uploadType=media&name={OBJECT}"
-)
-MULTIPART_URL = (
-    u"https://www.googleapis.com/upload/storage/v1/b/{BUCKET}/o?"
-    u"uploadType=multipart"
-)
-RESUMABLE_URL = (
-    u"https://www.googleapis.com/upload/storage/v1/b/{BUCKET}/o?"
-    u"uploadType=resumable"
-)
-ONE_MB = 1024 * 1024
-BASIC_CONTENT = u"text/plain"
-JSON_TYPE = u"application/json; charset=UTF-8"
-JSON_TYPE_LINE = b"content-type: application/json; charset=UTF-8\r\n"
+from google.resumable_media import common
+from tests.unit import test__upload as sync_test
 
 
 class TestUploadBase(object):
     def test_constructor_defaults(self):
-        upload = _upload.UploadBase(SIMPLE_URL)
-        assert upload.upload_url == SIMPLE_URL
+        upload = _upload.UploadBase(sync_test.SIMPLE_URL)
+        assert upload.upload_url == sync_test.SIMPLE_URL
         assert upload._headers == {}
         assert not upload._finished
         _check_retry_strategy(upload)
 
     def test_constructor_explicit(self):
         headers = {u"spin": u"doctors"}
-        upload = _upload.UploadBase(SIMPLE_URL, headers=headers)
-        assert upload.upload_url == SIMPLE_URL
+        upload = _upload.UploadBase(sync_test.SIMPLE_URL, headers=headers)
+        assert upload.upload_url == sync_test.SIMPLE_URL
         assert upload._headers is headers
         assert not upload._finished
         _check_retry_strategy(upload)
 
     def test_finished_property(self):
-        upload = _upload.UploadBase(SIMPLE_URL)
+        upload = _upload.UploadBase(sync_test.SIMPLE_URL)
         # Default value of @property.
         assert not upload.finished
 
@@ -72,7 +55,7 @@ class TestUploadBase(object):
         assert upload.finished
 
     def test__process_response_bad_status(self):
-        upload = _upload.UploadBase(SIMPLE_URL)
+        upload = _upload.UploadBase(sync_test.SIMPLE_URL)
         _fix_up_virtual(upload)
 
         # Make sure **not finished** before.
@@ -91,7 +74,7 @@ class TestUploadBase(object):
         assert upload.finished
 
     def test__process_response(self):
-        upload = _upload.UploadBase(SIMPLE_URL)
+        upload = _upload.UploadBase(sync_test.SIMPLE_URL)
         _fix_up_virtual(upload)
 
         # Make sure **not finished** before.
@@ -123,7 +106,7 @@ class TestUploadBase(object):
 
 class TestSimpleUpload(object):
     def test__prepare_request_already_finished(self):
-        upload = _upload.SimpleUpload(SIMPLE_URL)
+        upload = _upload.SimpleUpload(sync_test.SIMPLE_URL)
         upload._finished = True
         with pytest.raises(ValueError) as exc_info:
             upload._prepare_request(b"", None)
@@ -131,7 +114,7 @@ class TestSimpleUpload(object):
         exc_info.match(u"An upload can only be used once.")
 
     def test__prepare_request_non_bytes_data(self):
-        upload = _upload.SimpleUpload(SIMPLE_URL)
+        upload = _upload.SimpleUpload(sync_test.SIMPLE_URL)
         assert not upload.finished
         with pytest.raises(TypeError) as exc_info:
             upload._prepare_request(u"", None)
@@ -139,32 +122,32 @@ class TestSimpleUpload(object):
         exc_info.match(u"must be bytes")
 
     def test__prepare_request(self):
-        upload = _upload.SimpleUpload(SIMPLE_URL)
+        upload = _upload.SimpleUpload(sync_test.SIMPLE_URL)
         content_type = u"image/jpeg"
         data = b"cheetos and eetos"
         method, url, payload, headers = upload._prepare_request(data, content_type)
 
         assert method == u"POST"
-        assert url == SIMPLE_URL
+        assert url == sync_test.SIMPLE_URL
         assert payload == data
         assert headers == {u"content-type": content_type}
 
     def test__prepare_request_with_headers(self):
         headers = {u"x-goog-cheetos": u"spicy"}
-        upload = _upload.SimpleUpload(SIMPLE_URL, headers=headers)
+        upload = _upload.SimpleUpload(sync_test.SIMPLE_URL, headers=headers)
         content_type = u"image/jpeg"
         data = b"some stuff"
         method, url, payload, new_headers = upload._prepare_request(data, content_type)
 
         assert method == u"POST"
-        assert url == SIMPLE_URL
+        assert url == sync_test.SIMPLE_URL
         assert payload == data
         assert new_headers is headers
         expected = {u"content-type": content_type, u"x-goog-cheetos": u"spicy"}
         assert headers == expected
 
     def test_transmit(self):
-        upload = _upload.SimpleUpload(SIMPLE_URL)
+        upload = _upload.SimpleUpload(sync_test.SIMPLE_URL)
         with pytest.raises(NotImplementedError) as exc_info:
             upload.transmit(None, None, None)
 
@@ -173,16 +156,16 @@ class TestSimpleUpload(object):
 
 class TestMultipartUpload(object):
     def test__prepare_request_already_finished(self):
-        upload = _upload.MultipartUpload(MULTIPART_URL)
+        upload = _upload.MultipartUpload(sync_test.MULTIPART_URL)
         upload._finished = True
         with pytest.raises(ValueError):
-            upload._prepare_request(b"Hi", {}, BASIC_CONTENT)
+            upload._prepare_request(b"Hi", {}, sync_test.BASIC_CONTENT)
 
     def test__prepare_request_non_bytes_data(self):
         data = u"Nope not bytes."
-        upload = _upload.MultipartUpload(MULTIPART_URL)
+        upload = _upload.MultipartUpload(sync_test.MULTIPART_URL)
         with pytest.raises(TypeError):
-            upload._prepare_request(data, {}, BASIC_CONTENT)
+            upload._prepare_request(data, {}, sync_test.BASIC_CONTENT)
 
     @mock.patch(u"google.async_resumable_media._upload.get_boundary", return_value=b"==3==")
     def _prepare_request_helper(
@@ -194,7 +177,7 @@ class TestMultipartUpload(object):
         test_overwrite=False,
     ):
         upload = _upload.MultipartUpload(
-            MULTIPART_URL, headers=headers, checksum=checksum
+            sync_test.MULTIPART_URL, headers=headers, checksum=checksum
         )
         data = b"Hi"
         if test_overwrite and checksum:
@@ -209,15 +192,15 @@ class TestMultipartUpload(object):
             # To simplify parsing the response, omit other test metadata if a
             # checksum is specified.
             metadata = {u"Some": u"Stuff"} if not checksum else {}
-        content_type = BASIC_CONTENT
+        content_type = sync_test.BASIC_CONTENT
         method, url, payload, new_headers = upload._prepare_request(
             data, metadata, content_type
         )
 
         assert method == u"POST"
-        assert url == MULTIPART_URL
+        assert url == sync_test.MULTIPART_URL
 
-        preamble = b"--==3==\r\n" + JSON_TYPE_LINE + b"\r\n"
+        preamble = b"--==3==\r\n" + sync_test.JSON_TYPE_LINE + b"\r\n"
 
         if checksum == "md5" and expected_checksum:
             metadata_payload = '{{"md5Hash": "{}"}}\r\n'.format(
@@ -288,7 +271,7 @@ class TestMultipartUpload(object):
         assert expected_headers == headers
 
     def test_transmit(self):
-        upload = _upload.MultipartUpload(MULTIPART_URL)
+        upload = _upload.MultipartUpload(sync_test.MULTIPART_URL)
         with pytest.raises(NotImplementedError) as exc_info:
             upload.transmit(None, None, None, None)
 
@@ -297,9 +280,9 @@ class TestMultipartUpload(object):
 
 class TestResumableUpload(object):
     def test_constructor(self):
-        chunk_size = ONE_MB
-        upload = _upload.ResumableUpload(RESUMABLE_URL, chunk_size)
-        assert upload.upload_url == RESUMABLE_URL
+        chunk_size = sync_test.ONE_MB
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, chunk_size)
+        assert upload.upload_url == sync_test.RESUMABLE_URL
         assert upload._headers == {}
         assert not upload._finished
         _check_retry_strategy(upload)
@@ -312,10 +295,10 @@ class TestResumableUpload(object):
 
     def test_constructor_bad_chunk_size(self):
         with pytest.raises(ValueError):
-            _upload.ResumableUpload(RESUMABLE_URL, 1)
+            _upload.ResumableUpload(sync_test.RESUMABLE_URL, 1)
 
     def test_invalid_property(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         # Default value of @property.
         assert not upload.invalid
 
@@ -328,9 +311,9 @@ class TestResumableUpload(object):
         assert upload.invalid
 
     def test_chunk_size_property(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         # Default value of @property.
-        assert upload.chunk_size == ONE_MB
+        assert upload.chunk_size == sync_test.ONE_MB
 
         # Make sure we cannot set it on public @property.
         with pytest.raises(AttributeError):
@@ -342,7 +325,7 @@ class TestResumableUpload(object):
         assert upload.chunk_size == new_size
 
     def test_resumable_url_property(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         # Default value of @property.
         assert upload.resumable_url is None
 
@@ -356,7 +339,7 @@ class TestResumableUpload(object):
         assert upload.resumable_url == new_url
 
     def test_bytes_uploaded_property(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         # Default value of @property.
         assert upload.bytes_uploaded == 0
 
@@ -369,7 +352,7 @@ class TestResumableUpload(object):
         assert upload.bytes_uploaded == 128
 
     def test_total_bytes_property(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         # Default value of @property.
         assert upload.total_bytes is None
 
@@ -386,7 +369,7 @@ class TestResumableUpload(object):
         stream = io.BytesIO(data)
         metadata = {u"name": u"big-data-file.txt"}
 
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB, headers=upload_headers)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB, headers=upload_headers)
         orig_headers = upload._headers.copy()
         # Check ``upload``-s state before.
         assert upload._stream is None
@@ -394,12 +377,12 @@ class TestResumableUpload(object):
         assert upload._total_bytes is None
         # Call the method and check the output.
         method, url, payload, headers = upload._prepare_initiate_request(
-            stream, metadata, BASIC_CONTENT, **method_kwargs
+            stream, metadata, sync_test.BASIC_CONTENT, **method_kwargs
         )
         assert payload == b'{"name": "big-data-file.txt"}'
         # Make sure the ``upload``-s state was updated.
         assert upload._stream == stream
-        assert upload._content_type == BASIC_CONTENT
+        assert upload._content_type == sync_test.BASIC_CONTENT
         if method_kwargs == {u"stream_final": False}:
             assert upload._total_bytes is None
         else:
@@ -417,9 +400,9 @@ class TestResumableUpload(object):
     def test__prepare_initiate_request(self):
         data, headers = self._prepare_initiate_request_helper()
         expected_headers = {
-            u"content-type": JSON_TYPE,
+            u"content-type": sync_test.JSON_TYPE,
             u"x-upload-content-length": u"{:d}".format(len(data)),
-            u"x-upload-content-type": BASIC_CONTENT,
+            u"x-upload-content-type": sync_test.BASIC_CONTENT,
         }
         assert headers == expected_headers
 
@@ -430,10 +413,10 @@ class TestResumableUpload(object):
         )
         expected_headers = {
             u"caviar": u"beluga",
-            u"content-type": JSON_TYPE,
+            u"content-type": sync_test.JSON_TYPE,
             u"top": u"quark",
             u"x-upload-content-length": u"{:d}".format(len(data)),
-            u"x-upload-content-type": BASIC_CONTENT,
+            u"x-upload-content-type": sync_test.BASIC_CONTENT,
         }
         assert new_headers == expected_headers
 
@@ -444,7 +427,7 @@ class TestResumableUpload(object):
         expected_headers = {
             u"content-type": u"application/json; charset=UTF-8",
             u"x-upload-content-length": u"{:d}".format(total_bytes),
-            u"x-upload-content-type": BASIC_CONTENT,
+            u"x-upload-content-type": sync_test.BASIC_CONTENT,
         }
         assert headers == expected_headers
 
@@ -452,32 +435,32 @@ class TestResumableUpload(object):
         _, headers = self._prepare_initiate_request_helper(stream_final=False)
         expected_headers = {
             u"content-type": u"application/json; charset=UTF-8",
-            u"x-upload-content-type": BASIC_CONTENT,
+            u"x-upload-content-type": sync_test.BASIC_CONTENT,
         }
         assert headers == expected_headers
 
     def test__prepare_initiate_request_already_initiated(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         # Fake that the upload has been started.
         upload._resumable_url = u"http://test.invalid?upload_id=definitely-started"
 
         with pytest.raises(ValueError):
-            upload._prepare_initiate_request(io.BytesIO(), {}, BASIC_CONTENT)
+            upload._prepare_initiate_request(io.BytesIO(), {}, sync_test.BASIC_CONTENT)
 
     def test__prepare_initiate_request_bad_stream_position(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
 
         stream = io.BytesIO(b"data")
         stream.seek(1)
         with pytest.raises(ValueError):
-            upload._prepare_initiate_request(stream, {}, BASIC_CONTENT)
+            upload._prepare_initiate_request(stream, {}, sync_test.BASIC_CONTENT)
 
         # Also test a bad object (i.e. non-stream)
         with pytest.raises(AttributeError):
-            upload._prepare_initiate_request(None, {}, BASIC_CONTENT)
+            upload._prepare_initiate_request(None, {}, sync_test.BASIC_CONTENT)
 
     def test__process_initiate_response_non_200(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         _fix_up_virtual(upload)
 
         response = _make_response(403)
@@ -491,7 +474,7 @@ class TestResumableUpload(object):
         assert error.args[3] == 200
 
     def test__process_initiate_response(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         _fix_up_virtual(upload)
 
         headers = {u"location": u"http://test.invalid?upload_id=kmfeij3234"}
@@ -505,14 +488,14 @@ class TestResumableUpload(object):
         assert upload._resumable_url == headers[u"location"]
 
     def test_initiate(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         with pytest.raises(NotImplementedError) as exc_info:
-            upload.initiate(None, None, {}, BASIC_CONTENT)
+            upload.initiate(None, None, {}, sync_test.BASIC_CONTENT)
 
         exc_info.match(u"virtual")
 
     def test__prepare_request_already_finished(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         assert not upload.invalid
         upload._finished = True
         with pytest.raises(ValueError) as exc_info:
@@ -521,7 +504,7 @@ class TestResumableUpload(object):
         assert exc_info.value.args == (u"Upload has finished.",)
 
     def test__prepare_request_invalid(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         assert not upload.finished
         upload._invalid = True
         with pytest.raises(ValueError) as exc_info:
@@ -531,7 +514,7 @@ class TestResumableUpload(object):
         assert exc_info.match(u"recover()")
 
     def test__prepare_request_not_initiated(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         assert not upload.finished
         assert not upload.invalid
         assert upload._resumable_url is None
@@ -543,7 +526,7 @@ class TestResumableUpload(object):
 
     def test__prepare_request_invalid_stream_state(self):
         stream = io.BytesIO(b"some data here")
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         upload._stream = stream
         upload._resumable_url = u"http://test.invalid?upload_id=not-none"
         # Make stream.tell() disagree with bytes_uploaded.
@@ -556,9 +539,9 @@ class TestResumableUpload(object):
 
     @staticmethod
     def _upload_in_flight(data, headers=None):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB, headers=headers)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB, headers=headers)
         upload._stream = io.BytesIO(data)
-        upload._content_type = BASIC_CONTENT
+        upload._content_type = sync_test.BASIC_CONTENT
         upload._total_bytes = len(data)
         upload._resumable_url = u"http://test.invalid?upload_id=not-none"
         return upload
@@ -580,7 +563,7 @@ class TestResumableUpload(object):
         headers = self._prepare_request_helper()
         expected_headers = {
             u"content-range": u"bytes 0-32/33",
-            u"content-type": BASIC_CONTENT,
+            u"content-type": sync_test.BASIC_CONTENT,
         }
         assert headers == expected_headers
 
@@ -590,20 +573,20 @@ class TestResumableUpload(object):
         assert new_headers is not headers
         expected_headers = {
             u"content-range": u"bytes 0-32/33",
-            u"content-type": BASIC_CONTENT,
+            u"content-type": sync_test.BASIC_CONTENT,
         }
         assert new_headers == expected_headers
         # Make sure the ``_headers`` are not incorporated.
         assert u"cannot" not in new_headers
 
     def test__make_invalid(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         assert not upload.invalid
         upload._make_invalid()
         assert upload.invalid
 
     def test__process_response_bad_status(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         _fix_up_virtual(upload)
 
         # Make sure the upload is valid before the failure.
@@ -622,7 +605,7 @@ class TestResumableUpload(object):
         assert upload.invalid
 
     def test__process_response_success(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         _fix_up_virtual(upload)
 
         # Check / set status before.
@@ -647,7 +630,7 @@ class TestResumableUpload(object):
         assert upload._finished
 
     def test__process_response_partial_no_range(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         _fix_up_virtual(upload)
 
         response = _make_response(status_code=async_resumable_media.PERMANENT_REDIRECT)
@@ -665,7 +648,7 @@ class TestResumableUpload(object):
         assert error.args[1] == u"range"
 
     def test__process_response_partial_bad_range(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         _fix_up_virtual(upload)
 
         # Make sure the upload is valid before the failure.
@@ -686,7 +669,7 @@ class TestResumableUpload(object):
         assert upload.invalid
 
     def test__process_response_partial(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         _fix_up_virtual(upload)
 
         # Check status before.
@@ -701,21 +684,21 @@ class TestResumableUpload(object):
         assert upload._bytes_uploaded == 172
 
     def test_transmit_next_chunk(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         with pytest.raises(NotImplementedError) as exc_info:
             upload.transmit_next_chunk(None)
 
         exc_info.match(u"virtual")
 
     def test__prepare_recover_request_not_invalid(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         assert not upload.invalid
 
         with pytest.raises(ValueError):
             upload._prepare_recover_request()
 
     def test__prepare_recover_request(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         upload._invalid = True
 
         method, url, payload, headers = upload._prepare_recover_request()
@@ -728,7 +711,7 @@ class TestResumableUpload(object):
 
     def test__prepare_recover_request_with_headers(self):
         headers = {u"lake": u"ocean"}
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB, headers=headers)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB, headers=headers)
         upload._invalid = True
 
         method, url, payload, new_headers = upload._prepare_recover_request()
@@ -742,7 +725,7 @@ class TestResumableUpload(object):
         assert upload._headers == {u"lake": u"ocean"}
 
     def test__process_recover_response_bad_status(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         _fix_up_virtual(upload)
 
         upload._invalid = True
@@ -760,7 +743,7 @@ class TestResumableUpload(object):
         assert upload.invalid
 
     def test__process_recover_response_no_range(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         _fix_up_virtual(upload)
 
         upload._invalid = True
@@ -777,7 +760,7 @@ class TestResumableUpload(object):
         upload._stream.seek.assert_called_once_with(0)
 
     def test__process_recover_response_bad_range(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         _fix_up_virtual(upload)
 
         upload._invalid = True
@@ -801,7 +784,7 @@ class TestResumableUpload(object):
         upload._stream.seek.assert_not_called()
 
     def test__process_recover_response_with_range(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         _fix_up_virtual(upload)
 
         upload._invalid = True
@@ -822,7 +805,7 @@ class TestResumableUpload(object):
         upload._stream.seek.assert_called_once_with(end + 1)
 
     def test_recover(self):
-        upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
+        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         with pytest.raises(NotImplementedError) as exc_info:
             upload.recover(None)
 
@@ -848,7 +831,7 @@ class Test_construct_multipart_request(object):
 
         assert multipart_boundary == mock_get_boundary.return_value
         expected_payload = (
-            b"--==1==\r\n" + JSON_TYPE_LINE + b"\r\n"
+            b"--==1==\r\n" + sync_test.JSON_TYPE_LINE + b"\r\n"
             b'{"name": "hi-file.bin"}\r\n'
             b"--==1==\r\n"
             b"content-type: application/octet-stream\r\n"
@@ -865,14 +848,14 @@ class Test_construct_multipart_request(object):
         # construct_multipart_request( ASSUMES callers pass bytes.
         data = data_unicode.encode(u"utf-8")
         metadata = {u"name": u"snowman.txt"}
-        content_type = BASIC_CONTENT
+        content_type = sync_test.BASIC_CONTENT
         payload, multipart_boundary = _upload.construct_multipart_request(
             data, metadata, content_type
         )
 
         assert multipart_boundary == mock_get_boundary.return_value
         expected_payload = (
-            b"--==2==\r\n" + JSON_TYPE_LINE + b"\r\n"
+            b"--==2==\r\n" + sync_test.JSON_TYPE_LINE + b"\r\n"
             b'{"name": "snowman.txt"}\r\n'
             b"--==2==\r\n"
             b"content-type: text/plain\r\n"

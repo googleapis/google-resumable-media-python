@@ -21,7 +21,7 @@ from six.moves import http_client
 
 
 from google.async_resumable_media import _helpers
-from google.async_resumable_media import common
+from google.resumable_media import common
 
 
 _CONTENT_RANGE_RE = re.compile(

@@ -43,12 +43,12 @@ To install with `pip`_:
 """
 
 
-from google.async_resumable_media.common import DataCorruption
-from google.async_resumable_media.common import InvalidResponse
-from google.async_resumable_media.common import PERMANENT_REDIRECT
-from google.async_resumable_media.common import RetryStrategy
-from google.async_resumable_media.common import TOO_MANY_REQUESTS
-from google.async_resumable_media.common import UPLOAD_CHUNK_SIZE
+from google.resumable_media.common import DataCorruption
+from google.resumable_media.common import InvalidResponse
+from google.resumable_media.common import PERMANENT_REDIRECT
+from google.resumable_media.common import RetryStrategy
+from google.resumable_media.common import TOO_MANY_REQUESTS
+from google.resumable_media.common import UPLOAD_CHUNK_SIZE
 
 
 __all__ = [

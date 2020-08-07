@@ -20,23 +20,15 @@ import mock
 
 from google import async_resumable_media
 import google.async_resumable_media.requests.upload as upload_mod
+from tests.unit.requests import test_upload as sync_test
 
-SIMPLE_URL = (
-    u"https://www.googleapis.com/upload/storage/v1/b/{BUCKET}/o?"
-    u"uploadType=media&name={OBJECT}"
-)
-MULTIPART_URL = (
-    u"https://www.googleapis.com/upload/storage/v1/b/{BUCKET}/o?"
-    u"uploadType=multipart"
-)
-RESUMABLE_URL = (
-    u"https://www.googleapis.com/upload/storage/v1/b/{BUCKET}/o?"
-    u"uploadType=resumable"
-)
-ONE_MB = 1024 * 1024
-BASIC_CONTENT = u"text/plain"
-JSON_TYPE = u"application/json; charset=UTF-8"
-JSON_TYPE_LINE = b"content-type: application/json; charset=UTF-8\r\n"
+SIMPLE_URL = sync_test.SIMPLE_URL
+MULTIPART_URL = sync_test.MULTIPART_URL
+RESUMABLE_URL = sync_test.RESUMABLE_URL
+ONE_MB = sync_test.ONE_MB
+BASIC_CONTENT = sync_test.BASIC_CONTENT
+JSON_TYPE = sync_test.JSON_TYPE
+JSON_TYPE_LINE = sync_test.JSON_TYPE_LINE
 EXPECTED_TIMEOUT = 61
 
 # test by making the upload async for that case

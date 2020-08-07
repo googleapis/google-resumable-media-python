@@ -30,7 +30,7 @@ class TestRequestsMixin(object):
 
     def test__get_headers(self):
         headers = {u"fruit": u"apple"}
-        response = mock.Mock(headers=headers, spec=["headers"])
+        response = mock.Mock(headers=headers, _headers=headers, spec=["headers", "_headers"])
         assert headers == _helpers.RequestsMixin._get_headers(response)
 
     @pytest.mark.asyncio
@@ -39,7 +39,7 @@ class TestRequestsMixin(object):
         content_stream = mock.AsyncMock(spec=["__call__", "read"])
         content_stream.read = mock.AsyncMock(spec=["__call__"], return_value=body)
         response = mock.AsyncMock(
-            content=content_stream,
+            _content=content_stream,
             spec=["__call__", "_content"],
         )
         temp = await _helpers.RequestsMixin._get_body(response)

@@ -19,31 +19,13 @@ import logging
 import urllib3.response
 
 from google.async_resumable_media import _download
-from google.async_resumable_media import common
 from google.async_resumable_media import _helpers
 from google.async_resumable_media.requests import _request_helpers
+from google.resumable_media import common
 from google.resumable_media import _helpers as sync_helpers
+from google.resumable_media.requests import download
 
-
-_LOGGER = logging.getLogger(__name__)
-_HASH_HEADER = u"x-goog-hash"
-_MISSING_MD5 = u"""\
-No MD5 checksum was returned from the service while downloading {}
-(which happens for composite objects), so client-side content integrity
-checking is not being performed."""
-_CHECKSUM_MISMATCH = u"""\
-Checksum mismatch while downloading:
-
-  {}
-
-The X-Goog-Hash header indicated an {checksum_type} checksum of:
-
-  {}
-
-but the actual {checksum_type} checksum of the downloaded contents was:
-
-  {}
-"""
+_CHECKSUM_MISMATCH = download._CHECKSUM_MISMATCH
 
 
 class Download(_request_helpers.RequestsMixin, _download.Download):

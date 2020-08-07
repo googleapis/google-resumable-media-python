@@ -21,7 +21,7 @@ This utilities are explicitly catered to ``requests``-like transports.
 import functools
 
 from google.async_resumable_media import _helpers
-from google.async_resumable_media import common
+from google.resumable_media import common
 
 import google.auth.transport.aiohttp_requests as aiohttp_requests
 
@@ -67,7 +67,7 @@ class RequestsMixin(object):
             are case-insensitive).
         """
         #TODO() Ideally want to take this directly from headers
-        return response._headers
+        return response.headers
 
     @staticmethod
     async def _get_body(response):
@@ -135,7 +135,6 @@ async def http_request(
     # TODO(anirudhbaddepu) - look at default connect timeout and default read timeout
 
     if "timeout" not in transport_kwargs:
-        #  transport_kwargs["timeout"] = (_DEFAULT_CONNECT_TIMEOUT, _DEFAULT_READ_TIMEOUT)
         transport_kwargs["timeout"] = _DEFAULT_CONNECT_TIMEOUT
 
     func = functools.partial(
