@@ -28,10 +28,10 @@ from aiohttp.client_reqrep import ClientResponse, RequestInfo
 import asyncio
 import multidict
 
-from google.async_resumable_media import common
 import google.async_resumable_media.requests as resumable_requests
 from google.resumable_media import _helpers
 import google.async_resumable_media.requests.download as download_mod
+from google.resumable_media import common
 from tests.system import utils
 
 

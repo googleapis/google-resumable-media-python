@@ -386,7 +386,7 @@ class TestRawDownload(object):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
         header_value = u"md5=JvS1wjMvfbCXgEGeaJJLDQ=="
-        headers = {download_mod._HASH_HEADER: header_value}
+        headers = {_helpers._HASH_HEADER: header_value}
 
         await self._consume_helper(
             stream=stream, chunks=chunks, response_headers=headers
@@ -751,12 +751,16 @@ def _mock_response(status=http_client.OK, chunks=(), headers=None):
 def _mock_raw_response(status_code=http_client.OK, chunks=(), headers=None):
     if headers is None:
         headers = {}
-
+    chunklist = b"".join(chunks)
+    stream_content = mock.AsyncMock(spec=["__call__", "read", "iter_chunked"])
+    stream_content.read = mock.AsyncMock(spec=["__call__"], return_value=chunklist)
+    stream_content.iter_chunked.return_value = AsyncIter(chunks)
     mock_raw = mock.AsyncMock(headers=headers, spec=["__call__"])
     response = mock.AsyncMock(
         headers=headers,
         status=int(status_code),
         raw=mock_raw,
+        content=stream_content,
         spec=[
             u"__aenter__",
             u"__aexit__",
@@ -768,7 +772,6 @@ def _mock_raw_response(status_code=http_client.OK, chunks=(), headers=None):
         ],
     )
     # i.e. context manager returns ``self``.
-    response.iter_chunked.return_value = AsyncIter(chunks)
     response.__aenter__.return_value = response
     response.__aexit__.return_value = None
     return response

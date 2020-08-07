@@ -39,8 +39,8 @@ class TestRequestsMixin(object):
         content_stream = mock.AsyncMock(spec=["__call__", "read"])
         content_stream.read = mock.AsyncMock(spec=["__call__"], return_value=body)
         response = mock.AsyncMock(
-            _content=content_stream,
-            spec=["__call__", "_content"],
+            content=content_stream,
+            spec=["__call__", "content"],
         )
         temp = await _helpers.RequestsMixin._get_body(response)
         assert body == temp

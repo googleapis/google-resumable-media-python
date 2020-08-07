@@ -54,7 +54,7 @@ def unit(session):
         '--cov-config=.coveragerc',
         '--cov-report=',
         line_coverage,
-        os.path.join('tests', 'unit'),
+        #os.path.join('tests', 'unit'),
         os.path.join('tests_async', 'unit'),
         *session.posargs
     )
