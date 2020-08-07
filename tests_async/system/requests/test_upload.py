@@ -150,9 +150,9 @@ async def check_tombstoned(upload, transport, *args):
 async def check_does_not_exist(transport, blob_name):
     metadata_url = utils.METADATA_URL_TEMPLATE.format(blob_name=blob_name)
     # Make sure we are creating a **new** object.
-    with pytest.raises(Exception):
-        response = await transport.request('GET', metadata_url)
-        assert response.status == http_client.NOT_FOUND
+    #with pytest.raises(Exception):
+    response = await transport.request('GET', metadata_url)
+    assert response.status == http_client.NOT_FOUND
 
 
 async def check_initiate(response, upload, stream, transport, metadata):
@@ -412,7 +412,7 @@ async def _resumable_upload_recover_helper(authorized_transport, cleanup, header
     response = await upload.transmit_next_chunk(authorized_transport)
     assert response.status == async_resumable_media.PERMANENT_REDIRECT
     # Call upload.recover().
-    sabotage_and_recover(upload, stream, authorized_transport, chunk_size)
+    await sabotage_and_recover(upload, stream, authorized_transport, chunk_size)
     # Now stream what remains.
     num_chunks = await transmit_chunks(
         upload,
