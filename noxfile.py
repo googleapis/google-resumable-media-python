@@ -38,7 +38,7 @@ def unit(session):
     session.install('mock', 'pytest', 'pytest-cov', 'pytest-asyncio')
     session.install('-e', '.[requests]')
     session.install('aiohttp')
-    session.install('-e', '/home/anirudhbaddepu/storage/google-auth-library-python')
+    session.install('-e', '../google-auth-library-python')
 
     # Run py.test against the unit tests.
     # NOTE: We don't require 100% line coverage for unit test runs since
@@ -66,7 +66,7 @@ def unit_2(session):
     # Install all test dependencies, then install this package in-place.
     session.install('mock', 'pytest', 'pytest-cov')
     session.install('-e', '.[requests]')
-    session.install('-e', '/home/anirudhbaddepu/storage/google-auth-library-python')
+    session.install('-e', '../google-auth-library-python')
 
     # Run py.test against the unit tests.
     # NOTE: We don't require 100% line coverage for unit test runs since
@@ -216,7 +216,7 @@ def system(session):
 
     # Install all test dependencies, then install this package into the
     # virutalenv's dist-packages.
-    session.install('-e', '/home/anirudhbaddepu/storage/google-auth-library-python')
+    session.install('-e', '../google-auth-library-python')
     session.install('mock', 'pytest', GOOGLE_AUTH, 'google-cloud-testutils')
     session.install('-e', '.[requests]')
     # session.install('http')

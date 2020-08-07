@@ -402,7 +402,7 @@ class TestRawDownload(TestDownload):
 
     @staticmethod
     async def _read_response_content(response):
-        content = await response.raw_content()
+        content = await _CombinedResponse(response._response).raw_content()
         return content
 
     @pytest.mark.asyncio
