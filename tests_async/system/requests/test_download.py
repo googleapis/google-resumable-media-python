@@ -30,6 +30,7 @@ import multidict
 
 from google.async_resumable_media import common
 import google.async_resumable_media.requests as resumable_requests
+from google.resumable_media import _helpers
 import google.async_resumable_media.requests.download as download_mod
 from tests.system import utils
 
@@ -72,6 +73,10 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
     """
 
     EMPTY_HASH = base64.b64encode(hashlib.md5(b"").digest()).decode(u"utf-8")
+    EMPTY_MD5 = base64.b64encode(hashlib.md5(b"").digest()).decode(u"utf-8")
+    crc32c = _helpers._get_crc32c_object()
+    crc32c.update(b"")
+    EMPTY_CRC32C = base64.b64encode(crc32c.digest()).decode(u"utf-8")
 
     async def request(self, method, url, data=None, headers=None, **kwargs):
         """Implementation of Requests' request."""
@@ -114,11 +119,11 @@ def get_path(filename):
 
 
 ALL_FILES = (
-
     {
         u"path": get_path(u"image1.jpg"),
         u"content_type": IMAGE_JPEG,
-        u"checksum": u"1bsd83IYNug8hd+V1ING3Q==",
+        u"md5": u"1bsd83IYNug8hd+V1ING3Q==",
+        u"crc32c": u"YQGPxA==",
         u"slices": (
             slice(1024, 16386, None),  # obj[1024:16386]
             slice(None, 8192, None),  # obj[:8192]
@@ -129,7 +134,8 @@ ALL_FILES = (
     {
         u"path": get_path(u"image2.jpg"),
         u"content_type": IMAGE_JPEG,
-        u"checksum": u"gdLXJltiYAMP9WZZFEQI1Q==",
+        u"md5": u"gdLXJltiYAMP9WZZFEQI1Q==",
+        u"crc32c": u"sxxEFQ==",
         u"slices": (
             slice(1024, 16386, None),  # obj[1024:16386]
             slice(None, 8192, None),  # obj[:8192]
@@ -140,8 +146,18 @@ ALL_FILES = (
     {
         u"path": get_path(u"file.txt"),
         u"content_type": PLAIN_TEXT,
-        u"checksum": u"XHSHAr/SpIeZtZbjgQ4nGw==",
+        u"md5": u"XHSHAr/SpIeZtZbjgQ4nGw==",
+        u"crc32c": u"MeMHoQ==",
         u"slices": (),
+    },
+    {
+        u"path": get_path(u"gzipped.txt.gz"),
+        u"uncompressed": get_path(u"gzipped.txt"),
+        u"content_type": PLAIN_TEXT,
+        u"md5": u"KHRs/+ZSrc/FuuR4qz/PZQ==",
+        u"crc32c": u"/LIRNg==",
+        u"slices": (),
+        u"metadata": {u"contentEncoding": u"gzip"},
     },
 )
 
@@ -280,7 +296,7 @@ class TestDownload(object):
 
     @staticmethod
     async def _read_response_content(response):
-        content = await response.data.read()
+        content = await response.content()
         return content
 
     @pytest.mark.asyncio
@@ -295,7 +311,7 @@ class TestDownload(object):
             download = self._make_one(media_url, checksum=checksum)
             # Consume the resource.
             response = await download.consume(authorized_transport)
-            response = tr_requests._Response(response)
+            response = tr_requests._CombinedResponse(response)
             assert response.status == http_client.OK
             content = await self._read_response_content(response)
             assert content == actual_contents
@@ -435,25 +451,32 @@ class TestRawDownload(TestDownload):
         content = await tr_requests._CombinedResponse(response._response).raw_content()
         return content
 
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @pytest.mark.asyncio
-    async def test_corrupt_download(self, add_files, corrupting_transport):
+    async def test_corrupt_download(self, add_files, corrupting_transport, checksum):
         for info in ALL_FILES:
             blob_name = get_blob_name(info)
 
             # Create the actual download object.
             media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
             stream = io.BytesIO()
-            download = self._make_one(media_url)
+            download = self._make_one(media_url, stream=stream, checksum=checksum)
             # Consume the resource.
-            with pytest.raises(Exception) as exc_info:
+            with pytest.raises(common.DataCorruption) as exc_info:
                 await download.consume(corrupting_transport)
 
             assert download.finished
 
+            if checksum == "md5":
+                EMPTY_HASH = CorruptingAuthorizedSession.EMPTY_MD5
+            else:
+                EMPTY_HASH = CorruptingAuthorizedSession.EMPTY_CRC32C
+
             msg = download_mod._CHECKSUM_MISMATCH.format(
                 download.media_url,
-                CorruptingAuthorizedSession.EMPTY_HASH,
-                info[u"checksum"],
+                EMPTY_HASH,
+                info[checksum],
+                checksum_type=checksum.upper(),
             )
             assert exc_info.value.args == (msg,)
 

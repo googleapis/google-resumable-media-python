@@ -224,7 +224,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
             response, self._get_headers, self.media_url, checksum_type=self.checksum
         )
 
-        async for chunk in response.iter_chunked(_request_helpers._SINGLE_GET_CHUNK_SIZE):
+        async for chunk in response.content.iter_chunked(_request_helpers._SINGLE_GET_CHUNK_SIZE):
             self._stream.write(chunk)
             checksum_object.update(chunk)
 

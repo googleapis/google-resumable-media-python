@@ -67,9 +67,7 @@ class RequestsMixin(object):
             are case-insensitive).
         """
         #TODO() Ideally want to take this directly from headers
-        if response.headers is None:
-            return response._headers
-        return response.headers
+        return response._headers
 
     @staticmethod
     async def _get_body(response):

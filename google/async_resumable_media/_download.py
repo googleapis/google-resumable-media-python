@@ -125,6 +125,9 @@ class Download(DownloadBase):
             ``start`` to the end of the media.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
+        checksum Optional([str]): The type of checksum to compute to verify
+            the integrity of the object. The response headers must contain
+            a checksum of the requested type. If the headers lack an
     """
 
     def __init__(
@@ -426,6 +429,7 @@ class ChunkedDownload(DownloadBase):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
+
                 Can also be passed as a tuple (connect_timeout, read_timeout).
                 See :meth:`requests.Session.request` documentation for details.
 
