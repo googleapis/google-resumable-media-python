@@ -419,6 +419,7 @@ class TestRawDownload(TestDownload):
                 await download.consume(corrupting_transport)
 
             assert download.finished
+
             msg = download_mod._CHECKSUM_MISMATCH.format(
                 download.media_url,
                 CorruptingAuthorizedSession.EMPTY_HASH,
