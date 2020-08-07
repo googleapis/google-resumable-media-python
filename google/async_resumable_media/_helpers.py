@@ -184,12 +184,14 @@ async def wait_and_retry(func, get_status_code, retry_strategy):
 
 class _DoNothingHash(object):
     """Do-nothing hash object.
+
     Intended as a stand-in for ``hashlib.md5`` or a crc32c checksum
     implementation in cases where it isn't necessary to compute the hash.
     """
 
     def update(self, unused_chunk):
         """Do-nothing ``update`` method.
+
         Intended to match the interface of ``hashlib.md5`` and other checksums.
         Args:
             unused_chunk (bytes): A chunk of data.
