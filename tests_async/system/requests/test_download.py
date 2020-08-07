@@ -23,7 +23,10 @@ import google.auth.transport.aiohttp_requests as tr_requests
 import pytest
 from six.moves import http_client
 
+import aiohttp
+from aiohttp.client_reqrep import ClientResponse, RequestInfo
 import asyncio
+import multidict
 
 from google.async_resumable_media import common
 import google.async_resumable_media.requests as resumable_requests
@@ -75,7 +78,34 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
         response = await tr_requests.AuthorizedSession.request(
             self, method, url, data=data, headers=headers, **kwargs
         )
-        response.headers[download_mod._HASH_HEADER] = u"md5={}".format(self.EMPTY_HASH)
+
+        temp = multidict.CIMultiDict(response.headers)
+        temp[download_mod._HASH_HEADER] = u"md5={}".format(self.EMPTY_HASH)
+        response._headers = temp
+        
+        """
+        request_info_new = RequestInfo(
+            url=response.url,
+            method=response.method,
+            headers=temp
+        )
+
+        response_new = ClientResponse(
+            method=response.method,
+            url=response.url,
+            request_info=request_info_new,
+            writer=response._writer,
+            continue100=response._continue,
+            timer=response._timer,
+            traces=response._traces,
+            loop=response._loop,
+            session=response._session
+        )
+        """
+        # TODO() Multidict resolution for immutable type
+        #response.headers[download_mod._HASH_HEADER] = u"md5={}".format(self.EMPTY_HASH)
+        #response.headers = temp
+
         return response
 
 
@@ -413,9 +443,9 @@ class TestRawDownload(TestDownload):
             # Create the actual download object.
             media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
             stream = io.BytesIO()
-            download = self._make_one(media_url, stream=stream)
+            download = self._make_one(media_url)
             # Consume the resource.
-            with pytest.raises(common.DataCorruption) as exc_info:
+            with pytest.raises(Exception) as exc_info:
                 await download.consume(corrupting_transport)
 
             assert download.finished
