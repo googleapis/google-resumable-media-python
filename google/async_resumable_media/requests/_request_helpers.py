@@ -78,7 +78,7 @@ class RequestsMixin(object):
         Returns:
             bytes: The body of the ``response``.
         """
-        wrapped_response = aiohttp_requests._Response(response)
+        wrapped_response = aiohttp_requests._CombinedResponse(response)
         content = await wrapped_response.data.read()
         return content
 

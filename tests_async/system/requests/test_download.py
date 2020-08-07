@@ -402,7 +402,7 @@ class TestRawDownload(TestDownload):
 
     @staticmethod
     async def _read_response_content(response):
-        content = await _CombinedResponse(response._response).raw_content()
+        content = await tr_requests._CombinedResponse(response._response).raw_content()
         return content
 
     @pytest.mark.asyncio
@@ -415,7 +415,7 @@ class TestRawDownload(TestDownload):
             stream = io.BytesIO()
             download = self._make_one(media_url, stream=stream)
             # Consume the resource.
-            with pytest.raises(Exception) as exc_info:
+            with pytest.raises(common.DataCorruption) as exc_info:
                 await download.consume(corrupting_transport)
 
             assert download.finished
