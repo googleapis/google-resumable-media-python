@@ -38,6 +38,7 @@ def unit(session):
     session.install('mock', 'pytest', 'pytest-cov', 'pytest-asyncio')
     session.install('-e', '.[requests]')
     session.install('aiohttp')
+    session.install('-e', '/home/anirudhbaddepu/storage/google-auth-library-python')
 
     # Run py.test against the unit tests.
     # NOTE: We don't require 100% line coverage for unit test runs since
@@ -65,6 +66,7 @@ def unit_2(session):
     # Install all test dependencies, then install this package in-place.
     session.install('mock', 'pytest', 'pytest-cov')
     session.install('-e', '.[requests]')
+    session.install('-e', '/home/anirudhbaddepu/storage/google-auth-library-python')
 
     # Run py.test against the unit tests.
     # NOTE: We don't require 100% line coverage for unit test runs since

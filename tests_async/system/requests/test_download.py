@@ -24,12 +24,9 @@ import pytest
 from six.moves import http_client
 
 import asyncio
-import aiohttp
-import aiohttp.web
 
 from google.async_resumable_media import common
 import google.async_resumable_media.requests as resumable_requests
-from google.async_resumable_media.requests import _request_helpers as _helpers
 import google.async_resumable_media.requests.download as download_mod
 from tests.system import utils
 
@@ -52,6 +49,7 @@ def event_loop(request):
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
+
 
 class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
     """A Requests Session class with credentials, which corrupts responses.
@@ -83,7 +81,8 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
 
 def get_path(filename):
     return os.path.realpath(os.path.join(DATA_DIR, filename))
-'''
+
+
 ALL_FILES = (
 
     {
@@ -114,15 +113,6 @@ ALL_FILES = (
         u"checksum": u"XHSHAr/SpIeZtZbjgQ4nGw==",
         u"slices": (),
     },
-    '''
-ALL_FILES = ({
-        u"path": get_path(u"gzipped.txt.gz"),
-        u"uncompressed": get_path(u"gzipped.txt"),
-        u"content_type": PLAIN_TEXT,
-        u"checksum": u"KHRs/+ZSrc/FuuR4qz/PZQ==",
-        u"slices": (),
-        u"metadata": {u"contentEncoding": u"gzip"},
-    },
 )
 
 
@@ -151,7 +141,6 @@ def get_blob_name(info):
 async def delete_blob(transport, blob_name):
     metadata_url = utils.METADATA_URL_TEMPLATE.format(blob_name=blob_name)
     response = await transport.request('DELETE', metadata_url)
-    #breakpoint()
     assert response.status == http_client.NO_CONTENT
 
 
@@ -261,10 +250,9 @@ class TestDownload(object):
 
     @staticmethod
     async def _read_response_content(response):
-        content = await response.content()
+        content = await response.data.read()
         return content
-    
-    
+
     @pytest.mark.asyncio
     @pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
     async def test_download_full(self, add_files, authorized_transport, checksum):
@@ -279,10 +267,10 @@ class TestDownload(object):
             response = await download.consume(authorized_transport)
             response = tr_requests._Response(response)
             assert response.status == http_client.OK
-            content = await self._read_response_content(response) 
+            content = await self._read_response_content(response)
             assert content == actual_contents
             await check_tombstoned(download, authorized_transport)
-    
+
     '''
     #TODO(FIX THE STREAM TEST)
 
@@ -295,28 +283,27 @@ class TestDownload(object):
             # Create the actual download object.
             media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
             stream = io.BytesIO()
-      
+
             download = self._make_one(media_url, stream=stream)
             # Consume the resource.
             response = await download.consume(authorized_transport)
             assert response.status == http_client.OK
-          
-            #breakpoint()           
-            
-            aiohttp session is closing itself 
+
+            #breakpoint()
+
+            aiohttp session is closing itself
 
             with pytest.raises(RuntimeError) as exc_info:
                 await getattr(response, u"content").read()
-            
+
             #assert exc_info.value.args == (NO_BODY_ERR,)
-            
+
             content = await response.content.read()
             assert content is False
             assert response._content_consumed is True
 
             assert stream.getvalue() == actual_contents
             await check_tombstoned(download, authorized_transport)
-        
     '''
 
     @pytest.mark.asyncio
@@ -333,17 +320,16 @@ class TestDownload(object):
         await check_tombstoned(download, authorized_transport)
 
         # Attempt to consume the resource **without** the headers.
-       
+
         download_wo = self._make_one(media_url)
-        
-        #with pytest.raises(common.InvalidResponse) as exc_info:
-    
+
+        # with pytest.raises(common.InvalidResponse) as exc_info:
+
         with pytest.raises(common.InvalidResponse) as exc_info:
             await download_wo.consume(authorized_transport)
-        
+
         await check_error_response(exc_info, http_client.BAD_REQUEST, ENCRYPTED_ERR)
         await check_tombstoned(download_wo, authorized_transport)
-        
 
     @pytest.mark.asyncio
     async def test_non_existent_file(self, authorized_transport, bucket):
@@ -470,12 +456,12 @@ async def consume_chunks(download, authorized_transport, total_bytes, actual_con
         assert download.bytes_downloaded == next_byte - download.start
         assert download.total_bytes == total_bytes
         assert response.status == http_client.PARTIAL_CONTENT
-        
-        #content = await response.content.read()
 
-        #TODO() find a solution to re-reading aiohttp response streams
+        # content = await response.content.read()
 
-        #assert content == actual_contents[start_byte:next_byte]
+        # TODO() find a solution to re-reading aiohttp response streams
+
+        # assert content == actual_contents[start_byte:next_byte]
         start_byte = next_byte
 
     return num_responses, response
@@ -492,7 +478,7 @@ class TestChunkedDownload(object):
     @staticmethod
     def _get_contents(info):
         return get_contents(info)
-    
+
     @pytest.mark.asyncio
     async def test_chunked_download_partial(self, add_files, authorized_transport):
         for info in ALL_FILES:
@@ -558,10 +544,10 @@ class TestChunkedDownload(object):
         # Check that we have the right number of responses.
         assert num_responses == num_chunks
         # Make sure the last chunk isn't the same size.
-        
+
         content = await last_response.read()
         assert len(content) < chunk_size
-        
+
         await check_tombstoned(download, authorized_transport)
         # Attempt to consume the resource **without** the headers.
         stream_wo = io.BytesIO()

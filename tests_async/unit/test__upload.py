@@ -246,9 +246,8 @@ class TestMultipartUpload(object):
 
     def test__prepare_request(self):
         headers, multipart_type = self._prepare_request_helper()
-        #breakpoint()
         assert headers == {u"content-type": multipart_type}
-    
+
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     def test__prepare_request_with_checksum(self, checksum):
         checksums = {
@@ -512,7 +511,6 @@ class TestResumableUpload(object):
 
         exc_info.match(u"virtual")
 
-
     def test__prepare_request_already_finished(self):
         upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
         assert not upload.invalid
@@ -522,7 +520,6 @@ class TestResumableUpload(object):
 
         assert exc_info.value.args == (u"Upload has finished.",)
 
-  
     def test__prepare_request_invalid(self):
         upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
         assert not upload.finished

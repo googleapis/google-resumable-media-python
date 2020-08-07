@@ -124,7 +124,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
         transport,
         timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
     ):
-        #TODO(timeout tuple incompatibility in aiohttp, so singular timeout value)
+        # TODO(timeout tuple incompatibility in aiohttp, so singular timeout value)
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded
@@ -321,8 +321,11 @@ class ChunkedDownload(_request_helpers.RequestsMixin, _download.ChunkedDownload)
     async def consume_next_chunk(
         self,
         transport,
-        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT):
-        """Consume the next chunk of the resource to be downloaded.
+        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
+    ):
+
+        """
+        Consume the next chunk of the resource to be downloaded.
 
         Args:
             transport (~requests.Session): A ``requests`` object which can

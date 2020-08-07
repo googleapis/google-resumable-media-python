@@ -21,7 +21,6 @@ import pytest
 from six.moves import http_client
 from six.moves import urllib_parse
 
-import aiohttp
 import asyncio
 
 from google import async_resumable_media
@@ -51,6 +50,7 @@ def event_loop(request):
     yield loop
     loop.close()
 
+
 @pytest.fixture
 async def cleanup():
     to_delete = []
@@ -62,10 +62,8 @@ async def cleanup():
 
     for blob_name, transport in to_delete:
         metadata_url = utils.METADATA_URL_TEMPLATE.format(blob_name=blob_name)
-        response = await transport.request('DELETE', metadata_url) 
-        #breakpoint()
-        #assert response.status == http_client.NO_CONTENT
-
+        response = await transport.request('DELETE', metadata_url)
+        assert response.status == http_client.NO_CONTENT
 
 
 @pytest.fixture
@@ -109,9 +107,6 @@ async def check_response(
 ):
     assert response.status == http_client.OK
 
-    #READING BYTES
-    #breakpoint()
-
     json_response = await response.json()
     assert json_response[u"bucket"] == utils.BUCKET_NAME
     assert json_response[u"contentType"] == content_type
@@ -128,6 +123,7 @@ async def check_response(
     else:
         assert json_response[u"metadata"] == metadata
 
+
 async def check_content(blob_name, expected_content, transport, headers=None):
     media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
     download = resumable_requests.Download(media_url, headers=headers)
@@ -140,18 +136,21 @@ async def check_content(blob_name, expected_content, transport, headers=None):
 async def check_tombstoned(upload, transport, *args):
     assert upload.finished
     basic_types = (resumable_requests.SimpleUpload, resumable_requests.MultipartUpload)
-    #CHANGE EXCEPTION
+
+    # TODO() CHANGE EXCEPTION
+
     if isinstance(upload, basic_types):
-        with pytest.raises(Exception) as exc:
+        with pytest.raises(Exception):
             await upload.transmit(transport, *args)
     else:
         with pytest.raises(Exception):
             await upload.transmit_next_chunk(transport, *args)
 
+
 async def check_does_not_exist(transport, blob_name):
     metadata_url = utils.METADATA_URL_TEMPLATE.format(blob_name=blob_name)
     # Make sure we are creating a **new** object.
-    with pytest.raises(Exception) as exc:
+    with pytest.raises(Exception):
         response = await transport.request('GET', metadata_url)
         assert response.status == http_client.NOT_FOUND
 
@@ -169,6 +168,7 @@ async def check_initiate(response, upload, stream, transport, metadata):
 
     exc_info.match(u"This upload has already been initiated.")
 
+
 async def check_bad_chunk(upload, transport):
     with pytest.raises(async_resumable_media.InvalidResponse) as exc_info:
         await upload.transmit_next_chunk(transport)
@@ -177,6 +177,7 @@ async def check_bad_chunk(upload, transport):
     assert response.status == http_client.BAD_REQUEST
     content = await response.content.read()
     assert content == BAD_CHUNK_SIZE_MSG
+
 
 async def transmit_chunks(
     upload, transport, blob_name, metadata, num_chunks=0, content_type=JPEG_CONTENT_TYPE
@@ -199,14 +200,15 @@ async def transmit_chunks(
 
     return num_chunks
 
+
 @pytest.mark.asyncio
 async def test_simple_upload(authorized_transport, bucket, cleanup):
     with open(ICO_FILE, u"rb") as file_obj:
         actual_contents = file_obj.read()
-   
+
     blob_name = os.path.basename(ICO_FILE)
     # Make sure to clean up the uploaded blob when we are done.
-    
+
     await cleanup(blob_name, authorized_transport)
     await check_does_not_exist(authorized_transport, blob_name)
 
@@ -220,6 +222,7 @@ async def test_simple_upload(authorized_transport, bucket, cleanup):
     await check_content(blob_name, actual_contents, authorized_transport)
     # Make sure the upload is tombstoned.
     await check_tombstoned(upload, authorized_transport, actual_contents, ICO_CONTENT_TYPE)
+
 
 @pytest.mark.asyncio
 async def test_simple_upload_with_headers(authorized_transport, bucket, cleanup):
@@ -251,7 +254,6 @@ async def test_multipart_upload(authorized_transport, bucket, cleanup):
 
     blob_name = os.path.basename(ICO_FILE)
     # Make sure to clean up the uploaded blob when we are done.
-    #breakpoint()
     await cleanup(blob_name, authorized_transport)
     await check_does_not_exist(authorized_transport, blob_name)
 
@@ -275,6 +277,7 @@ async def test_multipart_upload(authorized_transport, bucket, cleanup):
     await check_tombstoned(
         upload, authorized_transport, actual_contents, metadata, ICO_CONTENT_TYPE
     )
+
 
 @pytest.mark.asyncio
 async def test_multipart_upload_with_headers(authorized_transport, bucket, cleanup):
@@ -329,9 +332,11 @@ async def _resumable_upload_helper(authorized_transport, stream, cleanup, header
     # Make sure the upload is tombstoned.
     await check_tombstoned(upload, authorized_transport)
 
+
 @pytest.mark.asyncio
 async def test_resumable_upload(authorized_transport, img_stream, bucket, cleanup):
     await _resumable_upload_helper(authorized_transport, img_stream, cleanup)
+
 
 @pytest.mark.asyncio
 async def test_resumable_upload_with_headers(
@@ -339,6 +344,7 @@ async def test_resumable_upload_with_headers(
 ):
     headers = utils.get_encryption_headers()
     await _resumable_upload_helper(authorized_transport, img_stream, cleanup, headers=headers)
+
 
 @pytest.mark.asyncio
 async def test_resumable_upload_bad_chunk_size(authorized_transport, img_stream):
@@ -423,9 +429,11 @@ async def _resumable_upload_recover_helper(authorized_transport, cleanup, header
     # Make sure the upload is tombstoned.
     await check_tombstoned(upload, authorized_transport)
 
+
 @pytest.mark.asyncio
 async def test_resumable_upload_recover(authorized_transport, bucket, cleanup):
     await _resumable_upload_recover_helper(authorized_transport, cleanup)
+
 
 @pytest.mark.asyncio
 async def test_resumable_upload_recover_with_headers(authorized_transport, bucket, cleanup):
@@ -436,7 +444,6 @@ async def test_resumable_upload_recover_with_headers(authorized_transport, bucke
 class TestResumableUploadUnknownSize(object):
     @staticmethod
     def _check_range_sent(response, start, end, total):
-        #breakpoint()
         headers_sent = response.request_info.headers
         if start is None and end is None:
             expected_content_range = u"bytes */{:d}".format(total)

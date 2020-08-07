@@ -13,13 +13,12 @@
 # limitations under the License.
 
 import mock
-import asyncio
 from six.moves import http_client
 import pytest
 
 from google.async_resumable_media.requests import _request_helpers as _helpers
 
-#Change expected timeout to single numeral instead of tuple for asyncio compatibility.
+# Change expected timeout to single numeral instead of tuple for asyncio compatibility.
 EXPECTED_TIMEOUT = 61
 
 
@@ -34,30 +33,23 @@ class TestRequestsMixin(object):
         response = mock.Mock(headers=headers, spec=["headers"])
         assert headers == _helpers.RequestsMixin._get_headers(response)
 
-    def test__get_body(self):
+    @pytest.mark.asyncio
+    async def test__get_body(self):
         body = b"This is the payload."
-        response = mock.Mock(content=body, spec=["content"])
-        assert body == _helpers.RequestsMixin._get_body(response)
+        content_stream = mock.AsyncMock(spec=["__call__", "read"])
+        content_stream.read = mock.AsyncMock(spec=["__call__"], return_value=body)
+        response = mock.AsyncMock(
+            content=content_stream,
+            spec=["__call__", "_content"],
+        )
+        temp = await _helpers.RequestsMixin._get_body(response)
+        assert body == temp
 
-'''
-class TestRawRequestsMixin(object):
-    def test__get_body_wo_content_consumed(self):
-        body = b"This is the payload."
-        raw = mock.AsyncMock(spec=["content"])
-        raw.content.return_value = iter([body])
-        response = mock.AsyncMock(content=raw, _content=False, spec=["content", "_content"])
-        assert body == _helpers.RawRequestsMixin._get_body(response)
-
-
-    def test__get_body_w_content_consumed(self):
-        body = b"This is the payload."
-        response = mock.Mock(_content=body, spec=["_content"])
-        assert body == _helpers.RawRequestsMixin._get_body(response)
-'''
 
 @pytest.mark.asyncio
 async def test_http_request():
     transport = _make_transport(http_client.OK)
+    response = await transport.request()
     method = u"POST"
     url = u"http://test.invalid"
     data = mock.sentinel.data
@@ -74,29 +66,19 @@ async def test_http_request():
         timeout=timeout,
     )
 
-    #breakpoint()
+    # TODO() check response value
+    assert ret_val is response
 
-    transport.request.assert_called_once_with(
-        method,
-        url,
-        data=data,
-        headers=headers,
-        extra1=b"work",
-        extra2=125.5,
-        timeout=timeout,
-    )
 
 @pytest.mark.asyncio
 async def test_http_request_defaults():
     transport = _make_transport(http_client.OK)
+    response = await transport.request()
     method = u"POST"
     url = u"http://test.invalid"
-    #breakpoint()
-    ret_val = await _helpers.http_request(transport, method, url)
 
-    transport.request.assert_called_once_with(
-        method, url, data=None, headers=None, timeout=EXPECTED_TIMEOUT
-    )
+    ret_val = await _helpers.http_request(transport, method, url)
+    assert ret_val is response
 
 
 def _make_response(status_code):
@@ -105,5 +87,6 @@ def _make_response(status_code):
 
 def _make_transport(status_code):
     transport = mock.AsyncMock(spec=["request"])
-    transport.request = mock.AsyncMock(spec = ["__call__"], return_value = _make_response(status_code))
+    # responses = [_make_response(status_code) for status_code in status_codes]
+    transport.request = mock.AsyncMock(spec=["__call__"], return_value=_make_response(status_code))
     return transport

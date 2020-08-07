@@ -17,10 +17,11 @@ import io
 import mock
 import pytest
 from six.moves import http_client
-import asyncio
 
 from google.async_resumable_media import _download
 from google.async_resumable_media import common
+
+import google.auth.transport.aiohttp_requests as aiohttp_requests
 
 
 EXAMPLE_URL = (
@@ -262,13 +263,13 @@ class TestChunkedDownload(object):
         self, start_byte, end_byte, total_bytes, content=None, status_code=None
     ):
         response_headers = self._response_headers(start_byte, end_byte, total_bytes)
-        content_stream = mock.AsyncMock(spec = ["__call__", "read"])
+        content_stream = mock.AsyncMock(spec=["__call__", "read"])
         content_stream.read = mock.AsyncMock(spec=["__call__"], return_value=content)
         return mock.AsyncMock(
             content=content_stream,
             headers=response_headers,
             status=status_code,
-            spec=["_content", "headers", "status"],
+            spec=["__call__", "_content", "headers", "status"],
         )
 
     def test__prepare_request_already_finished(self):
@@ -436,8 +437,8 @@ class TestChunkedDownload(object):
         assert download.total_bytes is None
         assert not download.invalid
         # Actually call the method to update.
-        content_stream = mock.AsyncMock(spec=["__call","read"])
-        content_stream.read = mock.AsyncMock(spec=["__call__"], return_value = b"DEADBEEF")
+        content_stream = mock.AsyncMock(spec=["__call", "read"])
+        content_stream.read = mock.AsyncMock(spec=["__call__"], return_value=b"DEADBEEF")
         response = mock.AsyncMock(
             headers={u"content-range": u"bytes 0-99/99"},
             status=int(http_client.PARTIAL_CONTENT),
@@ -473,8 +474,8 @@ class TestChunkedDownload(object):
             u"content-length": u"{:d}".format(len(data)),
             u"content-range": u"kites x-y/58",
         }
-        content_stream = mock.AsyncMock(spec=["__call","read"])
-        content_stream.read = mock.AsyncMock(spec=["__call__"], return_value = data)
+        content_stream = mock.AsyncMock(spec=["__call", "read"])
+        content_stream.read = mock.AsyncMock(spec=["__call__"], return_value=data)
         response = mock.AsyncMock(
             content=content_stream,
             headers=headers,
@@ -612,7 +613,6 @@ class TestChunkedDownload(object):
         assert download.finished
         assert download.bytes_downloaded == 0
         assert download.total_bytes is None
-
 
     def test_consume_next_chunk(self):
         download = _download.ChunkedDownload(EXAMPLE_URL, 256, None)
@@ -757,8 +757,11 @@ def _get_headers(response):
     return response.headers
 
 
-def _get_body(response):
-    return response.content
+async def _get_body(response):
+    # TODO() Used wrapper to extract raw content
+    wrapped_response = aiohttp_requests._Response(response)
+    content = await wrapped_response.raw_content()
+    return content
 
 
 def _fix_up_virtual(download):

@@ -17,16 +17,9 @@ import json
 import pytest
 
 import mock
-from six.moves import http_client
-import aiohttp
-#from aioresponses import aioresponses
-
-import asyncio
-
 
 from google import async_resumable_media
 import google.async_resumable_media.requests.upload as upload_mod
-
 
 SIMPLE_URL = (
     u"https://www.googleapis.com/upload/storage/v1/b/{BUCKET}/o?"
@@ -46,10 +39,11 @@ JSON_TYPE = u"application/json; charset=UTF-8"
 JSON_TYPE_LINE = b"content-type: application/json; charset=UTF-8\r\n"
 EXPECTED_TIMEOUT = 61
 
-#test by making the upload async for that case
+# test by making the upload async for that case
+
 
 class TestSimpleUpload(object):
-    
+
     @pytest.mark.asyncio
     async def test_transmit(self):
         data = b"I have got a lovely bunch of coconuts."
@@ -57,8 +51,8 @@ class TestSimpleUpload(object):
         upload = upload_mod.SimpleUpload(SIMPLE_URL)
 
         transport = mock.AsyncMock(spec=["request"])
-        transport.request = mock.AsyncMock(spec = ["__call__"], return_value = _make_response())
-        
+        transport.request = mock.AsyncMock(spec=["__call__"], return_value=_make_response())
+
         assert not upload.finished
 
         ret_val = await upload.transmit(transport, data, content_type)
@@ -79,7 +73,7 @@ class TestSimpleUpload(object):
 
 class TestMultipartUpload(object):
 
-    @mock.patch(u"google.async_resumable_media._upload.get_boundary", return_value= b"==4==")
+    @mock.patch(u"google.async_resumable_media._upload.get_boundary", return_value=b"==4==")
     @pytest.mark.asyncio
     async def test_transmit(self, mock_get_boundary):
         data = b"Mock data here and there."
@@ -88,7 +82,7 @@ class TestMultipartUpload(object):
         upload = upload_mod.MultipartUpload(MULTIPART_URL)
 
         transport = mock.AsyncMock(spec=["request"])
-        transport.request = mock.AsyncMock(spec = ["__call__"], return_value = _make_response())
+        transport.request = mock.AsyncMock(spec=["__call__"], return_value=_make_response())
 
         assert not upload.finished
 
@@ -133,8 +127,8 @@ class TestResumableUpload(object):
         transport = mock.AsyncMock(spec=["request"])
         location = (u"http://test.invalid?upload_id=AACODBBBxuw9u3AA",)
         response_headers = {u"location": location}
-        transport.request = mock.AsyncMock(spec = ["__call__"], return_value = _make_response(headers=response_headers))
-        
+        transport.request = mock.AsyncMock(spec=["__call__"], return_value=_make_response(headers=response_headers))
+
         # Check resumable_url before.
         assert upload._resumable_url is None
         # Make request and check the return value (against the mock).
@@ -179,7 +173,7 @@ class TestResumableUpload(object):
     def _chunk_mock(status_code, response_headers):
         transport = mock.AsyncMock(spec=["request"])
         put_response = _make_response(status_code=status_code, headers=response_headers)
-        transport.request = mock.AsyncMock(spec = ["__call__"], return_value = put_response)
+        transport.request = mock.AsyncMock(spec=["__call__"], return_value=put_response)
 
         return transport
 

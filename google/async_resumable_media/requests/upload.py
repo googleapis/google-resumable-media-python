@@ -39,9 +39,9 @@ class SimpleUpload(_request_helpers.RequestsMixin, _upload.SimpleUpload):
     """
 
     async def transmit(
-        self, 
-        transport, 
-        data, 
+        self,
+        transport,
+        data,
         content_type,
         timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT,
     ):
@@ -53,11 +53,11 @@ class SimpleUpload(_request_helpers.RequestsMixin, _upload.SimpleUpload):
             data (bytes): The resource content to be uploaded.
             content_type (str): The content type of the resource, e.g. a JPEG
                 image has content type ``image/jpeg``.
-            timeout (Optional[Union[float, Tuple[float, float]]]):	
-                The number of seconds to wait for the server response.	
-                Depending on the retry strategy, a request may be repeated	
-                several times using the same timeout each time.	
-                Can also be passed as a tuple (connect_timeout, read_timeout).	
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+                Can also be passed as a tuple (connect_timeout, read_timeout).
                 See :meth:`requests.Session.request` documentation for details.
 
         Returns:
@@ -88,23 +88,23 @@ class MultipartUpload(_request_helpers.RequestsMixin, _upload.MultipartUpload):
         upload_url (str): The URL where the content will be uploaded.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
-        checksum Optional([str]): The type of checksum to compute to verify	
-            the integrity of the object. The request metadata will be amended	
-            to include the computed value. Using this option will override a	
-            manually-set checksum value. Supported values are "md5",	
+        checksum Optional([str]): The type of checksum to compute to verify
+            the integrity of the object. The request metadata will be amended
+            to include the computed value. Using this option will override a
+            manually-set checksum value. Supported values are "md5",
             "crc32c" and None. The default is None.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
     """
 
-    async def transmit(	 
-        self,	
-        transport,	
-        data,	
-        metadata,	
-        content_type,	
-        timeout= _request_helpers._DEFAULT_CONNECT_TIMEOUT,
+    async def transmit(
+        self,
+        transport,
+        data,
+        metadata,
+        content_type,
+        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT,
     ):
         """Transmit the resource to be uploaded.
 
@@ -116,11 +116,11 @@ class MultipartUpload(_request_helpers.RequestsMixin, _upload.MultipartUpload):
                 ACL list.
             content_type (str): The content type of the resource, e.g. a JPEG
                 image has content type ``image/jpeg``.
-            timeout (Optional[Union[float, Tuple[float, float]]]):	
-                The number of seconds to wait for the server response.	
-                Depending on the retry strategy, a request may be repeated	
-                several times using the same timeout each time.	
-                Can also be passed as a tuple (connect_timeout, read_timeout).	
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+                Can also be passed as a tuple (connect_timeout, read_timeout).
                 See :meth:`requests.Session.request` documentation for details.
 
         Returns:
@@ -317,12 +317,12 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
             be sent with the :meth:`initiate` request, e.g. headers for
             encrypted data. These **will not** be sent with
             :meth:`transmit_next_chunk` or :meth:`recover` requests.
-        checksum Optional([str]): The type of checksum to compute to verify	
-            the integrity of the object. After the upload is complete, the	
-            server-computed checksum of the resulting object will be checked	
-            and google.resumable_media.common.DataCorruption will be raised on	
-            a mismatch. The corrupted file will not be deleted from the remote	
-            host automatically. Supported values are "md5", "crc32c" and None.	
+        checksum Optional([str]): The type of checksum to compute to verify
+            the integrity of the object. After the upload is complete, the
+            server-computed checksum of the resulting object will be checked
+            and google.resumable_media.common.DataCorruption will be raised on
+            a mismatch. The corrupted file will not be deleted from the remote
+            host automatically. Supported values are "md5", "crc32c" and None.
             The default is None.
 
     Attributes:
@@ -373,11 +373,11 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
                 "final" (i.e. no more bytes will be added to it). In this case
                 we determine the upload size from the size of the stream. If
                 ``total_bytes`` is passed, this argument will be ignored.
-            timeout (Optional[Union[float, Tuple[float, float]]]):	
-                The number of seconds to wait for the server response.	
-                Depending on the retry strategy, a request may be repeated	
-                several times using the same timeout each time.	
-                Can also be passed as a tuple (connect_timeout, read_timeout).	
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+                Can also be passed as a tuple (connect_timeout, read_timeout).
                 See :meth:`requests.Session.request` documentation for details.
 
         Returns:
@@ -403,9 +403,10 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
         return response
 
     async def transmit_next_chunk(
-        self, 
+        self,
         transport,
-        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT):
+        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
+    ):
         """Transmit the next chunk of the resource to be uploaded.
 
         If the current upload was initiated with ``stream_final=False``,
@@ -459,11 +460,11 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
-            timeout (Optional[Union[float, Tuple[float, float]]]):	
-                The number of seconds to wait for the server response.	
-                Depending on the retry strategy, a request may be repeated	
-                several times using the same timeout each time.	
-                Can also be passed as a tuple (connect_timeout, read_timeout).	
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+                Can also be passed as a tuple (connect_timeout, read_timeout).
                 See :meth:`requests.Session.request` documentation for details.
 
         Returns:
@@ -472,8 +473,8 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
         Raises:
             ~google.resumable_media.common.InvalidResponse: If the status
                 code is not 200 or 308.
-            ~google.resumable_media.common.DataCorruption: If this is the final	
-                chunk, a checksum validation was requested, and the checksum	
+            ~google.resumable_media.common.DataCorruption: If this is the final
+                chunk, a checksum validation was requested, and the checksum
                 does not match or is not available.
         """
         method, url, payload, headers = self._prepare_request()

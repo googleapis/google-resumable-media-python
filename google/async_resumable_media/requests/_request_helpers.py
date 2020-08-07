@@ -78,7 +78,8 @@ class RequestsMixin(object):
         Returns:
             bytes: The body of the ``response``.
         """
-        content = await response.content.read()
+        wrapped_response = aiohttp_requests._Response(response)
+        content = await wrapped_response.data.read()
         return content
 
 
@@ -94,9 +95,9 @@ class RawRequestsMixin(RequestsMixin):
             bytes: The body of the ``response``.
         """
 
-        #TODO() Used wrapper to extract raw content 
+        # TODO() Used wrapper to extract raw content
         wrapped_response = aiohttp_requests._Response(response)
-        content = await wrapped_response.raw_content() 
+        content = await wrapped_response.raw_content()
         return content
 
 
