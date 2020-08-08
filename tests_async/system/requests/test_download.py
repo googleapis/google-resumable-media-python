@@ -318,7 +318,6 @@ class TestDownload(object):
 
             content = await response.content()
             assert content is False
-            #assert response._content_consumed is True
 
             assert stream.getvalue() == actual_contents
             await check_tombstoned(download, authorized_transport)

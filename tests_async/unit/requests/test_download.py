@@ -169,8 +169,9 @@ class TestDownload(object):
 
         assert stream.getvalue() == b"".join(chunks)
 
-        # Check mocks.
-        response = transport.request.return_value
+        # TODO(anirudhbaddepu) Add checking that the required methods were called. 
+        # Discrepancy between sync and async implementation on response stream.
+        # response = transport.request.return_value
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @pytest.mark.asyncio
