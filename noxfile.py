@@ -28,7 +28,7 @@ GOOGLE_AUTH = 'google-auth >= 0.10.0'
 DEFAULT_PYTHON_VERSION = "3.8"
 SYSTEM_TEST_PYTHON_VERSIONS = ["2.7", "3.8"]
 UNIT_TEST_PYTHON_VERSIONS = ["3.6", "3.7", "3.8"]
-UNIT_TEST_SYNC_PYTHON_VERSIONS = ["2.7", "3.5", "3.6", "3.7", "3.8"]
+UNIT_TEST_SYNC_PYTHON_VERSIONS = ["2.7", "3.5"]
 
 @nox.session(python=UNIT_TEST_PYTHON_VERSIONS)
 def unit(session):
@@ -216,7 +216,7 @@ def system(session):
 
     # Install all test dependencies, then install this package into the
     # virutalenv's dist-packages.
-    session.install('-e', '../google-auth-library-python')
+    session.install('git+https://github.com/googleapis/google-auth-library-python.git@async')
     session.install('mock', 'pytest', GOOGLE_AUTH, 'google-cloud-testutils')
     session.install('-e', '.[requests]')
     # session.install('http')
