@@ -131,7 +131,7 @@ async def http_request(
         ~requests.Response: The return value of ``transport.request()``.
     """
 
-    # TODO(anirudhbaddepu) - the sync version uses a tuple for the defualt connect
+    # TODO(anirudhbaddepu) - the sync version uses a tuple for the default connect
     # timeout and read timeout, since async requests can only take a single value and
     # not a tuple we take the single connect timeout, but the logic technically diverges
     # from the sync implementation here.
