@@ -66,7 +66,7 @@ class RequestsMixin(object):
             ~requests.structures.CaseInsensitiveDict: The header mapping (keys
             are case-insensitive).
         """
-        #TODO() Ideally want to take this directly from headers
+        # TODO() Ideally want to take this directly from headers
         return response.headers
 
     @staticmethod

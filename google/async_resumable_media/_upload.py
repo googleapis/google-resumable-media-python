@@ -25,7 +25,6 @@ Supported here are:
 import json
 import os
 import random
-import re
 import sys
 
 import six
@@ -36,8 +35,6 @@ from google.async_resumable_media import _helpers
 from google.resumable_media import _helpers as sync_helpers
 from google.resumable_media import _upload as sync_upload
 from google.resumable_media import common
-
-
 
 _CONTENT_TYPE_HEADER = sync_upload._CONTENT_TYPE_HEADER
 _CONTENT_RANGE_TEMPLATE = sync_upload._CONTENT_RANGE_TEMPLATE

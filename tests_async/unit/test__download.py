@@ -24,15 +24,13 @@ from tests.unit import test__download as sync_test
 
 import google.auth.transport.aiohttp_requests as aiohttp_requests
 
-
-
 EXAMPLE_URL = sync_test.EXAMPLE_URL
 
 
 class TestDownloadBase(object):
     def test_constructor_defaults(self):
         download = _download.DownloadBase(EXAMPLE_URL)
-        assert download.media_url ==EXAMPLE_URL
+        assert download.media_url == EXAMPLE_URL
         assert download._stream is None
         assert download.start is None
         assert download.end is None

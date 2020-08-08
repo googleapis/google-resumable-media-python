@@ -294,8 +294,7 @@ class TestDownload(object):
             assert content == actual_contents
             await check_tombstoned(download, authorized_transport)
 
-    @pytest.mark.skip(reason=implementation change of raw download due to asynchronous aiohttp reponse type,
-    test would need to be reworked since every download now comes to a stream by default)
+    @pytest.mark.skip(reason="implementation change of raw download due to asynchronous aiohttp reponse type, test would need to be reworked since every download now comes to a stream by default")
     @pytest.mark.asyncio
     async def test_download_to_stream(self, add_files, authorized_transport):
         for info in ALL_FILES:

@@ -14,8 +14,6 @@
 
 """Support for downloading media from Google APIs."""
 
-import logging
-
 import urllib3.response
 
 from google.async_resumable_media import _download
@@ -106,7 +104,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
         transport,
         timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
     ):
-        # TODO(anirudhbaddepu, crwilcox) timeout tuple incompatibility in aiohttp, 
+        # TODO(anirudhbaddepu, crwilcox) timeout tuple incompatibility in aiohttp,
         # so singular timeout value is used.
 
         """Consume the resource to be downloaded.
