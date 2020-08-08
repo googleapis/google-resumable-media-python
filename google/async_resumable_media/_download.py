@@ -375,8 +375,6 @@ class ChunkedDownload(DownloadBase):
         headers = self._get_headers(response)
         response_body = await self._get_body(response)
 
-        response_body_content = response_body
-
         start_byte, end_byte, total_bytes = get_range_info(
             response, self._get_headers, callback=self._make_invalid
         )
@@ -392,7 +390,7 @@ class ChunkedDownload(DownloadBase):
             )
             num_bytes = int(content_length)
 
-            if len(response_body_content) != num_bytes:
+            if len(response_body) != num_bytes:
                 self._make_invalid()
                 raise common.InvalidResponse(
                     response,
@@ -400,7 +398,7 @@ class ChunkedDownload(DownloadBase):
                     u"Expected",
                     num_bytes,
                     u"Received",
-                    len(response_body_content),
+                    len(response_body),
                 )
         else:
             # 'content-length' header not allowed with chunked encoding.
@@ -417,7 +415,7 @@ class ChunkedDownload(DownloadBase):
         if self.total_bytes is None:
             self._total_bytes = total_bytes
         # Write the response body to the stream.
-        self._stream.write(response_body_content)
+        self._stream.write(response_body)
 
     def consume_next_chunk(self, transport, timeout=None):
         """Consume the next chunk of the resource to be downloaded.

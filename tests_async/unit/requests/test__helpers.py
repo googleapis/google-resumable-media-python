@@ -87,6 +87,5 @@ def _make_response(status_code):
 
 def _make_transport(status_code):
     transport = mock.AsyncMock(spec=["request"])
-    # responses = [_make_response(status_code) for status_code in status_codes]
     transport.request = mock.AsyncMock(spec=["__call__"], return_value=_make_response(status_code))
     return transport

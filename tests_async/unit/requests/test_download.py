@@ -165,12 +165,12 @@ class TestDownload(object):
     async def test_consume_with_stream(self, checksum):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
-        await self._consume_helper(stream=stream, chunks=chunks, checksum=checksum)
+        transport = await self._consume_helper(stream=stream, chunks=chunks, checksum=checksum)
 
         assert stream.getvalue() == b"".join(chunks)
 
         # Check mocks.
-        # response = transport.request.return_value
+        response = transport.request.return_value
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @pytest.mark.asyncio
@@ -185,8 +185,6 @@ class TestDownload(object):
 
         assert stream.getvalue() == b"".join(chunks)
 
-        # Check mocks.
-        # response = transport.request.return_value
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @pytest.mark.asyncio
@@ -374,12 +372,9 @@ class TestRawDownload(object):
     async def test_consume_with_stream(self):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
-        await self._consume_helper(stream=stream, chunks=chunks)
+        transport = await self._consume_helper(stream=stream, chunks=chunks)
 
         assert stream.getvalue() == b"".join(chunks)
-
-        # TODO() Check mocks.
-        # response = transport.request.return_value
 
     @pytest.mark.asyncio
     async def test_consume_with_stream_hash_check_success(self):
@@ -388,14 +383,12 @@ class TestRawDownload(object):
         header_value = u"md5=JvS1wjMvfbCXgEGeaJJLDQ=="
         headers = {_helpers._HASH_HEADER: header_value}
 
-        await self._consume_helper(
+        transport = await self._consume_helper(
             stream=stream, chunks=chunks, response_headers=headers
         )
 
         assert stream.getvalue() == b"".join(chunks)
 
-        # TODO() Check mocks.
-        # response = transport.request.return_value
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @pytest.mark.asyncio

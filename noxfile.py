@@ -219,7 +219,6 @@ def system(session):
     session.install('git+https://github.com/googleapis/google-auth-library-python.git@async')
     session.install('mock', 'pytest', GOOGLE_AUTH, 'google-cloud-testutils')
     session.install('-e', '.[requests]')
-    # session.install('http')
     
     if session.python.startswith("3"):
         session.install('aiohttp', 'pytest-asyncio')

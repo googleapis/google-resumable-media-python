@@ -85,31 +85,8 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
         )
 
         temp = multidict.CIMultiDict(response.headers)
-        temp[download_mod._HASH_HEADER] = u"md5={}".format(self.EMPTY_HASH)
+        temp[_helpers._HASH_HEADER] = u"md5={}".format(self.EMPTY_HASH)
         response._headers = temp
-        
-        """
-        request_info_new = RequestInfo(
-            url=response.url,
-            method=response.method,
-            headers=temp
-        )
-
-        response_new = ClientResponse(
-            method=response.method,
-            url=response.url,
-            request_info=request_info_new,
-            writer=response._writer,
-            continue100=response._continue,
-            timer=response._timer,
-            traces=response._traces,
-            loop=response._loop,
-            session=response._session
-        )
-        """
-        # TODO() Multidict resolution for immutable type
-        #response.headers[download_mod._HASH_HEADER] = u"md5={}".format(self.EMPTY_HASH)
-        #response.headers = temp
 
         return response
 
@@ -317,9 +294,8 @@ class TestDownload(object):
             assert content == actual_contents
             await check_tombstoned(download, authorized_transport)
 
-    """
-    #TODO(FIX THE STREAM TEST)
-
+    @pytest.mark.skip(reason=implementation change of raw download due to asynchronous aiohttp reponse type,
+    test would need to be reworked since every download now comes to a stream by default)
     @pytest.mark.asyncio
     async def test_download_to_stream(self, add_files, authorized_transport):
         for info in ALL_FILES:
@@ -335,22 +311,18 @@ class TestDownload(object):
             response = await download.consume(authorized_transport)
             assert response.status == http_client.OK
 
-            #breakpoint()
-
-            aiohttp session is closing itself
-
             with pytest.raises(RuntimeError) as exc_info:
                 await getattr(response, u"content").read()
 
             #assert exc_info.value.args == (NO_BODY_ERR,)
 
-            content = await response.content.read()
+            content = await response.content()
             assert content is False
-            assert response._content_consumed is True
+            #assert response._content_consumed is True
 
             assert stream.getvalue() == actual_contents
             await check_tombstoned(download, authorized_transport)
-    """
+
 
     @pytest.mark.asyncio
     async def test_extra_headers(self, authorized_transport, secret_file):
@@ -368,8 +340,6 @@ class TestDownload(object):
         # Attempt to consume the resource **without** the headers.
 
         download_wo = self._make_one(media_url)
-
-        # with pytest.raises(common.InvalidResponse) as exc_info:
 
         with pytest.raises(common.InvalidResponse) as exc_info:
             await download_wo.consume(authorized_transport)
@@ -513,7 +483,10 @@ async def consume_chunks(download, authorized_transport, total_bytes, actual_con
 
         # content = await response.content.read()
 
-        # TODO() find a solution to re-reading aiohttp response streams
+        # TODO(anirudhbaddepu, crwilcox) find a solution to re-reading aiohttp 
+        # response streams, as we destructively modify it by reading in the stream 
+        # twice here. This is because the response body comes in the form of a stream 
+        # with aiohttp.
 
         # assert content == actual_contents[start_byte:next_byte]
         start_byte = next_byte

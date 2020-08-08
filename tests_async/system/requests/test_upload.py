@@ -137,7 +137,9 @@ async def check_tombstoned(upload, transport, *args):
     assert upload.finished
     basic_types = (resumable_requests.SimpleUpload, resumable_requests.MultipartUpload)
 
-    # TODO() CHANGE EXCEPTION
+    # TODO(anirudhbaddepu, crwilcox) Change exception type due to handling error
+    # all these tests currently dont pass due to timeout context manager bug and can be changed
+    # back to original exception once that bug is fixed.
 
     if isinstance(upload, basic_types):
         with pytest.raises(Exception):
@@ -150,6 +152,10 @@ async def check_tombstoned(upload, transport, *args):
 async def check_does_not_exist(transport, blob_name):
     metadata_url = utils.METADATA_URL_TEMPLATE.format(blob_name=blob_name)
     # Make sure we are creating a **new** object.
+
+    # TODO(anirudhbaddepu, crwilcox) exception raised in the sync implementation
+    # but is not caught in async.
+
     #with pytest.raises(Exception):
     response = await transport.request('GET', metadata_url)
     assert response.status == http_client.NOT_FOUND

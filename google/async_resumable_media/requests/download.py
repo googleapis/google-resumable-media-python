@@ -106,7 +106,9 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
         transport,
         timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
     ):
-        # TODO(timeout tuple incompatibility in aiohttp, so singular timeout value)
+        # TODO(anirudhbaddepu, crwilcox) timeout tuple incompatibility in aiohttp, 
+        # so singular timeout value is used.
+
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded

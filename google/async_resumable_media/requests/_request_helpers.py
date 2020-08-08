@@ -96,7 +96,6 @@ class RawRequestsMixin(RequestsMixin):
             bytes: The body of the ``response``.
         """
 
-        # TODO() Used wrapper to extract raw content
         wrapped_response = aiohttp_requests._CombinedResponse(response)
         content = await wrapped_response.raw_content()
         return content
@@ -132,7 +131,10 @@ async def http_request(
         ~requests.Response: The return value of ``transport.request()``.
     """
 
-    # TODO(anirudhbaddepu) - look at default connect timeout and default read timeout
+    # TODO(anirudhbaddepu) - the sync version uses a tuple for the defualt connect
+    # timeout and read timeout, since async requests can only take a single value and
+    # not a tuple we take the single connect timeout, but the logic technically diverges
+    # from the sync implementation here.
 
     if "timeout" not in transport_kwargs:
         transport_kwargs["timeout"] = _DEFAULT_CONNECT_TIMEOUT
