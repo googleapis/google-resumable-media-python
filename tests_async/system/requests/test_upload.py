@@ -156,7 +156,7 @@ async def check_does_not_exist(transport, blob_name):
     # TODO(anirudhbaddepu, crwilcox) exception raised in the sync implementation
     # but is not caught in async.
 
-    #with pytest.raises(Exception):
+    # with pytest.raises(Exception):
     response = await transport.request('GET', metadata_url)
     assert response.status == http_client.NOT_FOUND
 

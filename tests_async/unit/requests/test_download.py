@@ -169,7 +169,7 @@ class TestDownload(object):
 
         assert stream.getvalue() == b"".join(chunks)
 
-        # TODO(anirudhbaddepu) Add checking that the required methods were called. 
+        # TODO(anirudhbaddepu) Add checking that the required methods were called.
         # Discrepancy between sync and async implementation on response stream.
         # response = transport.request.return_value
 

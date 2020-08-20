@@ -313,14 +313,13 @@ class TestDownload(object):
             with pytest.raises(RuntimeError) as exc_info:
                 await getattr(response, u"content").read()
 
-            #assert exc_info.value.args == (NO_BODY_ERR,)
+            # assert exc_info.value.args == (NO_BODY_ERR,)
 
             content = await response.content()
             assert content is False
 
             assert stream.getvalue() == actual_contents
             await check_tombstoned(download, authorized_transport)
-
 
     @pytest.mark.asyncio
     async def test_extra_headers(self, authorized_transport, secret_file):
@@ -481,9 +480,9 @@ async def consume_chunks(download, authorized_transport, total_bytes, actual_con
 
         # content = await response.content.read()
 
-        # TODO(anirudhbaddepu, crwilcox) find a solution to re-reading aiohttp 
-        # response streams, as we destructively modify it by reading in the stream 
-        # twice here. This is because the response body comes in the form of a stream 
+        # TODO(anirudhbaddepu, crwilcox) find a solution to re-reading aiohttp
+        # response streams, as we destructively modify it by reading in the stream
+        # twice here. This is because the response body comes in the form of a stream
         # with aiohttp.
 
         # assert content == actual_contents[start_byte:next_byte]
