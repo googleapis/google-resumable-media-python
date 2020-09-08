@@ -18,10 +18,11 @@ import google.auth.transport.requests as tr_requests
 import pytest
 
 from tests.system import utils
+import sys
 
-import http
-
-http.client.HTTPConnection.debuglevel = 5
+if sys.version_info[0] >= 3:
+    import http
+    http.client.HTTPConnection.debuglevel = 5
 
 
 def ensure_bucket(transport):
