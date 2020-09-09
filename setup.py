@@ -27,6 +27,7 @@ REQUIREMENTS = [
     'six',
     'google-crc32c >= 0.1.0, < 0.2dev; python_version>="3.5"',
     'crcmod >= 1.7; python_version=="2.7"',
+    'aiohttp >= 3.6.2, < 4.0.0dev; python_version>="3.5"'
 ]
 EXTRAS_REQUIRE = {
     'requests': [
