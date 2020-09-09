@@ -39,7 +39,7 @@ async def ensure_bucket(transport):
 async def cleanup_bucket(transport):
     del_response = await transport.request('DELETE', utils.BUCKET_URL)
 
-    if not (del_response == 200):
+    if not (del_response.status == 204):
         raise ValueError("{}: {}".format(del_response.status, del_response.reason))
 
 
