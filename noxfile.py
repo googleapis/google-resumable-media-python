@@ -37,7 +37,6 @@ def unit(session):
     # Install all test dependencies, then install this package in-place.
     session.install('mock', 'pytest', 'pytest-cov', 'pytest-asyncio')
     session.install('-e', '.[requests]')
-    session.install('aiohttp')
     session.install('git+https://github.com/googleapis/google-auth-library-python.git@async')
 
     # Run py.test against the unit tests.
@@ -219,9 +218,10 @@ def system(session):
     session.install('git+https://github.com/googleapis/google-auth-library-python.git@async')
     session.install('mock', 'pytest', GOOGLE_AUTH, 'google-cloud-testutils')
     session.install('-e', '.[requests]')
-    
+
+    # Run py.test against the async system tests.
     if session.python.startswith("3"):
-        session.install('aiohttp', 'pytest-asyncio')
+        session.install('pytest-asyncio')
         session.run(
         'py.test',
         '-s',
