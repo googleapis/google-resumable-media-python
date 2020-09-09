@@ -22,6 +22,7 @@ import sys
 
 if sys.version_info[0] >= 3:
     import http
+
     http.client.HTTPConnection.debuglevel = 5
 
 

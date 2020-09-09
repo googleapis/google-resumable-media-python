@@ -235,5 +235,5 @@ class TestResumableUpload(object):
 def _make_response(status_code=200, headers=None):
     headers = headers or {}
     return mock.Mock(
-        headers=headers, status=status_code, spec=["headers", "status_code"]
+        _headers=headers, headers=headers, status=status_code, spec=["_headers", "headers", "status_code"]
     )

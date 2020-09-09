@@ -66,8 +66,8 @@ class RequestsMixin(object):
             ~requests.structures.CaseInsensitiveDict: The header mapping (keys
             are case-insensitive).
         """
-        # For Async testing, we modify `_headers` and should prefer using 
-        # the internal field.
+        # For Async testing,`_headers` is modified instead of headers
+        # access via the internal field.
         return response._headers
 
     @staticmethod

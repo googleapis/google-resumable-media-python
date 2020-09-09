@@ -467,6 +467,7 @@ class TestChunkedDownload(object):
         content_stream.read = mock.AsyncMock(spec=["__call__"], return_value=content)
         return mock.AsyncMock(
             content=content_stream,
+            _headers=response_headers,
             headers=response_headers,
             status=status_code,
             spec=["content", "headers", "status"],
@@ -570,9 +571,10 @@ class TestRawChunkedDownload(object):
         content_stream.read = mock.AsyncMock(spec=["__call__"], return_value=content)
         return mock.AsyncMock(
             content=content_stream,
+            _headers=response_headers,
             headers=response_headers,
             status=status_code,
-            spec=["content", "headers", "status"],
+            spec=["_headers", "content", "headers", "status"],
         )
 
     @pytest.mark.asyncio
@@ -716,6 +718,7 @@ def _mock_response(status=http_client.OK, chunks=(), headers=None):
         stream_content.iter_chunked.return_value = AsyncIter(chunks)
         mock_raw = mock.AsyncMock(headers=headers, spec=["headers"])
         response = mock.AsyncMock(
+            _headers=headers,
             headers=headers,
             status=int(status),
             raw=mock_raw,
@@ -723,6 +726,7 @@ def _mock_response(status=http_client.OK, chunks=(), headers=None):
             spec=[
                 u"__aenter__",
                 u"__aexit__",
+                u"_headers",
                 u"iter_chunked",
                 u"status",
                 u"headers",
@@ -736,9 +740,10 @@ def _mock_response(status=http_client.OK, chunks=(), headers=None):
         return response
     else:
         return mock.AsyncMock(
+            _headers=headers,
             headers=headers,
             status=int(status),
-            spec=["status", "headers", "_headers"],
+            spec=["_headers", "status", "headers"],
         )
 
 
@@ -749,8 +754,9 @@ def _mock_raw_response(status_code=http_client.OK, chunks=(), headers=None):
     stream_content = mock.AsyncMock(spec=["__call__", "read", "iter_chunked"])
     stream_content.read = mock.AsyncMock(spec=["__call__"], return_value=chunklist)
     stream_content.iter_chunked.return_value = AsyncIter(chunks)
-    mock_raw = mock.AsyncMock(headers=headers, spec=["__call__"])
+    mock_raw = mock.AsyncMock(_headers=headers, headers=headers, spec=["__call__"])
     response = mock.AsyncMock(
+        _headers=headers,
         headers=headers,
         status=int(status_code),
         raw=mock_raw,
@@ -758,6 +764,7 @@ def _mock_raw_response(status_code=http_client.OK, chunks=(), headers=None):
         spec=[
             u"__aenter__",
             u"__aexit__",
+            u"_headers",
             u"iter_chunked",
             u"status",
             u"headers",

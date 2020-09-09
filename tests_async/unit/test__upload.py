@@ -971,7 +971,7 @@ class Test_get_content_range(object):
 def _make_response(status_code=http_client.OK, headers=None):
     headers = headers or {}
     return mock.Mock(
-        headers=headers, status_code=status_code, spec=["headers", "status_code"]
+         _headers=headers, headers=headers, status_code=status_code, spec=["_headers", "headers", "status_code"]
     )
 
 
@@ -980,7 +980,7 @@ def _get_status_code(response):
 
 
 def _get_headers(response):
-    return response.headers
+    return response._headers
 
 
 def _fix_up_virtual(upload):

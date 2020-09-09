@@ -30,7 +30,7 @@ class TestRequestsMixin(object):
 
     def test__get_headers(self):
         headers = {u"fruit": u"apple"}
-        response = mock.Mock(headers=headers, _headers=headers, spec=["headers", "_headers"])
+        response = mock.Mock(_headers=headers, headers=headers, spec=[ "_headers", "headers"])
         assert headers == _helpers.RequestsMixin._get_headers(response)
 
     @pytest.mark.asyncio
