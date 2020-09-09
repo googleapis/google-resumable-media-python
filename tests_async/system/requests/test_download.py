@@ -49,7 +49,7 @@ SIMPLE_DOWNLOADS = (resumable_requests.Download, resumable_requests.RawDownload)
 
 @pytest.fixture(scope=u"session")
 def event_loop(request):
-    """Create an instance of the default event loop for each test case."""
+    """Create an instance of the default event loop for each test session."""
     loop = asyncio.get_event_loop_policy().new_event_loop()
     yield loop
     loop.close()
@@ -72,7 +72,6 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
             constructor.
     """
 
-    EMPTY_HASH = base64.b64encode(hashlib.md5(b"").digest()).decode(u"utf-8")
     EMPTY_MD5 = base64.b64encode(hashlib.md5(b"").digest()).decode(u"utf-8")
     crc32c = _helpers._get_crc32c_object()
     crc32c.update(b"")
@@ -85,7 +84,9 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
         )
 
         temp = multidict.CIMultiDict(response.headers)
-        temp[_helpers._HASH_HEADER] = u"md5={}".format(self.EMPTY_HASH)
+        temp[_helpers._HASH_HEADER] = u"crc32c={},md5={}".format(
+            self.EMPTY_CRC32C, self.EMPTY_MD5
+        )
         response._headers = temp
 
         return response

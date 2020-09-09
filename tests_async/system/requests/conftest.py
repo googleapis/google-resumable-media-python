@@ -43,14 +43,20 @@ async def cleanup_bucket(transport):
         raise ValueError("{}: {}".format(del_response.status, del_response.reason))
 
 
-@pytest.fixture(scope=u"session")
+def _get_authorized_transport():
+    credentials, project_id = google.auth.default_async(scopes=(utils.GCS_RW_SCOPE,))
+    return tr_requests.AuthorizedSession(credentials)
+
+
+@pytest.fixture(scope=u"module")
 async def authorized_transport():
     credentials, project_id = google.auth.default_async(scopes=(utils.GCS_RW_SCOPE,))
-    yield tr_requests.AuthorizedSession(credentials)
+    yield _get_authorized_transport()
 
 
 @pytest.fixture(scope=u"session")
-async def bucket(authorized_transport):
+async def bucket():
+    authorized_transport = _get_authorized_transport()
     await ensure_bucket(authorized_transport)
     yield utils.BUCKET_URL
     await cleanup_bucket(authorized_transport)
