@@ -66,8 +66,9 @@ class RequestsMixin(object):
             ~requests.structures.CaseInsensitiveDict: The header mapping (keys
             are case-insensitive).
         """
-        # TODO() Ideally want to take this directly from headers
-        return response.headers
+        # For Async testing, we modify `_headers` and should prefer using 
+        # the internal field.
+        return response._headers
 
     @staticmethod
     async def _get_body(response):
