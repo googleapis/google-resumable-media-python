@@ -23,8 +23,6 @@ import google.auth.transport.aiohttp_requests as tr_requests
 import pytest
 from six.moves import http_client
 
-import aiohttp
-from aiohttp.client_reqrep import ClientResponse, RequestInfo
 import asyncio
 import multidict
 
@@ -164,7 +162,7 @@ def get_blob_name(info):
 
 async def delete_blob(transport, blob_name):
     metadata_url = utils.METADATA_URL_TEMPLATE.format(blob_name=blob_name)
-    response = await transport.request('DELETE', metadata_url)
+    response = await transport.request("DELETE", metadata_url)
     assert response.status == http_client.NO_CONTENT
 
 
@@ -295,7 +293,9 @@ class TestDownload(object):
             assert content == actual_contents
             await check_tombstoned(download, authorized_transport)
 
-    @pytest.mark.skip(reason="implementation change of raw download due to asynchronous aiohttp reponse type, test would need to be reworked since every download now comes to a stream by default")
+    @pytest.mark.skip(
+        reason="implementation change of raw download due to asynchronous aiohttp reponse type, test would need to be reworked since every download now comes to a stream by default"
+    )
     @pytest.mark.asyncio
     async def test_download_to_stream(self, add_files, authorized_transport):
         for info in ALL_FILES:
@@ -311,9 +311,10 @@ class TestDownload(object):
             response = await download.consume(authorized_transport)
             assert response.status == http_client.OK
 
-            with pytest.raises(RuntimeError) as exc_info:
+            with pytest.raises(RuntimeError):  # as exc_info:
                 await getattr(response, u"content").read()
 
+            # TODO(asyncio): this should be added back if it was here for sync
             # assert exc_info.value.args == (NO_BODY_ERR,)
 
             content = await response.content()

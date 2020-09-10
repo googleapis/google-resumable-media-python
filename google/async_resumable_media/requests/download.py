@@ -81,7 +81,9 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
 
         local_checksum_object = _add_decoder(response, checksum_object)
 
-        async for chunk in response.content.iter_chunked(_request_helpers._SINGLE_GET_CHUNK_SIZE):
+        async for chunk in response.content.iter_chunked(
+            _request_helpers._SINGLE_GET_CHUNK_SIZE
+        ):
             self._stream.write(chunk)
             local_checksum_object.update(chunk)
 
@@ -89,7 +91,9 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             return
 
         else:
-            actual_checksum = sync_helpers.prepare_checksum_digest(checksum_object.digest())
+            actual_checksum = sync_helpers.prepare_checksum_digest(
+                checksum_object.digest()
+            )
             if actual_checksum != expected_checksum:
                 msg = _CHECKSUM_MISMATCH.format(
                     self.media_url,
@@ -100,9 +104,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                 raise common.DataCorruption(response, msg)
 
     async def consume(
-        self,
-        transport,
-        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
+        self, transport, timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
     ):
         # TODO(anirudhbaddepu, crwilcox) timeout tuple incompatibility in aiohttp,
         # so singular timeout value is used.
@@ -143,7 +145,9 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
         if self._stream is not None:
             request_kwargs[u"stream"] = True
 
-        result = await _request_helpers.http_request(transport, method, url, **request_kwargs)
+        result = await _request_helpers.http_request(
+            transport, method, url, **request_kwargs
+        )
 
         self._process_response(result)
 
@@ -206,14 +210,18 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
             response, self._get_headers, self.media_url, checksum_type=self.checksum
         )
 
-        async for chunk in response.content.iter_chunked(_request_helpers._SINGLE_GET_CHUNK_SIZE):
+        async for chunk in response.content.iter_chunked(
+            _request_helpers._SINGLE_GET_CHUNK_SIZE
+        ):
             self._stream.write(chunk)
             checksum_object.update(chunk)
 
         if expected_checksum is None:
             return
         else:
-            actual_checksum = sync_helpers.prepare_checksum_digest(checksum_object.digest())
+            actual_checksum = sync_helpers.prepare_checksum_digest(
+                checksum_object.digest()
+            )
 
             if actual_checksum != expected_checksum:
                 msg = _CHECKSUM_MISMATCH.format(
@@ -225,9 +233,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
                 raise common.DataCorruption(response, msg)
 
     async def consume(
-        self,
-        transport,
-        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
+        self, transport, timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
     ):
         """Consume the resource to be downloaded.
 
@@ -301,9 +307,7 @@ class ChunkedDownload(_request_helpers.RequestsMixin, _download.ChunkedDownload)
     """
 
     async def consume_next_chunk(
-        self,
-        transport,
-        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
+        self, transport, timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
     ):
 
         """
@@ -370,9 +374,7 @@ class RawChunkedDownload(_request_helpers.RawRequestsMixin, _download.ChunkedDow
     """
 
     async def consume_next_chunk(
-        self,
-        transport,
-        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
+        self, transport, timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
     ):
         """Consume the next chunk of the resource to be downloaded.
 

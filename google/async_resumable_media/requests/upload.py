@@ -403,9 +403,7 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
         return response
 
     async def transmit_next_chunk(
-        self,
-        transport,
-        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
+        self, transport, timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
     ):
         """Transmit the next chunk of the resource to be uploaded.
 

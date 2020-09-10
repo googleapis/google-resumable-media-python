@@ -52,7 +52,9 @@ _STREAM_READ_PAST_TEMPLATE = sync_upload._STREAM_READ_PAST_TEMPLATE
 _POST = sync_upload._POST
 _PUT = sync_upload._PUT
 _UPLOAD_CHECKSUM_MISMATCH_MESSAGE = sync_upload._UPLOAD_CHECKSUM_MISMATCH_MESSAGE
-_UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE = sync_upload._UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE
+_UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE = (
+    sync_upload._UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE
+)
 
 
 class UploadBase(object):
@@ -234,6 +236,7 @@ class MultipartUpload(UploadBase):
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
     """
+
     def __init__(self, upload_url, headers=None, checksum=None):
         super(MultipartUpload, self).__init__(upload_url, headers=headers)
         self._checksum_type = checksum
@@ -281,7 +284,9 @@ class MultipartUpload(UploadBase):
 
         if checksum_object:
             checksum_object.update(data)
-            actual_checksum = sync_helpers.prepare_checksum_digest(checksum_object.digest())
+            actual_checksum = sync_helpers.prepare_checksum_digest(
+                checksum_object.digest()
+            )
             metadata_key = sync_helpers._get_metadata_key(self._checksum_type)
             metadata[metadata_key] = actual_checksum
 
@@ -504,7 +509,7 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
         content_type,
         total_bytes=None,
         stream_final=True,
-        timeout=None
+        timeout=None,
     ):
         """Initiate a resumable upload.
 

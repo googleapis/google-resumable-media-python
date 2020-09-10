@@ -24,12 +24,14 @@ http.client.HTTPConnection.debuglevel = 5
 
 
 async def ensure_bucket(transport):
-    get_response = await transport.request('GET', utils.BUCKET_URL)
+    get_response = await transport.request("GET", utils.BUCKET_URL)
     if get_response.status == 404:
         credentials = transport.credentials
         query_params = {"project": credentials.project_id}
         payload = {"name": utils.BUCKET_NAME}
-        post_response = await transport.request('POST', utils.BUCKET_POST_URL, params=query_params, json=payload)
+        post_response = await transport.request(
+            "POST", utils.BUCKET_POST_URL, params=query_params, json=payload
+        )
         if not (post_response.status == 200):
             raise ValueError(
                 "{}: {}".format(post_response.status, post_response.reason)
@@ -37,7 +39,7 @@ async def ensure_bucket(transport):
 
 
 async def cleanup_bucket(transport):
-    del_response = await transport.request('DELETE', utils.BUCKET_URL)
+    del_response = await transport.request("DELETE", utils.BUCKET_URL)
 
     if not (del_response.status == 204):
         raise ValueError("{}: {}".format(del_response.status, del_response.reason))

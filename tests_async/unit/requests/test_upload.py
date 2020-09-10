@@ -35,7 +35,6 @@ EXPECTED_TIMEOUT = 61
 
 
 class TestSimpleUpload(object):
-
     @pytest.mark.asyncio
     async def test_transmit(self):
         data = b"I have got a lovely bunch of coconuts."
@@ -43,7 +42,9 @@ class TestSimpleUpload(object):
         upload = upload_mod.SimpleUpload(SIMPLE_URL)
 
         transport = mock.AsyncMock(spec=["request"])
-        transport.request = mock.AsyncMock(spec=["__call__"], return_value=_make_response())
+        transport.request = mock.AsyncMock(
+            spec=["__call__"], return_value=_make_response()
+        )
 
         assert not upload.finished
 
@@ -64,8 +65,9 @@ class TestSimpleUpload(object):
 
 
 class TestMultipartUpload(object):
-
-    @mock.patch(u"google.async_resumable_media._upload.get_boundary", return_value=b"==4==")
+    @mock.patch(
+        u"google.async_resumable_media._upload.get_boundary", return_value=b"==4=="
+    )
     @pytest.mark.asyncio
     async def test_transmit(self, mock_get_boundary):
         data = b"Mock data here and there."
@@ -74,7 +76,9 @@ class TestMultipartUpload(object):
         upload = upload_mod.MultipartUpload(MULTIPART_URL)
 
         transport = mock.AsyncMock(spec=["request"])
-        transport.request = mock.AsyncMock(spec=["__call__"], return_value=_make_response())
+        transport.request = mock.AsyncMock(
+            spec=["__call__"], return_value=_make_response()
+        )
 
         assert not upload.finished
 
@@ -108,7 +112,6 @@ class TestMultipartUpload(object):
 
 
 class TestResumableUpload(object):
-
     @pytest.mark.asyncio
     async def test_initiate(self):
         upload = upload_mod.ResumableUpload(RESUMABLE_URL, ONE_MB)
@@ -119,7 +122,9 @@ class TestResumableUpload(object):
         transport = mock.AsyncMock(spec=["request"])
         location = (u"http://test.invalid?upload_id=AACODBBBxuw9u3AA",)
         response_headers = {u"location": location}
-        transport.request = mock.AsyncMock(spec=["__call__"], return_value=_make_response(headers=response_headers))
+        transport.request = mock.AsyncMock(
+            spec=["__call__"], return_value=_make_response(headers=response_headers)
+        )
 
         # Check resumable_url before.
         assert upload._resumable_url is None
@@ -235,5 +240,8 @@ class TestResumableUpload(object):
 def _make_response(status_code=200, headers=None):
     headers = headers or {}
     return mock.Mock(
-        _headers=headers, headers=headers, status=status_code, spec=["_headers", "headers", "status_code"]
+        _headers=headers,
+        headers=headers,
+        status=status_code,
+        spec=["_headers", "headers", "status_code"],
     )

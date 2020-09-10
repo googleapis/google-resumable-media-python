@@ -29,7 +29,6 @@ EXPECTED_TIMEOUT = 61
 
 
 class TestDownload(object):
-
     @pytest.mark.asyncio
     async def test__write_to_stream_no_hash_check(self):
         stream = io.BytesIO()
@@ -48,7 +47,9 @@ class TestDownload(object):
     @pytest.mark.asyncio
     async def test__write_to_stream_with_hash_check_success(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.Download(sync_test.EXAMPLE_URL, stream=stream, checksum=checksum)
+        download = download_mod.Download(
+            sync_test.EXAMPLE_URL, stream=stream, checksum=checksum
+        )
         chunk1 = b"first chunk, count starting at 0. "
         chunk2 = b"second chunk, or chunk 1, which is better? "
         chunk3 = b"ordinals and numerals and stuff."
@@ -65,7 +66,9 @@ class TestDownload(object):
     @pytest.mark.asyncio
     async def test__write_to_stream_with_hash_check_fail(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.Download(sync_test.EXAMPLE_URL, stream=stream, checksum=checksum)
+        download = download_mod.Download(
+            sync_test.EXAMPLE_URL, stream=stream, checksum=checksum
+        )
 
         chunk1 = b"first chunk, count starting at 0. "
         chunk2 = b"second chunk, or chunk 1, which is better? "
@@ -88,7 +91,10 @@ class TestDownload(object):
         else:
             good_checksum = u"qmNCyg=="
         msg = download_mod._CHECKSUM_MISMATCH.format(
-            sync_test.EXAMPLE_URL, bad_checksum, good_checksum, checksum_type=checksum.upper()
+            sync_test.EXAMPLE_URL,
+            bad_checksum,
+            good_checksum,
+            checksum_type=checksum.upper(),
         )
         assert error.args[0] == msg
 
@@ -119,14 +125,20 @@ class TestDownload(object):
 
     @pytest.mark.asyncio
     async def _consume_helper(
-            self, stream=None, end=65536, headers=None, chunks=(), response_headers=None, checksum="md5", timeout=None):
+        self,
+        stream=None,
+        end=65536,
+        headers=None,
+        chunks=(),
+        response_headers=None,
+        checksum="md5",
+        timeout=None,
+    ):
         download = download_mod.Download(
             sync_test.EXAMPLE_URL, stream=stream, end=end, headers=headers
         )
         transport = mock.AsyncMock(spec=["request"])
-        mockResponse = _mock_response(
-            chunks=chunks, headers=response_headers
-        )
+        mockResponse = _mock_response(chunks=chunks, headers=response_headers)
         transport.request = mock.AsyncMock(spec=["__call__"], return_value=mockResponse)
 
         assert not download.finished
@@ -141,7 +153,8 @@ class TestDownload(object):
         called_kwargs = {
             u"data": None,
             u"headers": download._headers,
-            u"timeout": EXPECTED_TIMEOUT if timeout is None else timeout}
+            u"timeout": EXPECTED_TIMEOUT if timeout is None else timeout,
+        }
 
         if chunks:
             assert stream is not None
@@ -165,7 +178,8 @@ class TestDownload(object):
     async def test_consume_with_stream(self, checksum):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
-        transport = await self._consume_helper(stream=stream, chunks=chunks, checksum=checksum)
+        # transport = await self._consume_helper(stream=stream, chunks=chunks, checksum=checksum)
+        await self._consume_helper(stream=stream, chunks=chunks, checksum=checksum)
 
         assert stream.getvalue() == b"".join(chunks)
 
@@ -186,12 +200,13 @@ class TestDownload(object):
 
         assert stream.getvalue() == b"".join(chunks)
 
-
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @pytest.mark.asyncio
     async def test_consume_with_stream_hash_check_fail(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.Download(sync_test.EXAMPLE_URL, stream=stream, checksum=checksum)
+        download = download_mod.Download(
+            sync_test.EXAMPLE_URL, stream=stream, checksum=checksum
+        )
 
         chunks = (b"zero zero", b"niner tango")
         bad_checksum = u"anVzdCBub3QgdGhpcyAxLA=="
@@ -218,7 +233,10 @@ class TestDownload(object):
         else:
             good_checksum = u"GvNZlg=="
         msg = download_mod._CHECKSUM_MISMATCH.format(
-            sync_test.EXAMPLE_URL, bad_checksum, good_checksum, checksum_type=checksum.upper()
+            sync_test.EXAMPLE_URL,
+            bad_checksum,
+            good_checksum,
+            checksum_type=checksum.upper(),
         )
         assert error.args[0] == msg
 
@@ -243,7 +261,6 @@ class TestDownload(object):
 
 
 class TestRawDownload(object):
-
     @pytest.mark.asyncio
     async def test__write_to_stream_no_hash_check(self):
         stream = io.BytesIO()
@@ -261,7 +278,9 @@ class TestRawDownload(object):
     @pytest.mark.asyncio
     async def test__write_to_stream_with_hash_check_success(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.RawDownload(sync_test.EXAMPLE_URL, stream=stream, checksum=checksum)
+        download = download_mod.RawDownload(
+            sync_test.EXAMPLE_URL, stream=stream, checksum=checksum
+        )
 
         chunk1 = b"first chunk, count starting at 0. "
         chunk2 = b"second chunk, or chunk 1, which is better? "
@@ -279,7 +298,9 @@ class TestRawDownload(object):
     @pytest.mark.asyncio
     async def test__write_to_stream_with_hash_check_fail(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.RawDownload(sync_test.EXAMPLE_URL, stream=stream, checksum=checksum)
+        download = download_mod.RawDownload(
+            sync_test.EXAMPLE_URL, stream=stream, checksum=checksum
+        )
 
         chunk1 = b"first chunk, count starting at 0. "
         chunk2 = b"second chunk, or chunk 1, which is better? "
@@ -302,7 +323,10 @@ class TestRawDownload(object):
         else:
             good_checksum = u"qmNCyg=="
         msg = download_mod._CHECKSUM_MISMATCH.format(
-            sync_test.EXAMPLE_URL, bad_checksum, good_checksum, checksum_type=checksum.upper()
+            sync_test.EXAMPLE_URL,
+            bad_checksum,
+            good_checksum,
+            checksum_type=checksum.upper(),
         )
         assert error.args[0] == msg
 
@@ -332,17 +356,21 @@ class TestRawDownload(object):
         assert error.args[0] == "checksum must be ``'md5'``, ``'crc32c'`` or ``None``"
 
     async def _consume_helper(
-        self, stream=None, end=65536, headers=None, chunks=(), response_headers=None,
-        checksum=None, timeout=None
+        self,
+        stream=None,
+        end=65536,
+        headers=None,
+        chunks=(),
+        response_headers=None,
+        checksum=None,
+        timeout=None,
     ):
         download = download_mod.RawDownload(
             sync_test.EXAMPLE_URL, stream=stream, end=end, headers=headers
         )
 
         transport = mock.AsyncMock(spec=["request"])
-        mockResponse = _mock_raw_response(
-            chunks=chunks, headers=response_headers
-        )
+        mockResponse = _mock_raw_response(chunks=chunks, headers=response_headers)
         transport.request = mock.AsyncMock(spec=["__call__"], return_value=mockResponse)
 
         assert not download.finished
@@ -373,7 +401,8 @@ class TestRawDownload(object):
     async def test_consume_with_stream(self):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
-        transport = await self._consume_helper(stream=stream, chunks=chunks)
+        # TODO(asyncio): verify we check what sync version checked.
+        await self._consume_helper(stream=stream, chunks=chunks)
 
         assert stream.getvalue() == b"".join(chunks)
 
@@ -384,27 +413,26 @@ class TestRawDownload(object):
         header_value = u"md5=JvS1wjMvfbCXgEGeaJJLDQ=="
         headers = {_helpers._HASH_HEADER: header_value}
 
-        transport = await self._consume_helper(
+        await self._consume_helper(
             stream=stream, chunks=chunks, response_headers=headers
         )
 
         assert stream.getvalue() == b"".join(chunks)
 
-
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @pytest.mark.asyncio
     async def test_consume_with_stream_hash_check_fail(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.RawDownload(sync_test.EXAMPLE_URL, stream=stream, checksum=checksum)
+        download = download_mod.RawDownload(
+            sync_test.EXAMPLE_URL, stream=stream, checksum=checksum
+        )
 
         chunks = (b"zero zero", b"niner tango")
         bad_checksum = u"anVzdCBub3QgdGhpcyAxLA=="
         header_value = u"crc32c={bad},md5={bad}".format(bad=bad_checksum)
         headers = {_helpers._HASH_HEADER: header_value}
         transport = mock.AsyncMock(spec=["request"])
-        mockResponse = _mock_raw_response(
-            chunks=chunks, headers=headers
-        )
+        mockResponse = _mock_raw_response(chunks=chunks, headers=headers)
         transport.request = mock.AsyncMock(spec=["__call__"], return_value=mockResponse)
 
         assert not download.finished
@@ -423,7 +451,10 @@ class TestRawDownload(object):
         else:
             good_checksum = u"GvNZlg=="
         msg = download_mod._CHECKSUM_MISMATCH.format(
-            sync_test.EXAMPLE_URL, bad_checksum, good_checksum, checksum_type=checksum.upper()
+            sync_test.EXAMPLE_URL,
+            bad_checksum,
+            good_checksum,
+            checksum_type=checksum.upper(),
         )
         assert error.args[0] == msg
 
@@ -546,7 +577,11 @@ class TestChunkedDownload(object):
         range_bytes = u"bytes={:d}-{:d}".format(start, start + chunk_size - 1)
         download_headers = {u"range": range_bytes}
         transport.request.assert_called_once_with(
-            u"GET", sync_test.EXAMPLE_URL, data=None, headers=download_headers, timeout=14.7,
+            u"GET",
+            sync_test.EXAMPLE_URL,
+            data=None,
+            headers=download_headers,
+            timeout=14.7,
         )
 
 
@@ -731,7 +766,7 @@ def _mock_response(status=http_client.OK, chunks=(), headers=None):
                 u"status",
                 u"headers",
                 u"raw",
-                u"content"
+                u"content",
             ],
         )
         # i.e. context manager returns ``self``.

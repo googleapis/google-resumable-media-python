@@ -62,7 +62,7 @@ async def cleanup():
 
     for blob_name, transport in to_delete:
         metadata_url = utils.METADATA_URL_TEMPLATE.format(blob_name=blob_name)
-        response = await transport.request('DELETE', metadata_url)
+        response = await transport.request("DELETE", metadata_url)
         assert response.status == http_client.NO_CONTENT
 
 
@@ -157,7 +157,7 @@ async def check_does_not_exist(transport, blob_name):
     # but is not caught in async.
 
     # with pytest.raises(Exception):
-    response = await transport.request('GET', metadata_url)
+    response = await transport.request("GET", metadata_url)
     assert response.status == http_client.NOT_FOUND
 
 
@@ -222,12 +222,16 @@ async def test_simple_upload(authorized_transport, bucket, cleanup):
     upload_url = utils.SIMPLE_UPLOAD_TEMPLATE.format(blob_name=blob_name)
     upload = resumable_requests.SimpleUpload(upload_url)
     # Transmit the resource.
-    response = await upload.transmit(authorized_transport, actual_contents, ICO_CONTENT_TYPE)
+    response = await upload.transmit(
+        authorized_transport, actual_contents, ICO_CONTENT_TYPE
+    )
     await check_response(response, blob_name, actual_contents=actual_contents)
     # Download the content to make sure it's "working as expected".
     await check_content(blob_name, actual_contents, authorized_transport)
     # Make sure the upload is tombstoned.
-    await check_tombstoned(upload, authorized_transport, actual_contents, ICO_CONTENT_TYPE)
+    await check_tombstoned(
+        upload, authorized_transport, actual_contents, ICO_CONTENT_TYPE
+    )
 
 
 @pytest.mark.asyncio
@@ -299,14 +303,18 @@ async def test_multipart_upload_with_headers(authorized_transport, bucket, clean
     # Transmit the resource.
     metadata = {u"name": blob_name}
     data = b"Other binary contents\x03\x04\x05."
-    response = await upload.transmit(authorized_transport, data, metadata, BYTES_CONTENT_TYPE)
+    response = await upload.transmit(
+        authorized_transport, data, metadata, BYTES_CONTENT_TYPE
+    )
     await check_response(
         response, blob_name, actual_contents=data, content_type=BYTES_CONTENT_TYPE
     )
     # Download the content to make sure it's "working as expected".
     await check_content(blob_name, data, authorized_transport, headers=headers)
     # Make sure the upload is tombstoned.
-    await check_tombstoned(upload, authorized_transport, data, metadata, BYTES_CONTENT_TYPE)
+    await check_tombstoned(
+        upload, authorized_transport, data, metadata, BYTES_CONTENT_TYPE
+    )
 
 
 async def _resumable_upload_helper(authorized_transport, stream, cleanup, headers=None):
@@ -334,7 +342,9 @@ async def _resumable_upload_helper(authorized_transport, stream, cleanup, header
     # Download the content to make sure it's "working as expected".
     stream.seek(0)
     actual_contents = stream.read()
-    await check_content(blob_name, actual_contents, authorized_transport, headers=headers)
+    await check_content(
+        blob_name, actual_contents, authorized_transport, headers=headers
+    )
     # Make sure the upload is tombstoned.
     await check_tombstoned(upload, authorized_transport)
 
@@ -349,7 +359,9 @@ async def test_resumable_upload_with_headers(
     authorized_transport, img_stream, bucket, cleanup
 ):
     headers = utils.get_encryption_headers()
-    await _resumable_upload_helper(authorized_transport, img_stream, cleanup, headers=headers)
+    await _resumable_upload_helper(
+        authorized_transport, img_stream, cleanup, headers=headers
+    )
 
 
 @pytest.mark.asyncio
@@ -431,7 +443,9 @@ async def _resumable_upload_recover_helper(authorized_transport, cleanup, header
     assert num_chunks == 3
     # Download the content to make sure it's "working as expected".
     actual_contents = stream.getvalue()
-    await check_content(blob_name, actual_contents, authorized_transport, headers=headers)
+    await check_content(
+        blob_name, actual_contents, authorized_transport, headers=headers
+    )
     # Make sure the upload is tombstoned.
     await check_tombstoned(upload, authorized_transport)
 
@@ -442,9 +456,13 @@ async def test_resumable_upload_recover(authorized_transport, bucket, cleanup):
 
 
 @pytest.mark.asyncio
-async def test_resumable_upload_recover_with_headers(authorized_transport, bucket, cleanup):
+async def test_resumable_upload_recover_with_headers(
+    authorized_transport, bucket, cleanup
+):
     headers = utils.get_encryption_headers()
-    await _resumable_upload_recover_helper(authorized_transport, cleanup, headers=headers)
+    await _resumable_upload_recover_helper(
+        authorized_transport, cleanup, headers=headers
+    )
 
 
 class TestResumableUploadUnknownSize(object):
@@ -499,7 +517,9 @@ class TestResumableUploadUnknownSize(object):
                 stream_final=False,
             )
             # Make sure ``initiate`` succeeded and did not mangle the stream.
-            await check_initiate(response, upload, stream, authorized_transport, metadata)
+            await check_initiate(
+                response, upload, stream, authorized_transport, metadata
+            )
             # Make sure total bytes was never set.
             assert upload.total_bytes is None
             # Make the **ONLY** request.

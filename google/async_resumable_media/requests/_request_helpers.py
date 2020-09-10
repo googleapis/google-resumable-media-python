@@ -144,5 +144,7 @@ async def http_request(
         transport.request, method, url, data=data, headers=headers, **transport_kwargs
     )
 
-    resp = await _helpers.wait_and_retry(func, RequestsMixin._get_status_code, retry_strategy)
+    resp = await _helpers.wait_and_retry(
+        func, RequestsMixin._get_status_code, retry_strategy
+    )
     return resp

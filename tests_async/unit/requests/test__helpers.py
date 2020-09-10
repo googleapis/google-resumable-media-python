@@ -30,7 +30,9 @@ class TestRequestsMixin(object):
 
     def test__get_headers(self):
         headers = {u"fruit": u"apple"}
-        response = mock.Mock(_headers=headers, headers=headers, spec=[ "_headers", "headers"])
+        response = mock.Mock(
+            _headers=headers, headers=headers, spec=["_headers", "headers"]
+        )
         assert headers == _helpers.RequestsMixin._get_headers(response)
 
     @pytest.mark.asyncio
@@ -87,5 +89,7 @@ def _make_response(status_code):
 
 def _make_transport(status_code):
     transport = mock.AsyncMock(spec=["request"])
-    transport.request = mock.AsyncMock(spec=["__call__"], return_value=_make_response(status_code))
+    transport.request = mock.AsyncMock(
+        spec=["__call__"], return_value=_make_response(status_code)
+    )
     return transport

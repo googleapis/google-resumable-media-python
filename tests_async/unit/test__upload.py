@@ -167,7 +167,9 @@ class TestMultipartUpload(object):
         with pytest.raises(TypeError):
             upload._prepare_request(data, {}, sync_test.BASIC_CONTENT)
 
-    @mock.patch(u"google.async_resumable_media._upload.get_boundary", return_value=b"==3==")
+    @mock.patch(
+        u"google.async_resumable_media._upload.get_boundary", return_value=b"==3=="
+    )
     def _prepare_request_helper(
         self,
         mock_get_boundary,
@@ -369,7 +371,9 @@ class TestResumableUpload(object):
         stream = io.BytesIO(data)
         metadata = {u"name": u"big-data-file.txt"}
 
-        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB, headers=upload_headers)
+        upload = _upload.ResumableUpload(
+            sync_test.RESUMABLE_URL, sync_test.ONE_MB, headers=upload_headers
+        )
         orig_headers = upload._headers.copy()
         # Check ``upload``-s state before.
         assert upload._stream is None
@@ -539,7 +543,9 @@ class TestResumableUpload(object):
 
     @staticmethod
     def _upload_in_flight(data, headers=None):
-        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB, headers=headers)
+        upload = _upload.ResumableUpload(
+            sync_test.RESUMABLE_URL, sync_test.ONE_MB, headers=headers
+        )
         upload._stream = io.BytesIO(data)
         upload._content_type = sync_test.BASIC_CONTENT
         upload._total_bytes = len(data)
@@ -711,7 +717,9 @@ class TestResumableUpload(object):
 
     def test__prepare_recover_request_with_headers(self):
         headers = {u"lake": u"ocean"}
-        upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB, headers=headers)
+        upload = _upload.ResumableUpload(
+            sync_test.RESUMABLE_URL, sync_test.ONE_MB, headers=headers
+        )
         upload._invalid = True
 
         method, url, payload, new_headers = upload._prepare_recover_request()
@@ -820,7 +828,9 @@ def test_get_boundary(mock_rand):
 
 
 class Test_construct_multipart_request(object):
-    @mock.patch(u"google.async_resumable_media._upload.get_boundary", return_value=b"==1==")
+    @mock.patch(
+        u"google.async_resumable_media._upload.get_boundary", return_value=b"==1=="
+    )
     def test_binary(self, mock_get_boundary):
         data = b"By nary day tuh"
         metadata = {u"name": u"hi-file.bin"}
@@ -842,7 +852,9 @@ class Test_construct_multipart_request(object):
         assert payload == expected_payload
         mock_get_boundary.assert_called_once_with()
 
-    @mock.patch(u"google.async_resumable_media._upload.get_boundary", return_value=b"==2==")
+    @mock.patch(
+        u"google.async_resumable_media._upload.get_boundary", return_value=b"==2=="
+    )
     def test_unicode(self, mock_get_boundary):
         data_unicode = u"\N{snowman}"
         # construct_multipart_request( ASSUMES callers pass bytes.
@@ -971,7 +983,10 @@ class Test_get_content_range(object):
 def _make_response(status_code=http_client.OK, headers=None):
     headers = headers or {}
     return mock.Mock(
-         _headers=headers, headers=headers, status_code=status_code, spec=["_headers", "headers", "status_code"]
+        _headers=headers,
+        headers=headers,
+        status_code=status_code,
+        spec=["_headers", "headers", "status_code"],
     )
 
 

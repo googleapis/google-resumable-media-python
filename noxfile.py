@@ -194,7 +194,8 @@ def lint_setup_py(session):
 @nox.session(python=DEFAULT_PYTHON_VERSION)
 def blacken(session):
     session.install("black")
-    session.run("black", os.path.join("google", "resumable_media"), "tests")
+    session.run("black", os.path.join("google", "resumable_media"), "tests", 
+    os.path.join("google", "async_resumable_media"), "tests_async")
 
 
 @nox.session(python=SYSTEM_TEST_PYTHON_VERSIONS)

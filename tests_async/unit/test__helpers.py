@@ -30,7 +30,9 @@ class Test_header_required(object):
         name = u"some-header"
         value = u"The Right Hand Side"
         headers = {name: value, u"other-name": u"other-value"}
-        response = mock.Mock(_headers=headers, headers=headers, spec=["_headers", "headers"])
+        response = mock.Mock(
+            _headers=headers, headers=headers, spec=["_headers", "headers"]
+        )
         result = _helpers.header_required(response, name, _get_headers, **kwargs)
         assert result == value
 
@@ -148,7 +150,6 @@ class Test_calculate_retry_wait(object):
 
 
 class Test_wait_and_retry(object):
-
     @pytest.mark.asyncio
     async def test_success_no_retry(self):
         truthy = http_client.OK

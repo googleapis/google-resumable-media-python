@@ -141,9 +141,7 @@ class TestDownload(object):
 
         # Make sure **not finished** before.
         assert not download.finished
-        response = mock.AsyncMock(
-            status=int(http_client.NOT_FOUND), spec=["status"]
-        )
+        response = mock.AsyncMock(status=int(http_client.NOT_FOUND), spec=["status"])
         with pytest.raises(common.InvalidResponse) as exc_info:
             download._process_response(response)
 
@@ -435,7 +433,9 @@ class TestChunkedDownload(object):
         assert not download.invalid
         # Actually call the method to update.
         content_stream = mock.AsyncMock(spec=["__call", "read"])
-        content_stream.read = mock.AsyncMock(spec=["__call__"], return_value=b"DEADBEEF")
+        content_stream.read = mock.AsyncMock(
+            spec=["__call__"], return_value=b"DEADBEEF"
+        )
         response = mock.AsyncMock(
             headers={u"content-range": u"bytes 0-99/99"},
             status=int(http_client.PARTIAL_CONTENT),
