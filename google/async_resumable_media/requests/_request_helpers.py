@@ -132,11 +132,10 @@ async def http_request(
         ~requests.Response: The return value of ``transport.request()``.
     """
 
-    # TODO(anirudhbaddepu) - the sync version uses a tuple for the default connect
-    # timeout and read timeout, since async requests can only take a single value and
-    # not a tuple we take the single connect timeout, but the logic technically diverges
-    # from the sync implementation here.
-
+    # NOTE(asyncio/aiohttp): Sync versions use a tuple for two timeouts,
+    # default connect timeout and read timeout. Since async requests only
+    # accepts a single value, this is using the connect timeout. This logic
+    # diverges from the sync implementation.
     if "timeout" not in transport_kwargs:
         transport_kwargs["timeout"] = _DEFAULT_CONNECT_TIMEOUT
 

@@ -75,6 +75,9 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                 checksum doesn't agree with server-computed checksum.
         """
 
+        # `_get_expected_checksum()` may return None even if a checksum was
+        # requested, in which case it will emit an info log _MISSING_CHECKSUM.
+        # If an invalid checksum type is specified, this will raise ValueError.
         expected_checksum, checksum_object = sync_helpers._get_expected_checksum(
             response, self._get_headers, self.media_url, checksum_type=self.checksum
         )
@@ -106,9 +109,6 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
     async def consume(
         self, transport, timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
     ):
-        # TODO(anirudhbaddepu, crwilcox) timeout tuple incompatibility in aiohttp,
-        # so singular timeout value is used.
-
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded
@@ -206,6 +206,9 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
                 checksum doesn't agree with server-computed checksum.
         """
 
+        # `_get_expected_checksum()` may return None even if a checksum was 
+        # requested, in which case it will emit an info log _MISSING_CHECKSUM.
+        # If an invalid checksum type is specified, this will raise ValueError.
         expected_checksum, checksum_object = sync_helpers._get_expected_checksum(
             response, self._get_headers, self.media_url, checksum_type=self.checksum
         )

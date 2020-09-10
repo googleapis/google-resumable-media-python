@@ -18,7 +18,7 @@ import pytest
 
 from google.async_resumable_media.requests import _request_helpers as _helpers
 
-# Change expected timeout to single numeral instead of tuple for asyncio compatibility.
+# async version takes a single timeout, not a tuple of connect, read timeouts.
 EXPECTED_TIMEOUT = 61
 
 

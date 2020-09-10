@@ -31,8 +31,6 @@ JSON_TYPE = sync_test.JSON_TYPE
 JSON_TYPE_LINE = sync_test.JSON_TYPE_LINE
 EXPECTED_TIMEOUT = 61
 
-# test by making the upload async for that case
-
 
 class TestSimpleUpload(object):
     @pytest.mark.asyncio

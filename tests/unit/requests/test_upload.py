@@ -40,8 +40,6 @@ JSON_TYPE = u"application/json; charset=UTF-8"
 JSON_TYPE_LINE = b"content-type: application/json; charset=UTF-8\r\n"
 EXPECTED_TIMEOUT = (61, 60)
 
-# test by making the upload async for that case
-
 
 class TestSimpleUpload(object):
     def test_transmit(self):
