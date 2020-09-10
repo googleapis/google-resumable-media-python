@@ -206,7 +206,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
                 checksum doesn't agree with server-computed checksum.
         """
 
-        # `_get_expected_checksum()` may return None even if a checksum was 
+        # `_get_expected_checksum()` may return None even if a checksum was
         # requested, in which case it will emit an info log _MISSING_CHECKSUM.
         # If an invalid checksum type is specified, this will raise ValueError.
         expected_checksum, checksum_object = sync_helpers._get_expected_checksum(

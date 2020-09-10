@@ -18,9 +18,6 @@ from tests.system import utils
 import google.auth
 import google.auth.transport.aiohttp_requests as tr_requests
 import pytest
-import http
-
-http.client.HTTPConnection.debuglevel = 5
 
 
 async def ensure_bucket(transport):
