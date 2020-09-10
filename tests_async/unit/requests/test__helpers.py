@@ -50,8 +50,7 @@ class TestRequestsMixin(object):
 
 @pytest.mark.asyncio
 async def test_http_request():
-    transport = _make_transport(http_client.OK)
-    response = await transport.request()
+    transport, response = _make_transport(http_client.OK)
     method = u"POST"
     url = u"http://test.invalid"
     data = mock.sentinel.data
@@ -70,26 +69,35 @@ async def test_http_request():
 
     # TODO() check response value
     assert ret_val is response
-
+    transport.request.assert_called_once_with(
+        method,
+        url,
+        data=data,
+        headers=headers,
+        extra1=b"work",
+        extra2=125.5,
+        timeout=timeout)#call.request('POST', 'http://test.invalid', data=sentinel.data, headers={'one': 'fish', 'blue': 'fish'}, extra1=b'work', extra2=125.5, timeout=sentinel.timeout)
 
 @pytest.mark.asyncio
 async def test_http_request_defaults():
-    transport = _make_transport(http_client.OK)
-    response = await transport.request()
+    transport, response = _make_transport(http_client.OK)
     method = u"POST"
     url = u"http://test.invalid"
 
     ret_val = await _helpers.http_request(transport, method, url)
     assert ret_val is response
-
-
+    transport.request.assert_called_once_with(
+        method, url, data=None, headers=None, timeout=EXPECTED_TIMEOUT
+    )
+    
 def _make_response(status_code):
     return mock.AsyncMock(status=status_code, spec=["status"])
 
 
 def _make_transport(status_code):
+    response = _make_response(status_code)
     transport = mock.AsyncMock(spec=["request"])
     transport.request = mock.AsyncMock(
-        spec=["__call__"], return_value=_make_response(status_code)
+        spec=["__call__"], return_value=response
     )
-    return transport
+    return transport, response
