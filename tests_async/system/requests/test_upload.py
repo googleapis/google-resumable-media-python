@@ -27,6 +27,7 @@ import asyncio
 from google.resumable_media import common
 from google import async_resumable_media
 import google.async_resumable_media.requests as resumable_requests
+
 from google.resumable_media import _helpers
 from tests.system import utils
 
@@ -351,7 +352,7 @@ async def test_multipart_upload_with_headers(authorized_transport, bucket, clean
     )
 
 
-async def _resumable_upload_helper(authorized_transport, stream, cleanup, headers=None):
+async def _resumable_upload_helper(authorized_transport, stream, cleanup, checksum=None, headers=None):
     blob_name = os.path.basename(stream.name)
     # Make sure to clean up the uploaded blob when we are done.
     await cleanup(blob_name, authorized_transport)
@@ -359,7 +360,7 @@ async def _resumable_upload_helper(authorized_transport, stream, cleanup, header
     # Create the actual upload object.
     chunk_size = async_resumable_media.UPLOAD_CHUNK_SIZE
     upload = resumable_requests.ResumableUpload(
-        utils.RESUMABLE_UPLOAD, chunk_size, headers=headers
+        utils.RESUMABLE_UPLOAD, chunk_size, headers=headers, checksum=checksum
     )
     # Initiate the upload.
     metadata = {u"name": blob_name, u"metadata": {u"direction": u"north"}}
@@ -396,6 +397,30 @@ async def test_resumable_upload_with_headers(
     await _resumable_upload_helper(
         authorized_transport, img_stream, cleanup, headers=headers
     )
+
+
+@pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
+@pytest.mark.asyncio
+async def test_resumable_upload_with_bad_checksum(
+    authorized_transport, img_stream, bucket, cleanup, checksum
+):
+    fake_checksum_object = _helpers._get_checksum_object(checksum)
+    fake_checksum_object.update(b"bad data")
+    fake_prepared_checksum_digest = _helpers.prepare_checksum_digest(
+        fake_checksum_object.digest()
+    )
+    with mock.patch.object(
+        _helpers, "prepare_checksum_digest", return_value=fake_prepared_checksum_digest
+    ):
+        with pytest.raises(common.DataCorruption) as exc_info:
+            _resumable_upload_helper(
+                authorized_transport, img_stream, cleanup, checksum=checksum
+            )
+    expected_checksums = {"md5": "1bsd83IYNug8hd+V1ING3Q==", "crc32c": "YQGPxA=="}
+    expected_message = async_resumable_media._upload._UPLOAD_CHECKSUM_MISMATCH_MESSAGE.format(
+        checksum.upper(), fake_prepared_checksum_digest, expected_checksums[checksum]
+    )
+    assert exc_info.value.args[0] == expected_message
 
 
 @pytest.mark.asyncio
