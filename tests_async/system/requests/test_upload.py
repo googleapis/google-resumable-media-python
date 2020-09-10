@@ -137,15 +137,11 @@ async def check_tombstoned(upload, transport, *args):
     assert upload.finished
     basic_types = (resumable_requests.SimpleUpload, resumable_requests.MultipartUpload)
 
-    # TODO(anirudhbaddepu, crwilcox) Change exception type due to handling error
-    # all these tests currently dont pass due to timeout context manager bug and can be changed
-    # back to original exception once that bug is fixed.
-
     if isinstance(upload, basic_types):
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             await upload.transmit(transport, *args)
     else:
-        with pytest.raises(Exception):
+        with pytest.raises(ValueError):
             await upload.transmit_next_chunk(transport, *args)
 
 
