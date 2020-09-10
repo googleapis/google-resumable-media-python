@@ -293,35 +293,6 @@ class TestDownload(object):
             assert content == actual_contents
             await check_tombstoned(download, authorized_transport)
 
-    @pytest.mark.skip(
-        reason="implementation change of raw download due to asynchronous aiohttp reponse type, test would need to be reworked since every download now comes to a stream by default"
-    )
-    @pytest.mark.asyncio
-    async def test_download_to_stream(self, add_files, authorized_transport):
-        for info in ALL_FILES:
-            actual_contents = self._get_contents(info)
-            blob_name = get_blob_name(info)
-
-            # Create the actual download object.
-            media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
-            stream = io.BytesIO()
-
-            download = self._make_one(media_url, stream=stream)
-            # Consume the resource.
-            response = await download.consume(authorized_transport)
-            assert response.status == http_client.OK
-
-            with pytest.raises(RuntimeError):  # as exc_info:
-                await getattr(response, u"content").read()
-
-            # TODO(asyncio): this should be added back if it was here for sync
-            # assert exc_info.value.args == (NO_BODY_ERR,)
-
-            content = await response.content()
-            assert content is False
-
-            assert stream.getvalue() == actual_contents
-            await check_tombstoned(download, authorized_transport)
 
     @pytest.mark.asyncio
     async def test_extra_headers(self, authorized_transport, secret_file):
@@ -449,6 +420,20 @@ class TestRawDownload(TestDownload):
             )
             assert exc_info.value.args == (msg,)
 
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
+    @pytest.mark.asyncio
+    async def test_corrupt_download_no_check(self, add_files, corrupting_transport, checksum):
+        for info in ALL_FILES:
+            blob_name = get_blob_name(info)
+
+            # Create the actual download object.
+            media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
+            stream = io.BytesIO()
+            download = self._make_one(media_url, stream=stream, checksum=None)
+            # Consume the resource.
+            await download.consume(corrupting_transport)
+
+            assert download.finished
 
 def get_chunk_size(min_chunks, total_bytes):
     # Make sure the number of chunks **DOES NOT** evenly divide.
