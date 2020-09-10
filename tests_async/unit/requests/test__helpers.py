@@ -50,9 +50,10 @@ class TestRequestsMixin(object):
 
 
 class TestRawRequestsMixin(object):
-    class AsyncByteStream():
+    class AsyncByteStream:
         def __init__(self, bytes):
             self._byte_stream = io.BytesIO(bytes)
+
         async def read(self):
             return self._byte_stream.read()
 
@@ -60,9 +61,10 @@ class TestRawRequestsMixin(object):
     async def test__get_body(self):
         body = b"This is the payload."
         response = mock.Mock(
-            content=TestRawRequestsMixin.AsyncByteStream(body),
-            spec=["content"])
-        assert body == await _helpers.RawRequestsMixin._get_body(response)	
+            content=TestRawRequestsMixin.AsyncByteStream(body), spec=["content"]
+        )
+        assert body == await _helpers.RawRequestsMixin._get_body(response)
+
 
 @pytest.mark.asyncio
 async def test_http_request():
@@ -91,7 +93,9 @@ async def test_http_request():
         headers=headers,
         extra1=b"work",
         extra2=125.5,
-        timeout=timeout)
+        timeout=timeout,
+    )
+
 
 @pytest.mark.asyncio
 async def test_http_request_defaults():
@@ -104,7 +108,8 @@ async def test_http_request_defaults():
     transport.request.assert_called_once_with(
         method, url, data=None, headers=None, timeout=EXPECTED_TIMEOUT
     )
-    
+
+
 def _make_response(status_code):
     return mock.AsyncMock(status=status_code, spec=["status"])
 
@@ -112,7 +117,5 @@ def _make_response(status_code):
 def _make_transport(status_code):
     response = _make_response(status_code)
     transport = mock.AsyncMock(spec=["request"])
-    transport.request = mock.AsyncMock(
-        spec=["__call__"], return_value=response
-    )
+    transport.request = mock.AsyncMock(spec=["__call__"], return_value=response)
     return transport, response

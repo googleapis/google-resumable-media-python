@@ -283,9 +283,12 @@ async def test_multipart_upload(authorized_transport, bucket, cleanup):
         upload, authorized_transport, actual_contents, metadata, ICO_CONTENT_TYPE
     )
 
+
 @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
 @pytest.mark.asyncio
-async def test_multipart_upload_with_bad_checksum(authorized_transport, checksum, bucket, cleanup):
+async def test_multipart_upload_with_bad_checksum(
+    authorized_transport, checksum, bucket, cleanup
+):
     # TODO(asyncio): failing currently
     with open(ICO_FILE, u"rb") as file_obj:
         actual_contents = file_obj.read()
@@ -352,7 +355,9 @@ async def test_multipart_upload_with_headers(authorized_transport, bucket, clean
     )
 
 
-async def _resumable_upload_helper(authorized_transport, stream, cleanup, checksum=None, headers=None):
+async def _resumable_upload_helper(
+    authorized_transport, stream, cleanup, checksum=None, headers=None
+):
     blob_name = os.path.basename(stream.name)
     # Make sure to clean up the uploaded blob when we are done.
     await cleanup(blob_name, authorized_transport)
@@ -417,8 +422,12 @@ async def test_resumable_upload_with_bad_checksum(
                 authorized_transport, img_stream, cleanup, checksum=checksum
             )
     expected_checksums = {"md5": "1bsd83IYNug8hd+V1ING3Q==", "crc32c": "YQGPxA=="}
-    expected_message = async_resumable_media._upload._UPLOAD_CHECKSUM_MISMATCH_MESSAGE.format(
-        checksum.upper(), fake_prepared_checksum_digest, expected_checksums[checksum]
+    expected_message = (
+        async_resumable_media._upload._UPLOAD_CHECKSUM_MISMATCH_MESSAGE.format(
+            checksum.upper(),
+            fake_prepared_checksum_digest,
+            expected_checksums[checksum],
+        )
     )
     assert exc_info.value.args[0] == expected_message
 

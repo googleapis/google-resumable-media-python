@@ -293,7 +293,6 @@ class TestDownload(object):
             assert content == actual_contents
             await check_tombstoned(download, authorized_transport)
 
-
     @pytest.mark.asyncio
     async def test_extra_headers(self, authorized_transport, secret_file):
         blob_name, data, headers = secret_file
@@ -422,7 +421,9 @@ class TestRawDownload(TestDownload):
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @pytest.mark.asyncio
-    async def test_corrupt_download_no_check(self, add_files, corrupting_transport, checksum):
+    async def test_corrupt_download_no_check(
+        self, add_files, corrupting_transport, checksum
+    ):
         for info in ALL_FILES:
             blob_name = get_blob_name(info)
 
@@ -434,6 +435,7 @@ class TestRawDownload(TestDownload):
             await download.consume(corrupting_transport)
 
             assert download.finished
+
 
 def get_chunk_size(min_chunks, total_bytes):
     # Make sure the number of chunks **DOES NOT** evenly divide.

@@ -89,6 +89,7 @@ class TestSimpleUpload(object):
 
         assert upload.finished
 
+
 class TestMultipartUpload(object):
     @mock.patch(
         u"google.async_resumable_media._upload.get_boundary", return_value=b"==4=="
@@ -135,7 +136,6 @@ class TestMultipartUpload(object):
         assert upload.finished
         mock_get_boundary.assert_called_once_with()
 
-
     @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==4==")
     @pytest.mark.asyncio
     async def test_transmit_w_custom_timeout(self, mock_get_boundary):
@@ -152,7 +152,9 @@ class TestMultipartUpload(object):
 
         assert not upload.finished
 
-        ret_val = await upload.transmit(transport, data, metadata, content_type, timeout=12.6)
+        ret_val = await upload.transmit(
+            transport, data, metadata, content_type, timeout=12.6
+        )
 
         assert ret_val is transport.request.return_value
 
@@ -179,6 +181,7 @@ class TestMultipartUpload(object):
         )
         assert upload.finished
         mock_get_boundary.assert_called_once_with()
+
 
 class TestResumableUpload(object):
     @pytest.mark.asyncio
@@ -252,7 +255,7 @@ class TestResumableUpload(object):
             BASIC_CONTENT,
             total_bytes=total_bytes,
             stream_final=False,
-            timeout=12.6
+            timeout=12.6,
         )
         assert response is transport.request.return_value
         # Check resumable_url after.
