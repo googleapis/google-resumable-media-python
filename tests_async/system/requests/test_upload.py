@@ -17,14 +17,17 @@ import hashlib
 import io
 import os
 
+import mock
 import pytest
 from six.moves import http_client
 from six.moves import urllib_parse
 
 import asyncio
 
+from google.resumable_media import common
 from google import async_resumable_media
 import google.async_resumable_media.requests as resumable_requests
+from google.resumable_media import _helpers
 from tests.system import utils
 
 
@@ -148,11 +151,6 @@ async def check_tombstoned(upload, transport, *args):
 async def check_does_not_exist(transport, blob_name):
     metadata_url = utils.METADATA_URL_TEMPLATE.format(blob_name=blob_name)
     # Make sure we are creating a **new** object.
-
-    # TODO(anirudhbaddepu, crwilcox) exception raised in the sync implementation
-    # but is not caught in async.
-
-    # with pytest.raises(Exception):
     response = await transport.request("GET", metadata_url)
     assert response.status == http_client.NOT_FOUND
 
@@ -279,6 +277,46 @@ async def test_multipart_upload(authorized_transport, bucket, cleanup):
     )
     # Download the content to make sure it's "working as expected".
     await check_content(blob_name, actual_contents, authorized_transport)
+    # Make sure the upload is tombstoned.
+    await check_tombstoned(
+        upload, authorized_transport, actual_contents, metadata, ICO_CONTENT_TYPE
+    )
+
+@pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
+@pytest.mark.asyncio
+async def test_multipart_upload_with_bad_checksum(authorized_transport, checksum, bucket, cleanup):
+    # TODO(asyncio): failing currently
+    with open(ICO_FILE, u"rb") as file_obj:
+        actual_contents = file_obj.read()
+
+    blob_name = os.path.basename(ICO_FILE)
+    # Make sure to clean up the uploaded blob when we are done.
+    await cleanup(blob_name, authorized_transport)
+    await check_does_not_exist(authorized_transport, blob_name)
+
+    # Create the actual upload object.
+    upload_url = utils.MULTIPART_UPLOAD
+    upload = resumable_requests.MultipartUpload(upload_url, checksum=checksum)
+    # Transmit the resource.
+    metadata = {u"name": blob_name, u"metadata": {u"color": u"yellow"}}
+    fake_checksum_object = _helpers._get_checksum_object(checksum)
+    fake_checksum_object.update(b"bad data")
+    fake_prepared_checksum_digest = _helpers.prepare_checksum_digest(
+        fake_checksum_object.digest()
+    )
+    with mock.patch.object(
+        _helpers, "prepare_checksum_digest", return_value=fake_prepared_checksum_digest
+    ):
+        with pytest.raises(common.InvalidResponse) as exc_info:
+            response = upload.transmit(
+                authorized_transport, actual_contents, metadata, ICO_CONTENT_TYPE
+            )
+    response = exc_info.value.response
+    message = response.json()["error"]["message"]
+    # Attempt to verify that this is a checksum mismatch error.
+    assert checksum.upper() in message
+    assert fake_prepared_checksum_digest in message
+
     # Make sure the upload is tombstoned.
     await check_tombstoned(
         upload, authorized_transport, actual_contents, metadata, ICO_CONTENT_TYPE
