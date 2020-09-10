@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import io
 import mock
 from six.moves import http_client
 import pytest
@@ -48,6 +49,21 @@ class TestRequestsMixin(object):
         assert body == temp
 
 
+class TestRawRequestsMixin(object):
+    class AsyncByteStream():
+        def __init__(self, bytes):
+            self._byte_stream = io.BytesIO(bytes)
+        async def read(self):
+            return self._byte_stream.read()
+
+    @pytest.mark.asyncio
+    async def test__get_body(self):
+        body = b"This is the payload."
+        response = mock.Mock(
+            content=TestRawRequestsMixin.AsyncByteStream(body),
+            spec=["content"])
+        assert body == await _helpers.RawRequestsMixin._get_body(response)	
+
 @pytest.mark.asyncio
 async def test_http_request():
     transport, response = _make_transport(http_client.OK)
@@ -67,7 +83,6 @@ async def test_http_request():
         timeout=timeout,
     )
 
-    # TODO() check response value
     assert ret_val is response
     transport.request.assert_called_once_with(
         method,
@@ -76,7 +91,7 @@ async def test_http_request():
         headers=headers,
         extra1=b"work",
         extra2=125.5,
-        timeout=timeout)#call.request('POST', 'http://test.invalid', data=sentinel.data, headers={'one': 'fish', 'blue': 'fish'}, extra1=b'work', extra2=125.5, timeout=sentinel.timeout)
+        timeout=timeout)
 
 @pytest.mark.asyncio
 async def test_http_request_defaults():

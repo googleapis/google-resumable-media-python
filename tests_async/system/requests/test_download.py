@@ -464,15 +464,13 @@ async def consume_chunks(download, authorized_transport, total_bytes, actual_con
         assert download.bytes_downloaded == next_byte - download.start
         assert download.total_bytes == total_bytes
         assert response.status == http_client.PARTIAL_CONTENT
+        # NOTE: Due to the consumption of the stream in the respone, the
+        # response object for async requests will be EOF at this point. In
+        # sync versions we could compare the content with the range of
+        # actual contents. Since streams aren't reversible, we can't do that
+        # here.
+        assert response.content.at_eof()
 
-        # content = await response.content.read()
-
-        # TODO(anirudhbaddepu, crwilcox) find a solution to re-reading aiohttp
-        # response streams, as we destructively modify it by reading in the stream
-        # twice here. This is because the response body comes in the form of a stream
-        # with aiohttp.
-
-        # assert content == actual_contents[start_byte:next_byte]
         start_byte = next_byte
 
     return num_responses, response
