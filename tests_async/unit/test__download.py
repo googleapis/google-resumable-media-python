@@ -755,7 +755,8 @@ def _get_headers(response):
 
 
 async def _get_body(response):
-    # TODO(asyncio): differs from sync. remove comment after real sample.
+    # TODO(asyncio): This code differs from sync. Leaving this comment in case
+    # this difference causes downstream issues.
     wrapped_response = aiohttp_requests._CombinedResponse(response)
     content = await wrapped_response.raw_content()
     return content

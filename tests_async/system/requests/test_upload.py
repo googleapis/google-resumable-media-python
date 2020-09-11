@@ -289,7 +289,6 @@ async def test_multipart_upload(authorized_transport, bucket, cleanup):
 async def test_multipart_upload_with_bad_checksum(
     authorized_transport, checksum, bucket
 ):
-    # TODO(asyncio): failing currently
     with open(ICO_FILE, u"rb") as file_obj:
         actual_contents = file_obj.read()
 

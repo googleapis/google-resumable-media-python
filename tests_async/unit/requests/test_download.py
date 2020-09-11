@@ -43,14 +43,6 @@ class TestDownload(object):
 
         assert stream.getvalue() == chunk1 + chunk2
 
-        # TODO(asyncio)
-        # # Check mocks.
-        # response.__aenter__.assert_called_once_with()
-        # response.__aexit__.assert_called_once_with(None, None, None)
-        # response.raw.stream.assert_called_once_with(
-        #     _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
-        # )
-
     @pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
     @pytest.mark.asyncio
     async def test__write_to_stream_with_hash_check_success(self, checksum):
@@ -69,14 +61,6 @@ class TestDownload(object):
         assert ret_val is None
 
         assert stream.getvalue() == chunk1 + chunk2 + chunk3
-
-        # TODO(asyncio)
-        # # Check mocks.
-        # response.__aenter__.assert_called_once_with()
-        # response.__aexit__.assert_called_once_with(None, None, None)
-        # response.raw.stream.assert_called_once_with(
-        #     _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
-        # )
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @pytest.mark.asyncio
@@ -113,14 +97,6 @@ class TestDownload(object):
             checksum_type=checksum.upper(),
         )
         assert error.args[0] == msg
-
-        # TODO(asyncio)
-        # # Check mocks.
-        # response.__aenter__.assert_called_once_with()
-        # response.__aexit__.assert_called_once_with(None, None, None)
-        # response.raw.stream.assert_called_once_with(
-        #     _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
-        # )
 
     @pytest.mark.asyncio
     async def test__write_to_stream_with_invalid_checksum_type(self):
@@ -211,10 +187,6 @@ class TestDownload(object):
 
         assert stream.getvalue() == b"".join(chunks)
 
-        # TODO(anirudhbaddepu) Add checking that the required methods were called.
-        # Discrepancy between sync and async implementation on response stream.
-        # response = transport.request.return_value
-
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @pytest.mark.asyncio
     async def test_consume_with_stream_hash_check_success(self, checksum):
@@ -227,14 +199,6 @@ class TestDownload(object):
         )
 
         assert stream.getvalue() == b"".join(chunks)
-
-        # TODO(asyncio)
-        # # Check mocks.
-        # response.__aenter__.assert_called_once_with()
-        # response.__aexit__.assert_called_once_with(None, None, None)
-        # response.raw.stream.assert_called_once_with(
-        #     _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
-        # )
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @pytest.mark.asyncio
@@ -310,14 +274,6 @@ class TestRawDownload(object):
 
         assert stream.getvalue() == chunk1 + chunk2
 
-        # TODO(asyncio)
-        # # Check mocks.
-        # response.__aenter__.assert_called_once_with()
-        # response.__aexit__.assert_called_once_with(None, None, None)
-        # response.raw.stream.assert_called_once_with(
-        #     _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
-        # )
-
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @pytest.mark.asyncio
     async def test__write_to_stream_with_hash_check_success(self, checksum):
@@ -337,14 +293,6 @@ class TestRawDownload(object):
         assert ret_val is None
 
         assert stream.getvalue() == chunk1 + chunk2 + chunk3
-
-        # TODO(asyncio)
-        # # Check mocks.
-        # response.__aenter__.assert_called_once_with()
-        # response.__aexit__.assert_called_once_with(None, None, None)
-        # response.raw.stream.assert_called_once_with(
-        #     _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
-        # )
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @pytest.mark.asyncio
@@ -454,20 +402,10 @@ class TestRawDownload(object):
     async def test_consume_with_stream(self, checksum):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
-        # TODO(asyncio): verify we check what sync version checked.
-        # transport = await self._consume_helper(
         await self._consume_helper(stream=stream, chunks=chunks, checksum=checksum)
 
         assert stream.getvalue() == b"".join(chunks)
 
-        # TODO(asyncio)
-        # # Check mocks.
-        # response = transport.request.return_value
-        # response.__aenter__.assert_called_once_with()
-        # response.__aexit__.assert_called_once_with(None, None, None)
-        # response.raw.stream.assert_called_once_with(
-        #     _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
-        # )
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
     @pytest.mark.asyncio
@@ -477,22 +415,11 @@ class TestRawDownload(object):
         header_value = u"crc32c=UNIQxg==,md5=JvS1wjMvfbCXgEGeaJJLDQ=="
         headers = {_helpers._HASH_HEADER: header_value}
 
-        # TODO(asyncio)
-        # transport = await self._consume_helper(
         await self._consume_helper(
             stream=stream, chunks=chunks, response_headers=headers, checksum=checksum
         )
 
         assert stream.getvalue() == b"".join(chunks)
-
-        # TODO(asyncio)
-        # # Check mocks.	    @pytest.mark.asyncio
-        # response = transport.request.return_value
-        # response.__aenter__.assert_called_once_with()
-        # response.__aexit__.assert_called_once_with(None, None, None)
-        # response.raw.stream.assert_called_once_with(
-        #     _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
-        # )
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @pytest.mark.asyncio
