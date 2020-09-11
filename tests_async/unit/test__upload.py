@@ -771,7 +771,7 @@ class TestResumableUpload(object):
         assert error.response is response
         assert len(error.args) == 2
         assert error.args[1] == u"range"
-    
+
     @pytest.mark.asyncio
     async def test__process_response_partial_bad_range(self):
         upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)

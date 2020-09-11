@@ -456,9 +456,7 @@ class TestRawDownload(object):
         chunks = (b"up down ", b"charlie ", b"brown")
         # TODO(asyncio): verify we check what sync version checked.
         # transport = await self._consume_helper(
-        await self._consume_helper(
-            stream=stream, chunks=chunks, checksum=checksum
-        )
+        await self._consume_helper(stream=stream, chunks=chunks, checksum=checksum)
 
         assert stream.getvalue() == b"".join(chunks)
 
