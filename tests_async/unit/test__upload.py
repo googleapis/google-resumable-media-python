@@ -810,6 +810,126 @@ class TestResumableUpload(object):
         # Check status after.
         assert upload._bytes_uploaded == 172
 
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
+    @pytest.mark.asyncio
+    async def test__validate_checksum_success(self, checksum):
+        data = b"All of the data goes in a stream."
+        upload = self._upload_in_flight(data, checksum=checksum)
+        _fix_up_virtual(upload)
+        # Go ahead and process the entire data in one go for this test.
+        start_byte, payload, _ = _upload.get_next_chunk(
+            upload._stream, len(data), len(data)
+        )
+        upload._update_checksum(start_byte, payload)
+        assert upload._bytes_checksummed == len(data)
+
+        # This is only used by _validate_checksum for fetching metadata and
+        # logging.
+        metadata = {"md5Hash": "GRvfKbqr5klAOwLkxgIf8w==", "crc32c": "Qg8thA=="}
+        response = _make_response(headers=metadata)
+        upload._finished = True
+
+        assert upload._checksum_object is not None
+        # Test passes if it does not raise an error (no assert needed)
+        await upload._validate_checksum(response)
+
+    @pytest.mark.asyncio
+    async def test__validate_checksum_none(self):
+        data = b"All of the data goes in a stream."
+        upload = self._upload_in_flight(b"test", checksum=None)
+        _fix_up_virtual(upload)
+        # Go ahead and process the entire data in one go for this test.
+        start_byte, payload, _ = _upload.get_next_chunk(
+            upload._stream, len(data), len(data)
+        )
+        upload._update_checksum(start_byte, payload)
+
+        # This is only used by _validate_checksum for fetching metadata and
+        # logging.
+        metadata = {"md5Hash": "GRvfKbqr5klAOwLkxgIf8w==", "crc32c": "Qg8thA=="}
+        response = _make_response(headers=metadata)
+        upload._finished = True
+
+        assert upload._checksum_object is None
+        assert upload._bytes_checksummed == 0
+        # Test passes if it does not raise an error (no assert needed)
+        await upload._validate_checksum(response)
+
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
+    @pytest.mark.asyncio
+    async def test__validate_checksum_header_no_match(self, checksum):
+        data = b"All of the data goes in a stream."
+        upload = self._upload_in_flight(data, checksum=checksum)
+        _fix_up_virtual(upload)
+        # Go ahead and process the entire data in one go for this test.
+        start_byte, payload, _ = _upload.get_next_chunk(
+            upload._stream, len(data), len(data)
+        )
+        upload._update_checksum(start_byte, payload)
+        assert upload._bytes_checksummed == len(data)
+
+        # For this test, each checksum option will be provided with a valid but
+        # mismatching remote checksum type.
+        if checksum == "crc32c":
+            metadata = {"md5Hash": "GRvfKbqr5klAOwLkxgIf8w=="}
+        else:
+            metadata = {"crc32c": "Qg8thA=="}
+        # This is only used by _validate_checksum for fetching headers and
+        # logging, so it doesn't need to be fleshed out with a response body.
+        response = _make_response(headers=metadata)
+        upload._finished = True
+
+        assert upload._checksum_object is not None
+        with pytest.raises(common.InvalidResponse) as exc_info:
+            await upload._validate_checksum(response)
+
+        error = exc_info.value
+        assert error.response is response
+        message = error.args[0]
+        metadata_key = sync_helpers._get_metadata_key(checksum)
+        assert (
+            message
+            == _upload._UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE.format(
+                metadata_key
+            )
+        )
+
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
+    @pytest.mark.asyncio
+    async def test__validate_checksum_mismatch(self, checksum):
+        data = b"All of the data goes in a stream."
+        upload = self._upload_in_flight(data, checksum=checksum)
+        _fix_up_virtual(upload)
+        # Go ahead and process the entire data in one go for this test.
+        start_byte, payload, _ = _upload.get_next_chunk(
+            upload._stream, len(data), len(data)
+        )
+        upload._update_checksum(start_byte, payload)
+        assert upload._bytes_checksummed == len(data)
+
+        metadata = {
+            "md5Hash": "ZZZZZZZZZZZZZZZZZZZZZZ==",
+            "crc32c": "ZZZZZZ==",
+        }
+        # This is only used by _validate_checksum for fetching headers and
+        # logging, so it doesn't need to be fleshed out with a response body.
+        response = _make_response(headers=metadata)
+        upload._finished = True
+
+        assert upload._checksum_object is not None
+        # Test passes if it does not raise an error (no assert needed)
+        with pytest.raises(common.DataCorruption) as exc_info:
+            await upload._validate_checksum(response)
+
+        error = exc_info.value
+        assert error.response is response
+        message = error.args[0]
+        correct_checksums = {"crc32c": u"Qg8thA==", "md5": u"GRvfKbqr5klAOwLkxgIf8w=="}
+        metadata_key = sync_helpers._get_metadata_key(checksum)
+        assert message == _upload._UPLOAD_CHECKSUM_MISMATCH_MESSAGE.format(
+            checksum.upper(), correct_checksums[checksum], metadata[metadata_key]
+        )
+
     def test_transmit_next_chunk(self):
         upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         with pytest.raises(NotImplementedError) as exc_info:
@@ -1103,12 +1223,16 @@ class Test_get_content_range(object):
 
 def _make_response(status_code=http_client.OK, headers=None):
     headers = headers or {}
-    return mock.Mock(
+
+    response = mock.AsyncMock(
         _headers=headers,
         headers=headers,
         status_code=status_code,
-        spec=["_headers", "headers", "status_code"],
+        spec=["_headers", "headers", "status_code", "json"],
     )
+    response.json = mock.AsyncMock(spec=["__call__"], return_value=headers)
+
+    return response
 
 
 def _get_status_code(response):
