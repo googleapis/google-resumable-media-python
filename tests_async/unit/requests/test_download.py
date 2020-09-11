@@ -22,7 +22,6 @@ from six.moves import http_client
 
 from google.resumable_media import common
 from google.async_resumable_media import _helpers
-from google.async_resumable_media.requests import _request_helpers
 from google.async_resumable_media.requests import download as download_mod
 from tests.unit.requests import test_download as sync_test
 
@@ -456,7 +455,8 @@ class TestRawDownload(object):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
         # TODO(asyncio): verify we check what sync version checked.
-        transport = await self._consume_helper(
+        # transport = await self._consume_helper(
+        await self._consume_helper(
             stream=stream, chunks=chunks, checksum=checksum
         )
 
@@ -479,7 +479,9 @@ class TestRawDownload(object):
         header_value = u"crc32c=UNIQxg==,md5=JvS1wjMvfbCXgEGeaJJLDQ=="
         headers = {_helpers._HASH_HEADER: header_value}
 
-        transport = await self._consume_helper(
+        # TODO(asyncio)
+        # transport = await self._consume_helper(
+        await self._consume_helper(
             stream=stream, chunks=chunks, response_headers=headers, checksum=checksum
         )
 
