@@ -287,15 +287,13 @@ async def test_multipart_upload(authorized_transport, bucket, cleanup):
 @pytest.mark.parametrize("checksum", [u"md5", u"crc32c"])
 @pytest.mark.asyncio
 async def test_multipart_upload_with_bad_checksum(
-    authorized_transport, checksum, bucket, cleanup
+    authorized_transport, checksum, bucket
 ):
     # TODO(asyncio): failing currently
     with open(ICO_FILE, u"rb") as file_obj:
         actual_contents = file_obj.read()
 
     blob_name = os.path.basename(ICO_FILE)
-    # Make sure to clean up the uploaded blob when we are done.
-    await cleanup(blob_name, authorized_transport)
     await check_does_not_exist(authorized_transport, blob_name)
 
     # Create the actual upload object.
@@ -312,11 +310,11 @@ async def test_multipart_upload_with_bad_checksum(
         _helpers, "prepare_checksum_digest", return_value=fake_prepared_checksum_digest
     ):
         with pytest.raises(common.InvalidResponse) as exc_info:
-            response = upload.transmit(
+            await upload.transmit(
                 authorized_transport, actual_contents, metadata, ICO_CONTENT_TYPE
             )
     response = exc_info.value.response
-    message = response.json()["error"]["message"]
+    message = await response.text()
     # Attempt to verify that this is a checksum mismatch error.
     assert checksum.upper() in message
     assert fake_prepared_checksum_digest in message
@@ -418,7 +416,7 @@ async def test_resumable_upload_with_bad_checksum(
         _helpers, "prepare_checksum_digest", return_value=fake_prepared_checksum_digest
     ):
         with pytest.raises(common.DataCorruption) as exc_info:
-            _resumable_upload_helper(
+            await _resumable_upload_helper(
                 authorized_transport, img_stream, cleanup, checksum=checksum
             )
     expected_checksums = {"md5": "1bsd83IYNug8hd+V1ING3Q==", "crc32c": "YQGPxA=="}

@@ -755,7 +755,7 @@ def _get_headers(response):
 
 
 async def _get_body(response):
-    # TODO() Used wrapper to extract raw content
+    # TODO(asyncio): differs from sync. remove comment after real sample.
     wrapped_response = aiohttp_requests._CombinedResponse(response)
     content = await wrapped_response.raw_content()
     return content

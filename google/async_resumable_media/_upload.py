@@ -619,7 +619,7 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
         """
         self._invalid = True
 
-    def _process_response(self, response, bytes_sent):
+    async def _process_response(self, response, bytes_sent):
         """Process the response from an HTTP request.
 
         This is everything that must be done after a request that doesn't
@@ -659,7 +659,7 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
             # Tombstone the current upload so it cannot be used again.
             self._finished = True
             # Validate the checksum. This can raise an exception on failure.
-            self._validate_checksum(response)
+            await self._validate_checksum(response)
         else:
             bytes_range = _helpers.header_required(
                 response,
@@ -677,6 +677,37 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
                     u'Expected to be of the form "bytes=0-{end}"',
                 )
             self._bytes_uploaded = int(match.group(u"end_byte")) + 1
+
+    async def _validate_checksum(self, response):
+        """Check the computed checksum, if any, against the response headers.
+        Args:
+            response (object): The HTTP response object.
+        Raises:
+            ~google.resumable_media.common.DataCorruption: If the checksum
+            computed locally and the checksum reported by the remote host do
+            not match.
+        """
+        if self._checksum_type is None:
+            return
+        metadata_key = sync_helpers._get_metadata_key(self._checksum_type)
+        metadata = await response.json()
+        remote_checksum = metadata.get(metadata_key)
+        if remote_checksum is None:
+            raise common.InvalidResponse(
+                response,
+                _UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE.format(metadata_key),
+                self._get_headers(response),
+            )
+        local_checksum = sync_helpers.prepare_checksum_digest(
+            self._checksum_object.digest()
+        )
+        if local_checksum != remote_checksum:
+            raise common.DataCorruption(
+                response,
+                _UPLOAD_CHECKSUM_MISMATCH_MESSAGE.format(
+                    self._checksum_type.upper(), local_checksum, remote_checksum
+                ),
+            )
 
     def transmit_next_chunk(self, transport, timeout=None):
         """Transmit the next chunk of the resource to be uploaded.

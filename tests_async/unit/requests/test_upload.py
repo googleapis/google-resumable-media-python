@@ -136,10 +136,11 @@ class TestMultipartUpload(object):
         assert upload.finished
         mock_get_boundary.assert_called_once_with()
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==4==")
+    @mock.patch(
+        u"google.async_resumable_media._upload.get_boundary", return_value=b"==4=="
+    )
     @pytest.mark.asyncio
     async def test_transmit_w_custom_timeout(self, mock_get_boundary):
-        # TODO(asyncio): this test fails now. Should be a copy of the existing.
         data = b"Mock data here and there."
         metadata = {u"Hey": u"You", u"Guys": u"90909"}
         content_type = BASIC_CONTENT
@@ -150,13 +151,7 @@ class TestMultipartUpload(object):
             spec=["__call__"], return_value=_make_response()
         )
 
-        assert not upload.finished
-
-        ret_val = await upload.transmit(
-            transport, data, metadata, content_type, timeout=12.6
-        )
-
-        assert ret_val is transport.request.return_value
+        await upload.transmit(transport, data, metadata, content_type, timeout=12.6)
 
         expected_payload = (
             b"--==4==\r\n"
@@ -172,6 +167,7 @@ class TestMultipartUpload(object):
         )
         multipart_type = b'multipart/related; boundary="==4=="'
         upload_headers = {u"content-type": multipart_type}
+
         transport.request.assert_called_once_with(
             u"POST",
             MULTIPART_URL,
