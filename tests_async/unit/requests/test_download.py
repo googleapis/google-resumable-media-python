@@ -406,7 +406,6 @@ class TestRawDownload(object):
 
         assert stream.getvalue() == b"".join(chunks)
 
-
     @pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
     @pytest.mark.asyncio
     async def test_consume_with_stream_hash_check_success(self, checksum):
