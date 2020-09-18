@@ -128,6 +128,10 @@ class Download(DownloadBase):
         checksum Optional([str]): The type of checksum to compute to verify
             the integrity of the object. The response headers must contain
             a checksum of the requested type. If the headers lack an
+            appropriate checksum (for instance in the case of transcoded or
+            ranged downloads where the remote service does not know the
+            correct checksum) an INFO-level log will be emitted. Supported
+            values are "md5", "crc32c" and None.
     """
 
     def __init__(
