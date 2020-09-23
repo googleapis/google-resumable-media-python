@@ -107,7 +107,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                 raise common.DataCorruption(response, msg)
 
     async def consume(
-        self, transport, timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
+        self, transport, timeout=_request_helpers._DEFAULT_TIMEOUT
     ):
         """Consume the resource to be downloaded.
 
@@ -117,12 +117,11 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -236,7 +235,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
                 raise common.DataCorruption(response, msg)
 
     async def consume(
-        self, transport, timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
+        self, transport, timeout=_request_helpers._DEFAULT_TIMEOUT
     ):
         """Consume the resource to be downloaded.
 
@@ -310,7 +309,7 @@ class ChunkedDownload(_request_helpers.RequestsMixin, _download.ChunkedDownload)
     """
 
     async def consume_next_chunk(
-        self, transport, timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
+        self, transport, timeout=_request_helpers._DEFAULT_TIMEOUT
     ):
 
         """
@@ -319,12 +318,11 @@ class ChunkedDownload(_request_helpers.RequestsMixin, _download.ChunkedDownload)
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -377,19 +375,18 @@ class RawChunkedDownload(_request_helpers.RawRequestsMixin, _download.ChunkedDow
     """
 
     async def consume_next_chunk(
-        self, transport, timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
+        self, transport, timeout=_request_helpers._DEFAULT_TIMEOUT
     ):
         """Consume the next chunk of the resource to be downloaded.
 
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.

@@ -14,7 +14,7 @@
 
 import io
 
-
+import aiohttp
 import mock
 import pytest
 from six.moves import http_client
@@ -25,7 +25,8 @@ from google.async_resumable_media import _helpers
 from google.async_resumable_media.requests import download as download_mod
 from tests.unit.requests import test_download as sync_test
 
-EXPECTED_TIMEOUT = 61
+EXPECTED_TIMEOUT = aiohttp.ClientTimeout(
+    total=None, connect=61, sock_read=60, sock_connect=None)
 
 
 class TestDownload(object):

@@ -24,17 +24,21 @@ from google.async_resumable_media import _helpers
 from google.resumable_media import common
 
 import google.auth.transport.aiohttp_requests as aiohttp_requests
-
+import aiohttp
 
 _DEFAULT_RETRY_STRATEGY = common.RetryStrategy()
 _SINGLE_GET_CHUNK_SIZE = 8192
+
+
 # The number of seconds to wait to establish a connection
 # (connect() call on socket). Avoid setting this to a multiple of 3 to not
 # Align with TCP Retransmission timing. (typically 2.5-3s)
 _DEFAULT_CONNECT_TIMEOUT = 61
 # The number of seconds to wait between bytes sent from the server.
 _DEFAULT_READ_TIMEOUT = 60
-
+_DEFAULT_TIMEOUT = aiohttp.ClientTimeout(
+            connect=_DEFAULT_CONNECT_TIMEOUT, sock_read=_DEFAULT_READ_TIMEOUT
+        )
 
 class RequestsMixin(object):
     """Mix-in class implementing ``requests``-specific behavior.
@@ -137,7 +141,8 @@ async def http_request(
     # accepts a single value, this is using the connect timeout. This logic
     # diverges from the sync implementation.
     if "timeout" not in transport_kwargs:
-        transport_kwargs["timeout"] = _DEFAULT_CONNECT_TIMEOUT
+        timeout = _DEFAULT_TIMEOUT
+        transport_kwargs["timeout"] = timeout
 
     func = functools.partial(
         transport.request, method, url, data=data, headers=headers, **transport_kwargs

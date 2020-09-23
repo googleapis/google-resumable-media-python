@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import aiohttp
 import io
 import mock
 from six.moves import http_client
@@ -20,7 +21,9 @@ import pytest
 from google.async_resumable_media.requests import _request_helpers as _helpers
 
 # async version takes a single timeout, not a tuple of connect, read timeouts.
-EXPECTED_TIMEOUT = 61
+EXPECTED_TIMEOUT = aiohttp.ClientTimeout(
+            connect=61, sock_read=60
+        )
 
 
 class TestRequestsMixin(object):

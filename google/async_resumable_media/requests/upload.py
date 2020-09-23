@@ -43,7 +43,7 @@ class SimpleUpload(_request_helpers.RequestsMixin, _upload.SimpleUpload):
         transport,
         data,
         content_type,
-        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT,
+        timeout=_request_helpers._DEFAULT_TIMEOUT,
     ):
         """Transmit the resource to be uploaded.
 
@@ -53,12 +53,11 @@ class SimpleUpload(_request_helpers.RequestsMixin, _upload.SimpleUpload):
             data (bytes): The resource content to be uploaded.
             content_type (str): The content type of the resource, e.g. a JPEG
                 image has content type ``image/jpeg``.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -104,7 +103,7 @@ class MultipartUpload(_request_helpers.RequestsMixin, _upload.MultipartUpload):
         data,
         metadata,
         content_type,
-        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT,
+        timeout=_request_helpers._DEFAULT_TIMEOUT,
     ):
         """Transmit the resource to be uploaded.
 
@@ -116,12 +115,11 @@ class MultipartUpload(_request_helpers.RequestsMixin, _upload.MultipartUpload):
                 ACL list.
             content_type (str): The content type of the resource, e.g. a JPEG
                 image has content type ``image/jpeg``.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -341,7 +339,7 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
         content_type,
         total_bytes=None,
         stream_final=True,
-        timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT,
+        timeout=_request_helpers._DEFAULT_TIMEOUT,
     ):
         """Initiate a resumable upload.
 
@@ -373,12 +371,11 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
                 "final" (i.e. no more bytes will be added to it). In this case
                 we determine the upload size from the size of the stream. If
                 ``total_bytes`` is passed, this argument will be ignored.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -403,7 +400,7 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
         return response
 
     async def transmit_next_chunk(
-        self, transport, timeout=_request_helpers._DEFAULT_CONNECT_TIMEOUT
+        self, transport, timeout=_request_helpers._DEFAULT_TIMEOUT
     ):
         """Transmit the next chunk of the resource to be uploaded.
 
@@ -458,12 +455,11 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.

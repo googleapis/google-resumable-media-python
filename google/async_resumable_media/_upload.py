@@ -37,7 +37,7 @@ from google.resumable_media import _upload as sync_upload
 from google.resumable_media import common
 
 
-from sync_upload import (
+from google.resumable_media._upload import (
     _CONTENT_TYPE_HEADER,
     _CONTENT_RANGE_TEMPLATE,
     _RANGE_UNKNOWN_TEMPLATE,
@@ -205,12 +205,11 @@ class SimpleUpload(UploadBase):
             data (bytes): The resource content to be uploaded.
             content_type (str): The content type of the resource, e.g. a JPEG
                 image has content type ``image/jpeg``.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Raises:
             NotImplementedError: Always, since virtual.
@@ -311,12 +310,11 @@ class MultipartUpload(UploadBase):
                 ACL list.
             content_type (str): The content type of the resource, e.g. a JPEG
                 image has content type ``image/jpeg``.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Raises:
             NotImplementedError: Always, since virtual.
@@ -542,12 +540,11 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
                 "final" (i.e. no more bytes will be added to it). In this case
                 we determine the upload size from the size of the stream. If
                 ``total_bytes`` is passed, this argument will be ignored.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Raises:
             NotImplementedError: Always, since virtual.
@@ -721,12 +718,11 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
         Args:
             transport (object): An object which can make authenticated
                 requests.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Raises:
             NotImplementedError: Always, since virtual.

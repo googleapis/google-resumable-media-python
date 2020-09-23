@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import aiohttp
 import io
 import json
 import pytest
@@ -29,7 +30,8 @@ ONE_MB = sync_test.ONE_MB
 BASIC_CONTENT = sync_test.BASIC_CONTENT
 JSON_TYPE = sync_test.JSON_TYPE
 JSON_TYPE_LINE = sync_test.JSON_TYPE_LINE
-EXPECTED_TIMEOUT = 61
+EXPECTED_TIMEOUT = aiohttp.ClientTimeout(
+    total=None, connect=61, sock_read=60, sock_connect=None)
 
 
 class TestSimpleUpload(object):
