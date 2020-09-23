@@ -717,7 +717,7 @@ class Test__add_decoder(object):
 
         assert md5_hash is not mock.sentinel.md5_hash
 
-        assert md5_hash == _helpers._DoNothingHash
+        assert isinstance(md5_hash, _helpers._DoNothingHash)
         assert isinstance(response_raw._decoder, download_mod._GzipDecoder)
         assert response_raw._decoder._checksum is mock.sentinel.md5_hash
 

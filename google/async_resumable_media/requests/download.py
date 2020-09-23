@@ -434,7 +434,7 @@ def _add_decoder(response_raw, checksum):
         return checksum
 
     response_raw._decoder = _GzipDecoder(checksum)
-    return _helpers._DoNothingHash
+    return _helpers._DoNothingHash()
 
 
 class _GzipDecoder(urllib3.response.GzipDecoder):
