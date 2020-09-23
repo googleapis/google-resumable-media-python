@@ -443,7 +443,7 @@ def _add_decoder(response_raw, checksum):
 class _GzipDecoder(urllib3.response.GzipDecoder):
     """Custom subclass of ``urllib3`` decoder for ``gzip``-ed bytes.
 
-    Allows a checksum hash function to see the compressed bytes before they are
+    Allows a checksum function to see the compressed bytes before they are
     decoded. This way the checksum of the compressed value can be computed.
 
     Args:

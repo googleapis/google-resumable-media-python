@@ -16,9 +16,7 @@ from __future__ import absolute_import
 import os
 import shutil
 
-
 import nox
-
 
 SYSTEM_TEST_ENV_VARS = ("GOOGLE_APPLICATION_CREDENTIALS",)
 GOOGLE_AUTH = "google-auth >= 0.10.0"
