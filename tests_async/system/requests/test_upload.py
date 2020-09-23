@@ -188,7 +188,7 @@ async def transmit_chunks(
         response = await upload.transmit_next_chunk(transport)
         if upload.finished:
             assert upload.bytes_uploaded == upload.total_bytes
-            check_response(
+            await check_response(
                 response,
                 blob_name,
                 total_bytes=upload.total_bytes,
