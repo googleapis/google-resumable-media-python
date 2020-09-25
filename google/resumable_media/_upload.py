@@ -115,7 +115,7 @@ class UploadBase(object):
         self._finished = True
         _helpers.require_status_code(
             response,
-            (http_client.OK, http_client.CREATED),
+            (http_client.OK,),
             self._get_status_code
         )
 
