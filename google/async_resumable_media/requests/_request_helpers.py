@@ -37,8 +37,9 @@ _DEFAULT_CONNECT_TIMEOUT = 61
 # The number of seconds to wait between bytes sent from the server.
 _DEFAULT_READ_TIMEOUT = 60
 _DEFAULT_TIMEOUT = aiohttp.ClientTimeout(
-            connect=_DEFAULT_CONNECT_TIMEOUT, sock_read=_DEFAULT_READ_TIMEOUT
-        )
+    connect=_DEFAULT_CONNECT_TIMEOUT, sock_read=_DEFAULT_READ_TIMEOUT
+)
+
 
 class RequestsMixin(object):
     """Mix-in class implementing ``requests``-specific behavior.

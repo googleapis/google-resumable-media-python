@@ -106,9 +106,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                 )
                 raise common.DataCorruption(response, msg)
 
-    async def consume(
-        self, transport, timeout=_request_helpers._DEFAULT_TIMEOUT
-    ):
+    async def consume(self, transport, timeout=_request_helpers._DEFAULT_TIMEOUT):
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded
@@ -234,9 +232,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
                 )
                 raise common.DataCorruption(response, msg)
 
-    async def consume(
-        self, transport, timeout=_request_helpers._DEFAULT_TIMEOUT
-    ):
+    async def consume(self, transport, timeout=_request_helpers._DEFAULT_TIMEOUT):
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded

@@ -31,7 +31,8 @@ BASIC_CONTENT = sync_test.BASIC_CONTENT
 JSON_TYPE = sync_test.JSON_TYPE
 JSON_TYPE_LINE = sync_test.JSON_TYPE_LINE
 EXPECTED_TIMEOUT = aiohttp.ClientTimeout(
-    total=None, connect=61, sock_read=60, sock_connect=None)
+    total=None, connect=61, sock_read=60, sock_connect=None
+)
 
 
 class TestSimpleUpload(object):

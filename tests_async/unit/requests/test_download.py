@@ -26,7 +26,8 @@ from google.async_resumable_media.requests import download as download_mod
 from tests.unit.requests import test_download as sync_test
 
 EXPECTED_TIMEOUT = aiohttp.ClientTimeout(
-    total=None, connect=61, sock_read=60, sock_connect=None)
+    total=None, connect=61, sock_read=60, sock_connect=None
+)
 
 
 class TestDownload(object):
