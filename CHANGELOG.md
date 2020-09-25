@@ -10,7 +10,6 @@
 ### Bug Fixes
 
 * allow space in checksum header ([#170](https://www.github.com/googleapis/google-resumable-media-python/issues/170)) ([224fc98](https://www.github.com/googleapis/google-resumable-media-python/commit/224fc9858b903396e0f94801757814e47cff45e7)), closes [#169](https://www.github.com/googleapis/google-resumable-media-python/issues/169)
-* **lint:** blacken 5 files ([#171](https://www.github.com/googleapis/google-resumable-media-python/issues/171)) ([cdea3ee](https://www.github.com/googleapis/google-resumable-media-python/commit/cdea3eec76c7586a66b1641bca906f630d915c0e))
 
 ## [1.0.0](https://www.github.com/googleapis/google-resumable-media-python/compare/v0.7.1...v1.0.0) (2020-08-24)
 
