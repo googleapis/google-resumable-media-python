@@ -14,49 +14,44 @@
 
 import io
 
+import aiohttp
 import mock
 import pytest
 from six.moves import http_client
 
+
 from google.resumable_media import common
-from google.resumable_media import _helpers
-from google.resumable_media.requests import download as download_mod
-from google.resumable_media.requests import _request_helpers
+from google.async_resumable_media import _helpers
+from google.async_resumable_media.requests import download as download_mod
+from tests.unit.requests import test_download as sync_test
 
-
-EXAMPLE_URL = (
-    u"https://www.googleapis.com/download/storage/v1/b/"
-    u"{BUCKET}/o/{OBJECT}?alt=media"
+EXPECTED_TIMEOUT = aiohttp.ClientTimeout(
+    total=None, connect=61, sock_read=60, sock_connect=None
 )
-EXPECTED_TIMEOUT = (61, 60)
 
 
 class TestDownload(object):
-    def test__write_to_stream_no_hash_check(self):
+    @pytest.mark.asyncio
+    async def test__write_to_stream_no_hash_check(self):
         stream = io.BytesIO()
-        download = download_mod.Download(EXAMPLE_URL, stream=stream)
+        download = download_mod.Download(sync_test.EXAMPLE_URL, stream=stream)
 
         chunk1 = b"right now, "
         chunk2 = b"but a little later"
         response = _mock_response(chunks=[chunk1, chunk2], headers={})
 
-        ret_val = download._write_to_stream(response)
+        ret_val = await download._write_to_stream(response)
         assert ret_val is None
 
         assert stream.getvalue() == chunk1 + chunk2
 
-        # Check mocks.
-        response.__enter__.assert_called_once_with()
-        response.__exit__.assert_called_once_with(None, None, None)
-        response.iter_content.assert_called_once_with(
-            chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
-        )
-
     @pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
-    def test__write_to_stream_with_hash_check_success(self, checksum):
+    @pytest.mark.asyncio
+    async def test__write_to_stream_with_hash_check_success(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.Download(EXAMPLE_URL, stream=stream, checksum=checksum)
-
+        download = download_mod.Download(
+            sync_test.EXAMPLE_URL, stream=stream, checksum=checksum
+        )
         chunk1 = b"first chunk, count starting at 0. "
         chunk2 = b"second chunk, or chunk 1, which is better? "
         chunk3 = b"ordinals and numerals and stuff."
@@ -64,22 +59,18 @@ class TestDownload(object):
         headers = {_helpers._HASH_HEADER: header_value}
         response = _mock_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
-        ret_val = download._write_to_stream(response)
+        ret_val = await download._write_to_stream(response)
         assert ret_val is None
 
         assert stream.getvalue() == chunk1 + chunk2 + chunk3
 
-        # Check mocks.
-        response.__enter__.assert_called_once_with()
-        response.__exit__.assert_called_once_with(None, None, None)
-        response.iter_content.assert_called_once_with(
-            chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
-        )
-
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
-    def test__write_to_stream_with_hash_check_fail(self, checksum):
+    @pytest.mark.asyncio
+    async def test__write_to_stream_with_hash_check_fail(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.Download(EXAMPLE_URL, stream=stream, checksum=checksum)
+        download = download_mod.Download(
+            sync_test.EXAMPLE_URL, stream=stream, checksum=checksum
+        )
 
         chunk1 = b"first chunk, count starting at 0. "
         chunk2 = b"second chunk, or chunk 1, which is better? "
@@ -90,7 +81,7 @@ class TestDownload(object):
         response = _mock_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
         with pytest.raises(common.DataCorruption) as exc_info:
-            download._write_to_stream(response)
+            await download._write_to_stream(response)
 
         assert not download.finished
 
@@ -102,23 +93,20 @@ class TestDownload(object):
         else:
             good_checksum = u"qmNCyg=="
         msg = download_mod._CHECKSUM_MISMATCH.format(
-            EXAMPLE_URL, bad_checksum, good_checksum, checksum_type=checksum.upper()
+            sync_test.EXAMPLE_URL,
+            bad_checksum,
+            good_checksum,
+            checksum_type=checksum.upper(),
         )
         assert error.args[0] == msg
 
-        # Check mocks.
-        response.__enter__.assert_called_once_with()
-        response.__exit__.assert_called_once_with(None, None, None)
-        response.iter_content.assert_called_once_with(
-            chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
-        )
-
-    def test__write_to_stream_with_invalid_checksum_type(self):
+    @pytest.mark.asyncio
+    async def test__write_to_stream_with_invalid_checksum_type(self):
         BAD_CHECKSUM_TYPE = "badsum"
 
         stream = io.BytesIO()
         download = download_mod.Download(
-            EXAMPLE_URL, stream=stream, checksum=BAD_CHECKSUM_TYPE
+            sync_test.EXAMPLE_URL, stream=stream, checksum=BAD_CHECKSUM_TYPE
         )
 
         chunk1 = b"first chunk, count starting at 0. "
@@ -130,14 +118,15 @@ class TestDownload(object):
         response = _mock_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
         with pytest.raises(ValueError) as exc_info:
-            download._write_to_stream(response)
+            await download._write_to_stream(response)
 
         assert not download.finished
 
         error = exc_info.value
         assert error.args[0] == "checksum must be ``'md5'``, ``'crc32c'`` or ``None``"
 
-    def _consume_helper(
+    @pytest.mark.asyncio
+    async def _consume_helper(
         self,
         stream=None,
         end=65536,
@@ -148,19 +137,18 @@ class TestDownload(object):
         timeout=None,
     ):
         download = download_mod.Download(
-            EXAMPLE_URL, stream=stream, end=end, headers=headers, checksum=checksum
+            sync_test.EXAMPLE_URL, stream=stream, end=end, headers=headers
         )
-        transport = mock.Mock(spec=["request"])
-        transport.request.return_value = _mock_response(
-            chunks=chunks, headers=response_headers
-        )
+        transport = mock.AsyncMock(spec=["request"])
+        mockResponse = _mock_response(chunks=chunks, headers=response_headers)
+        transport.request = mock.AsyncMock(spec=["__call__"], return_value=mockResponse)
 
         assert not download.finished
 
         if timeout is not None:
-            ret_val = download.consume(transport, timeout=timeout)
+            ret_val = await download.consume(transport, timeout=timeout)
         else:
-            ret_val = download.consume(transport)
+            ret_val = await download.consume(transport)
 
         assert ret_val is transport.request.return_value
 
@@ -169,11 +157,13 @@ class TestDownload(object):
             u"headers": download._headers,
             u"timeout": EXPECTED_TIMEOUT if timeout is None else timeout,
         }
+
         if chunks:
             assert stream is not None
             called_kwargs[u"stream"] = True
-
-        transport.request.assert_called_once_with(u"GET", EXAMPLE_URL, **called_kwargs)
+        transport.request.assert_called_once_with(
+            u"GET", sync_test.EXAMPLE_URL, **called_kwargs
+        )
 
         range_bytes = u"bytes={:d}-{:d}".format(0, end)
         assert download._headers[u"range"] == range_bytes
@@ -181,65 +171,57 @@ class TestDownload(object):
 
         return transport
 
-    def test_consume(self):
-        self._consume_helper()
+    @pytest.mark.asyncio
+    async def test_consume(self):
+        await self._consume_helper()
 
-    def test_consume_with_custom_timeout(self):
-        self._consume_helper(timeout=14.7)
+    @pytest.mark.asyncio
+    async def test_consume_with_custom_timeout(self):
+        await self._consume_helper(timeout=14.7)
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
-    def test_consume_with_stream(self, checksum):
+    @pytest.mark.asyncio
+    async def test_consume_with_stream(self, checksum):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
-        transport = self._consume_helper(
-            stream=stream, chunks=chunks, checksum=checksum
-        )
+        # transport = await self._consume_helper(stream=stream, chunks=chunks, checksum=checksum)
+        await self._consume_helper(stream=stream, chunks=chunks, checksum=checksum)
 
         assert stream.getvalue() == b"".join(chunks)
 
-        # Check mocks.
-        response = transport.request.return_value
-        response.__enter__.assert_called_once_with()
-        response.__exit__.assert_called_once_with(None, None, None)
-        response.iter_content.assert_called_once_with(
-            chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
-        )
-
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
-    def test_consume_with_stream_hash_check_success(self, checksum):
+    @pytest.mark.asyncio
+    async def test_consume_with_stream_hash_check_success(self, checksum):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
         header_value = u"crc32c=UNIQxg==,md5=JvS1wjMvfbCXgEGeaJJLDQ=="
         headers = {_helpers._HASH_HEADER: header_value}
-        transport = self._consume_helper(
+        await self._consume_helper(
             stream=stream, chunks=chunks, response_headers=headers, checksum=checksum
         )
 
         assert stream.getvalue() == b"".join(chunks)
 
-        # Check mocks.
-        response = transport.request.return_value
-        response.__enter__.assert_called_once_with()
-        response.__exit__.assert_called_once_with(None, None, None)
-        response.iter_content.assert_called_once_with(
-            chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
-        )
-
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
-    def test_consume_with_stream_hash_check_fail(self, checksum):
+    @pytest.mark.asyncio
+    async def test_consume_with_stream_hash_check_fail(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.Download(EXAMPLE_URL, stream=stream, checksum=checksum)
+        download = download_mod.Download(
+            sync_test.EXAMPLE_URL, stream=stream, checksum=checksum
+        )
 
         chunks = (b"zero zero", b"niner tango")
         bad_checksum = u"anVzdCBub3QgdGhpcyAxLA=="
         header_value = u"crc32c={bad},md5={bad}".format(bad=bad_checksum)
         headers = {_helpers._HASH_HEADER: header_value}
-        transport = mock.Mock(spec=["request"])
-        transport.request.return_value = _mock_response(chunks=chunks, headers=headers)
+
+        transport = mock.AsyncMock(spec=["request"])
+        mockResponse = _mock_response(chunks=chunks, headers=headers)
+        transport.request = mock.AsyncMock(spec=["__call__"], return_value=mockResponse)
 
         assert not download.finished
         with pytest.raises(common.DataCorruption) as exc_info:
-            download.consume(transport)
+            await download.consume(transport)
 
         assert stream.getvalue() == b"".join(chunks)
         assert download.finished
@@ -253,55 +235,53 @@ class TestDownload(object):
         else:
             good_checksum = u"GvNZlg=="
         msg = download_mod._CHECKSUM_MISMATCH.format(
-            EXAMPLE_URL, bad_checksum, good_checksum, checksum_type=checksum.upper()
+            sync_test.EXAMPLE_URL,
+            bad_checksum,
+            good_checksum,
+            checksum_type=checksum.upper(),
         )
         assert error.args[0] == msg
 
         # Check mocks.
         transport.request.assert_called_once_with(
             u"GET",
-            EXAMPLE_URL,
+            sync_test.EXAMPLE_URL,
             data=None,
             headers={},
             stream=True,
             timeout=EXPECTED_TIMEOUT,
         )
 
-    def test_consume_with_headers(self):
+    @pytest.mark.asyncio
+    async def test_consume_with_headers(self):
         headers = {}  # Empty headers
         end = 16383
-        self._consume_helper(end=end, headers=headers)
+        await self._consume_helper(end=end, headers=headers)
         range_bytes = u"bytes={:d}-{:d}".format(0, end)
         # Make sure the headers have been modified.
         assert headers == {u"range": range_bytes}
 
 
 class TestRawDownload(object):
-    def test__write_to_stream_no_hash_check(self):
+    @pytest.mark.asyncio
+    async def test__write_to_stream_no_hash_check(self):
         stream = io.BytesIO()
-        download = download_mod.RawDownload(EXAMPLE_URL, stream=stream)
+        download = download_mod.RawDownload(sync_test.EXAMPLE_URL, stream=stream)
 
         chunk1 = b"right now, "
         chunk2 = b"but a little later"
         response = _mock_raw_response(chunks=[chunk1, chunk2], headers={})
-
-        ret_val = download._write_to_stream(response)
+        ret_val = await download._write_to_stream(response)
         assert ret_val is None
 
         assert stream.getvalue() == chunk1 + chunk2
 
-        # Check mocks.
-        response.__enter__.assert_called_once_with()
-        response.__exit__.assert_called_once_with(None, None, None)
-        response.raw.stream.assert_called_once_with(
-            _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
-        )
-
-    @pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
-    def test__write_to_stream_with_hash_check_success(self, checksum):
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
+    @pytest.mark.asyncio
+    async def test__write_to_stream_with_hash_check_success(self, checksum):
         stream = io.BytesIO()
         download = download_mod.RawDownload(
-            EXAMPLE_URL, stream=stream, checksum=checksum
+            sync_test.EXAMPLE_URL, stream=stream, checksum=checksum
         )
 
         chunk1 = b"first chunk, count starting at 0. "
@@ -311,23 +291,17 @@ class TestRawDownload(object):
         headers = {_helpers._HASH_HEADER: header_value}
         response = _mock_raw_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
-        ret_val = download._write_to_stream(response)
+        ret_val = await download._write_to_stream(response)
         assert ret_val is None
 
         assert stream.getvalue() == chunk1 + chunk2 + chunk3
 
-        # Check mocks.
-        response.__enter__.assert_called_once_with()
-        response.__exit__.assert_called_once_with(None, None, None)
-        response.raw.stream.assert_called_once_with(
-            _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
-        )
-
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
-    def test__write_to_stream_with_hash_check_fail(self, checksum):
+    @pytest.mark.asyncio
+    async def test__write_to_stream_with_hash_check_fail(self, checksum):
         stream = io.BytesIO()
         download = download_mod.RawDownload(
-            EXAMPLE_URL, stream=stream, checksum=checksum
+            sync_test.EXAMPLE_URL, stream=stream, checksum=checksum
         )
 
         chunk1 = b"first chunk, count starting at 0. "
@@ -339,7 +313,7 @@ class TestRawDownload(object):
         response = _mock_raw_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
         with pytest.raises(common.DataCorruption) as exc_info:
-            download._write_to_stream(response)
+            await download._write_to_stream(response)
 
         assert not download.finished
 
@@ -351,23 +325,20 @@ class TestRawDownload(object):
         else:
             good_checksum = u"qmNCyg=="
         msg = download_mod._CHECKSUM_MISMATCH.format(
-            EXAMPLE_URL, bad_checksum, good_checksum, checksum_type=checksum.upper()
+            sync_test.EXAMPLE_URL,
+            bad_checksum,
+            good_checksum,
+            checksum_type=checksum.upper(),
         )
         assert error.args[0] == msg
 
-        # Check mocks.
-        response.__enter__.assert_called_once_with()
-        response.__exit__.assert_called_once_with(None, None, None)
-        response.raw.stream.assert_called_once_with(
-            _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
-        )
-
-    def test__write_to_stream_with_invalid_checksum_type(self):
+    @pytest.mark.asyncio
+    async def test__write_to_stream_with_invalid_checksum_type(self):
         BAD_CHECKSUM_TYPE = "badsum"
 
         stream = io.BytesIO()
         download = download_mod.RawDownload(
-            EXAMPLE_URL, stream=stream, checksum=BAD_CHECKSUM_TYPE
+            sync_test.EXAMPLE_URL, stream=stream, checksum=BAD_CHECKSUM_TYPE
         )
 
         chunk1 = b"first chunk, count starting at 0. "
@@ -379,14 +350,14 @@ class TestRawDownload(object):
         response = _mock_response(chunks=[chunk1, chunk2, chunk3], headers=headers)
 
         with pytest.raises(ValueError) as exc_info:
-            download._write_to_stream(response)
+            await download._write_to_stream(response)
 
         assert not download.finished
 
         error = exc_info.value
         assert error.args[0] == "checksum must be ``'md5'``, ``'crc32c'`` or ``None``"
 
-    def _consume_helper(
+    async def _consume_helper(
         self,
         stream=None,
         end=65536,
@@ -397,31 +368,25 @@ class TestRawDownload(object):
         timeout=None,
     ):
         download = download_mod.RawDownload(
-            EXAMPLE_URL, stream=stream, end=end, headers=headers, checksum=checksum
+            sync_test.EXAMPLE_URL, stream=stream, end=end, headers=headers
         )
-        transport = mock.Mock(spec=["request"])
-        transport.request.return_value = _mock_raw_response(
-            chunks=chunks, headers=response_headers
-        )
+
+        transport = mock.AsyncMock(spec=["request"])
+        mockResponse = _mock_raw_response(chunks=chunks, headers=response_headers)
+        transport.request = mock.AsyncMock(spec=["__call__"], return_value=mockResponse)
 
         assert not download.finished
-
-        if timeout is not None:
-            ret_val = download.consume(transport, timeout=timeout)
-        else:
-            ret_val = download.consume(transport)
-
+        ret_val = await download.consume(transport)
         assert ret_val is transport.request.return_value
 
         if chunks:
             assert stream is not None
         transport.request.assert_called_once_with(
             u"GET",
-            EXAMPLE_URL,
+            sync_test.EXAMPLE_URL,
             data=None,
             headers=download._headers,
-            stream=True,
-            timeout=EXPECTED_TIMEOUT if timeout is None else timeout,
+            timeout=EXPECTED_TIMEOUT,
         )
 
         range_bytes = u"bytes={:d}-{:d}".format(0, end)
@@ -430,69 +395,52 @@ class TestRawDownload(object):
 
         return transport
 
-    def test_consume(self):
-        self._consume_helper()
-
-    def test_consume_with_custom_timeout(self):
-        self._consume_helper(timeout=14.7)
+    @pytest.mark.asyncio
+    async def test_consume(self):
+        await self._consume_helper()
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
-    def test_consume_with_stream(self, checksum):
+    @pytest.mark.asyncio
+    async def test_consume_with_stream(self, checksum):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
-        transport = self._consume_helper(
-            stream=stream, chunks=chunks, checksum=checksum
-        )
+        await self._consume_helper(stream=stream, chunks=chunks, checksum=checksum)
 
         assert stream.getvalue() == b"".join(chunks)
 
-        # Check mocks.
-        response = transport.request.return_value
-        response.__enter__.assert_called_once_with()
-        response.__exit__.assert_called_once_with(None, None, None)
-        response.raw.stream.assert_called_once_with(
-            _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
-        )
-
-    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
-    def test_consume_with_stream_hash_check_success(self, checksum):
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c", None])
+    @pytest.mark.asyncio
+    async def test_consume_with_stream_hash_check_success(self, checksum):
         stream = io.BytesIO()
         chunks = (b"up down ", b"charlie ", b"brown")
         header_value = u"crc32c=UNIQxg==,md5=JvS1wjMvfbCXgEGeaJJLDQ=="
         headers = {_helpers._HASH_HEADER: header_value}
-        transport = self._consume_helper(
+
+        await self._consume_helper(
             stream=stream, chunks=chunks, response_headers=headers, checksum=checksum
         )
 
         assert stream.getvalue() == b"".join(chunks)
 
-        # Check mocks.
-        response = transport.request.return_value
-        response.__enter__.assert_called_once_with()
-        response.__exit__.assert_called_once_with(None, None, None)
-        response.raw.stream.assert_called_once_with(
-            _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
-        )
-
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
-    def test_consume_with_stream_hash_check_fail(self, checksum):
+    @pytest.mark.asyncio
+    async def test_consume_with_stream_hash_check_fail(self, checksum):
         stream = io.BytesIO()
         download = download_mod.RawDownload(
-            EXAMPLE_URL, stream=stream, checksum=checksum
+            sync_test.EXAMPLE_URL, stream=stream, checksum=checksum
         )
 
         chunks = (b"zero zero", b"niner tango")
         bad_checksum = u"anVzdCBub3QgdGhpcyAxLA=="
         header_value = u"crc32c={bad},md5={bad}".format(bad=bad_checksum)
         headers = {_helpers._HASH_HEADER: header_value}
-        transport = mock.Mock(spec=["request"])
-        transport.request.return_value = _mock_raw_response(
-            chunks=chunks, headers=headers
-        )
+        transport = mock.AsyncMock(spec=["request"])
+        mockResponse = _mock_raw_response(chunks=chunks, headers=headers)
+        transport.request = mock.AsyncMock(spec=["__call__"], return_value=mockResponse)
 
         assert not download.finished
         with pytest.raises(common.DataCorruption) as exc_info:
-            download.consume(transport)
+            await download.consume(transport)
 
         assert stream.getvalue() == b"".join(chunks)
         assert download.finished
@@ -506,24 +454,27 @@ class TestRawDownload(object):
         else:
             good_checksum = u"GvNZlg=="
         msg = download_mod._CHECKSUM_MISMATCH.format(
-            EXAMPLE_URL, bad_checksum, good_checksum, checksum_type=checksum.upper()
+            sync_test.EXAMPLE_URL,
+            bad_checksum,
+            good_checksum,
+            checksum_type=checksum.upper(),
         )
         assert error.args[0] == msg
 
         # Check mocks.
         transport.request.assert_called_once_with(
             u"GET",
-            EXAMPLE_URL,
+            sync_test.EXAMPLE_URL,
             data=None,
             headers={},
-            stream=True,
             timeout=EXPECTED_TIMEOUT,
         )
 
-    def test_consume_with_headers(self):
+    @pytest.mark.asyncio
+    async def test_consume_with_headers(self):
         headers = {}  # Empty headers
         end = 16383
-        self._consume_helper(end=end, headers=headers)
+        await self._consume_helper(end=end, headers=headers)
         range_bytes = u"bytes={:d}-{:d}".format(0, end)
         # Make sure the headers have been modified.
         assert headers == {u"range": range_bytes}
@@ -546,39 +497,45 @@ class TestChunkedDownload(object):
         self, start_byte, end_byte, total_bytes, content=None, status_code=None
     ):
         response_headers = self._response_headers(start_byte, end_byte, total_bytes)
-        return mock.Mock(
-            content=content,
+        content_stream = mock.AsyncMock(spec=["__call__", "read"])
+        content_stream.read = mock.AsyncMock(spec=["__call__"], return_value=content)
+        return mock.AsyncMock(
+            content=content_stream,
+            _headers=response_headers,
             headers=response_headers,
-            status_code=status_code,
-            spec=["content", "headers", "status_code"],
+            status=status_code,
+            spec=["content", "headers", "status"],
         )
 
-    def test_consume_next_chunk_already_finished(self):
-        download = download_mod.ChunkedDownload(EXAMPLE_URL, 512, None)
+    @pytest.mark.asyncio
+    async def test_consume_next_chunk_already_finished(self):
+        download = download_mod.ChunkedDownload(sync_test.EXAMPLE_URL, 512, None)
         download._finished = True
         with pytest.raises(ValueError):
-            download.consume_next_chunk(None)
+            await download.consume_next_chunk(None)
 
     def _mock_transport(self, start, chunk_size, total_bytes, content=b""):
-        transport = mock.Mock(spec=["request"])
+        transport = mock.AsyncMock(spec=["request"])
         assert len(content) == chunk_size
-        transport.request.return_value = self._mock_response(
+        mockResponse = self._mock_response(
             start,
             start + chunk_size - 1,
             total_bytes,
             content=content,
             status_code=int(http_client.OK),
         )
+        transport.request = mock.AsyncMock(spec=["__call__"], return_value=mockResponse)
 
         return transport
 
-    def test_consume_next_chunk(self):
+    @pytest.mark.asyncio
+    async def test_consume_next_chunk(self):
         start = 1536
         stream = io.BytesIO()
         data = b"Just one chunk."
         chunk_size = len(data)
         download = download_mod.ChunkedDownload(
-            EXAMPLE_URL, chunk_size, stream, start=start
+            sync_test.EXAMPLE_URL, chunk_size, stream, start=start
         )
         total_bytes = 16384
         transport = self._mock_transport(start, chunk_size, total_bytes, content=data)
@@ -588,13 +545,13 @@ class TestChunkedDownload(object):
         assert download.bytes_downloaded == 0
         assert download.total_bytes is None
         # Actually consume the chunk and check the output.
-        ret_val = download.consume_next_chunk(transport)
+        ret_val = await download.consume_next_chunk(transport)
         assert ret_val is transport.request.return_value
         range_bytes = u"bytes={:d}-{:d}".format(start, start + chunk_size - 1)
         download_headers = {u"range": range_bytes}
         transport.request.assert_called_once_with(
             u"GET",
-            EXAMPLE_URL,
+            sync_test.EXAMPLE_URL,
             data=None,
             headers=download_headers,
             timeout=EXPECTED_TIMEOUT,
@@ -605,24 +562,29 @@ class TestChunkedDownload(object):
         assert download.bytes_downloaded == chunk_size
         assert download.total_bytes == total_bytes
 
-    def test_consume_next_chunk_with_custom_timeout(self):
+    @pytest.mark.asyncio
+    async def test_consume_next_chunk_with_custom_timeout(self):
         start = 1536
         stream = io.BytesIO()
         data = b"Just one chunk."
         chunk_size = len(data)
         download = download_mod.ChunkedDownload(
-            EXAMPLE_URL, chunk_size, stream, start=start
+            sync_test.EXAMPLE_URL, chunk_size, stream, start=start
         )
         total_bytes = 16384
         transport = self._mock_transport(start, chunk_size, total_bytes, content=data)
 
         # Actually consume the chunk and check the output.
-        download.consume_next_chunk(transport, timeout=14.7)
+        await download.consume_next_chunk(transport, timeout=14.7)
 
         range_bytes = u"bytes={:d}-{:d}".format(start, start + chunk_size - 1)
         download_headers = {u"range": range_bytes}
         transport.request.assert_called_once_with(
-            u"GET", EXAMPLE_URL, data=None, headers=download_headers, timeout=14.7,
+            u"GET",
+            sync_test.EXAMPLE_URL,
+            data=None,
+            headers=download_headers,
+            timeout=14.7,
         )
 
 
@@ -643,39 +605,45 @@ class TestRawChunkedDownload(object):
         self, start_byte, end_byte, total_bytes, content=None, status_code=None
     ):
         response_headers = self._response_headers(start_byte, end_byte, total_bytes)
-        return mock.Mock(
-            _content=content,
+        content_stream = mock.AsyncMock(spec=["__call__", "read"])
+        content_stream.read = mock.AsyncMock(spec=["__call__"], return_value=content)
+        return mock.AsyncMock(
+            content=content_stream,
+            _headers=response_headers,
             headers=response_headers,
-            status_code=status_code,
-            spec=["_content", "headers", "status_code"],
+            status=status_code,
+            spec=["_headers", "content", "headers", "status"],
         )
 
-    def test_consume_next_chunk_already_finished(self):
-        download = download_mod.RawChunkedDownload(EXAMPLE_URL, 512, None)
+    @pytest.mark.asyncio
+    async def test_consume_next_chunk_already_finished(self):
+        download = download_mod.RawChunkedDownload(sync_test.EXAMPLE_URL, 512, None)
         download._finished = True
         with pytest.raises(ValueError):
-            download.consume_next_chunk(None)
+            await download.consume_next_chunk(None)
 
     def _mock_transport(self, start, chunk_size, total_bytes, content=b""):
-        transport = mock.Mock(spec=["request"])
+        transport = mock.AsyncMock(spec=["request"])
         assert len(content) == chunk_size
-        transport.request.return_value = self._mock_response(
+        mockResponse = self._mock_response(
             start,
             start + chunk_size - 1,
             total_bytes,
             content=content,
             status_code=int(http_client.OK),
         )
+        transport.request = mock.AsyncMock(spec=["__call__"], return_value=mockResponse)
 
         return transport
 
-    def test_consume_next_chunk(self):
+    @pytest.mark.asyncio
+    async def test_consume_next_chunk(self):
         start = 1536
         stream = io.BytesIO()
         data = b"Just one chunk."
         chunk_size = len(data)
         download = download_mod.RawChunkedDownload(
-            EXAMPLE_URL, chunk_size, stream, start=start
+            sync_test.EXAMPLE_URL, chunk_size, stream, start=start
         )
         total_bytes = 16384
         transport = self._mock_transport(start, chunk_size, total_bytes, content=data)
@@ -685,49 +653,51 @@ class TestRawChunkedDownload(object):
         assert download.bytes_downloaded == 0
         assert download.total_bytes is None
         # Actually consume the chunk and check the output.
-        ret_val = download.consume_next_chunk(transport)
+        ret_val = await download.consume_next_chunk(transport)
         assert ret_val is transport.request.return_value
         range_bytes = u"bytes={:d}-{:d}".format(start, start + chunk_size - 1)
         download_headers = {u"range": range_bytes}
         transport.request.assert_called_once_with(
             u"GET",
-            EXAMPLE_URL,
+            sync_test.EXAMPLE_URL,
             data=None,
             headers=download_headers,
-            stream=True,
             timeout=EXPECTED_TIMEOUT,
         )
         assert stream.getvalue() == data
+
         # Go back and check the internal state after consuming the chunk.
         assert not download.finished
         assert download.bytes_downloaded == chunk_size
         assert download.total_bytes == total_bytes
 
-    def test_consume_next_chunk_with_custom_timeout(self):
+    @pytest.mark.asyncio
+    async def test_consume_next_chunk_with_custom_timeout(self):
         start = 1536
         stream = io.BytesIO()
         data = b"Just one chunk."
         chunk_size = len(data)
         download = download_mod.RawChunkedDownload(
-            EXAMPLE_URL, chunk_size, stream, start=start
+            sync_test.EXAMPLE_URL, chunk_size, stream, start=start
         )
         total_bytes = 16384
         transport = self._mock_transport(start, chunk_size, total_bytes, content=data)
 
         # Actually consume the chunk and check the output.
-        download.consume_next_chunk(transport, timeout=14.7)
+        await download.consume_next_chunk(transport, timeout=14.7)
 
         range_bytes = u"bytes={:d}-{:d}".format(start, start + chunk_size - 1)
         download_headers = {u"range": range_bytes}
         transport.request.assert_called_once_with(
             u"GET",
-            EXAMPLE_URL,
+            sync_test.EXAMPLE_URL,
             data=None,
             headers=download_headers,
-            stream=True,
             timeout=14.7,
         )
+
         assert stream.getvalue() == data
+
         # Go back and check the internal state after consuming the chunk.
         assert not download.finished
         assert download.bytes_downloaded == chunk_size
@@ -736,17 +706,18 @@ class TestRawChunkedDownload(object):
 
 class Test__add_decoder(object):
     def test_non_gzipped(self):
-        response_raw = mock.Mock(headers={}, spec=["headers"])
+        response_raw = mock.AsyncMock(headers={}, spec=["headers"])
         md5_hash = download_mod._add_decoder(response_raw, mock.sentinel.md5_hash)
 
         assert md5_hash is mock.sentinel.md5_hash
 
     def test_gzipped(self):
         headers = {u"content-encoding": u"gzip"}
-        response_raw = mock.Mock(headers=headers, spec=["headers", "_decoder"])
+        response_raw = mock.AsyncMock(headers=headers, spec=["headers", "_decoder"])
         md5_hash = download_mod._add_decoder(response_raw, mock.sentinel.md5_hash)
 
         assert md5_hash is not mock.sentinel.md5_hash
+
         assert isinstance(md5_hash, _helpers._DoNothingHash)
         assert isinstance(response_raw._decoder, download_mod._GzipDecoder)
         assert response_raw._decoder._checksum is mock.sentinel.md5_hash
@@ -768,58 +739,81 @@ class Test_GzipDecoder(object):
         md5_hash.update.assert_called_once_with(data)
 
 
-def _mock_response(status_code=http_client.OK, chunks=(), headers=None):
+class AsyncIter:
+    def __init__(self, items):
+        self.items = items
+
+    async def __aiter__(self):
+        for item in self.items:
+            yield item
+
+
+def _mock_response(status=http_client.OK, chunks=(), headers=None):
     if headers is None:
         headers = {}
 
     if chunks:
-        mock_raw = mock.Mock(headers=headers, spec=["headers"])
-        response = mock.MagicMock(
+        chunklist = b"".join(chunks)
+        stream_content = mock.AsyncMock(spec=["__call__", "read", "iter_chunked"])
+        stream_content.read = mock.AsyncMock(spec=["__call__"], return_value=chunklist)
+        stream_content.iter_chunked.return_value = AsyncIter(chunks)
+        mock_raw = mock.AsyncMock(headers=headers, spec=["headers"])
+        response = mock.AsyncMock(
+            _headers=headers,
             headers=headers,
-            status_code=int(status_code),
+            status=int(status),
             raw=mock_raw,
+            content=stream_content,
             spec=[
-                u"__enter__",
-                u"__exit__",
-                u"iter_content",
-                u"status_code",
+                u"__aenter__",
+                u"__aexit__",
+                u"_headers",
+                u"iter_chunked",
+                u"status",
                 u"headers",
                 u"raw",
+                u"content",
             ],
         )
         # i.e. context manager returns ``self``.
-        response.__enter__.return_value = response
-        response.__exit__.return_value = None
-        response.iter_content.return_value = iter(chunks)
+        response.__aenter__.return_value = response
+        response.__aexit__.return_value = None
         return response
     else:
-        return mock.Mock(
+        return mock.AsyncMock(
+            _headers=headers,
             headers=headers,
-            status_code=int(status_code),
-            spec=["status_code", "headers"],
+            status=int(status),
+            spec=["_headers", "status", "headers"],
         )
 
 
 def _mock_raw_response(status_code=http_client.OK, chunks=(), headers=None):
     if headers is None:
         headers = {}
-
-    mock_raw = mock.Mock(headers=headers, spec=["stream"])
-    mock_raw.stream.return_value = iter(chunks)
-    response = mock.MagicMock(
+    chunklist = b"".join(chunks)
+    stream_content = mock.AsyncMock(spec=["__call__", "read", "iter_chunked"])
+    stream_content.read = mock.AsyncMock(spec=["__call__"], return_value=chunklist)
+    stream_content.iter_chunked.return_value = AsyncIter(chunks)
+    mock_raw = mock.AsyncMock(_headers=headers, headers=headers, spec=["__call__"])
+    response = mock.AsyncMock(
+        _headers=headers,
         headers=headers,
-        status_code=int(status_code),
+        status=int(status_code),
         raw=mock_raw,
+        content=stream_content,
         spec=[
-            u"__enter__",
-            u"__exit__",
-            u"iter_content",
-            u"status_code",
+            u"__aenter__",
+            u"__aexit__",
+            u"_headers",
+            u"iter_chunked",
+            u"status",
             u"headers",
             u"raw",
+            u"content",
         ],
     )
     # i.e. context manager returns ``self``.
-    response.__enter__.return_value = response
-    response.__exit__.return_value = None
+    response.__aenter__.return_value = response
+    response.__aexit__.return_value = None
     return response

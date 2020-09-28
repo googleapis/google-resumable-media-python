@@ -19,7 +19,8 @@ import re
 
 from six.moves import http_client
 
-from google.resumable_media import _helpers
+
+from google.async_resumable_media import _helpers
 from google.resumable_media import common
 
 
@@ -195,13 +196,11 @@ class Download(DownloadBase):
         Args:
             transport (object): An object which can make authenticated
                 requests.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Raises:
             NotImplementedError: Always, since virtual.
@@ -330,7 +329,7 @@ class ChunkedDownload(DownloadBase):
         """
         self._invalid = True
 
-    def _process_response(self, response):
+    async def _process_response(self, response):
         """Process the response from an HTTP request.
 
         This is everything that must be done after a request that doesn't
@@ -377,7 +376,7 @@ class ChunkedDownload(DownloadBase):
             callback=self._make_invalid,
         )
         headers = self._get_headers(response)
-        response_body = self._get_body(response)
+        response_body = await self._get_body(response)
 
         start_byte, end_byte, total_bytes = get_range_info(
             response, self._get_headers, callback=self._make_invalid
@@ -393,6 +392,7 @@ class ChunkedDownload(DownloadBase):
                 callback=self._make_invalid,
             )
             num_bytes = int(content_length)
+
             if len(response_body) != num_bytes:
                 self._make_invalid()
                 raise common.InvalidResponse(
@@ -426,14 +426,11 @@ class ChunkedDownload(DownloadBase):
         Args:
             transport (object): An object which can make authenticated
                 requests.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
-
+                Can also be passed as an `aiohttp.ClientTimeout` object.
         Raises:
             NotImplementedError: Always, since virtual.
         """
@@ -530,7 +527,7 @@ def get_range_info(response, get_headers, callback=_helpers.do_nothing):
 
 
 def _check_for_zero_content_range(response, get_status_code, get_headers):
-    """ Validate if response status code is 416 and content range is zero.
+    """Validate if response status code is 416 and content range is zero.
 
     This is the special case for handling zero bytes files.
 

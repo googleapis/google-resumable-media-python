@@ -145,6 +145,7 @@ class MultipartUpload(_request_helpers.RequestsMixin, _upload.MultipartUpload):
             retry_strategy=self._retry_strategy,
             timeout=timeout,
         )
+
         self._process_response(response)
         return response
 

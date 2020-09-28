@@ -12,46 +12,47 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import aiohttp
 import io
 import json
+import pytest
 
 import mock
-from six.moves import http_client
 
-from google import resumable_media
-import google.resumable_media.requests.upload as upload_mod
+from google import async_resumable_media
+import google.async_resumable_media.requests.upload as upload_mod
+from tests.unit.requests import test_upload as sync_test
 
-
-SIMPLE_URL = (
-    u"https://www.googleapis.com/upload/storage/v1/b/{BUCKET}/o?"
-    u"uploadType=media&name={OBJECT}"
+SIMPLE_URL = sync_test.SIMPLE_URL
+MULTIPART_URL = sync_test.MULTIPART_URL
+RESUMABLE_URL = sync_test.RESUMABLE_URL
+ONE_MB = sync_test.ONE_MB
+BASIC_CONTENT = sync_test.BASIC_CONTENT
+JSON_TYPE = sync_test.JSON_TYPE
+JSON_TYPE_LINE = sync_test.JSON_TYPE_LINE
+EXPECTED_TIMEOUT = aiohttp.ClientTimeout(
+    total=None, connect=61, sock_read=60, sock_connect=None
 )
-MULTIPART_URL = (
-    u"https://www.googleapis.com/upload/storage/v1/b/{BUCKET}/o?"
-    u"uploadType=multipart"
-)
-RESUMABLE_URL = (
-    u"https://www.googleapis.com/upload/storage/v1/b/{BUCKET}/o?"
-    u"uploadType=resumable"
-)
-ONE_MB = 1024 * 1024
-BASIC_CONTENT = u"text/plain"
-JSON_TYPE = u"application/json; charset=UTF-8"
-JSON_TYPE_LINE = b"content-type: application/json; charset=UTF-8\r\n"
-EXPECTED_TIMEOUT = (61, 60)
 
 
 class TestSimpleUpload(object):
-    def test_transmit(self):
+    @pytest.mark.asyncio
+    async def test_transmit(self):
         data = b"I have got a lovely bunch of coconuts."
         content_type = BASIC_CONTENT
         upload = upload_mod.SimpleUpload(SIMPLE_URL)
 
-        transport = mock.Mock(spec=["request"])
-        transport.request.return_value = _make_response()
+        transport = mock.AsyncMock(spec=["request"])
+        transport.request = mock.AsyncMock(
+            spec=["__call__"], return_value=_make_response()
+        )
+
         assert not upload.finished
-        ret_val = upload.transmit(transport, data, content_type)
+
+        ret_val = await upload.transmit(transport, data, content_type)
+
         assert ret_val is transport.request.return_value
+
         upload_headers = {u"content-type": content_type}
         transport.request.assert_called_once_with(
             u"POST",
@@ -60,36 +61,60 @@ class TestSimpleUpload(object):
             headers=upload_headers,
             timeout=EXPECTED_TIMEOUT,
         )
+
         assert upload.finished
 
-    def test_transmit_w_custom_timeout(self):
+    @pytest.mark.asyncio
+    async def test_transmit_w_custom_timeout(self):
         data = b"I have got a lovely bunch of coconuts."
         content_type = BASIC_CONTENT
         upload = upload_mod.SimpleUpload(SIMPLE_URL)
-        transport = mock.Mock(spec=["request"])
-        transport.request.return_value = _make_response()
 
-        upload.transmit(transport, data, content_type, timeout=12.6)
-
-        expected_headers = {u"content-type": content_type}
-        transport.request.assert_called_once_with(
-            u"POST", SIMPLE_URL, data=data, headers=expected_headers, timeout=12.6,
+        transport = mock.AsyncMock(spec=["request"])
+        transport.request = mock.AsyncMock(
+            spec=["__call__"], return_value=_make_response()
         )
+
+        assert not upload.finished
+
+        ret_val = await upload.transmit(transport, data, content_type, timeout=12.6)
+
+        assert ret_val is transport.request.return_value
+
+        upload_headers = {u"content-type": content_type}
+        transport.request.assert_called_once_with(
+            u"POST",
+            SIMPLE_URL,
+            data=data,
+            headers=upload_headers,
+            timeout=12.6,
+        )
+
+        assert upload.finished
 
 
 class TestMultipartUpload(object):
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==4==")
-    def test_transmit(self, mock_get_boundary):
+    @mock.patch(
+        u"google.async_resumable_media._upload.get_boundary", return_value=b"==4=="
+    )
+    @pytest.mark.asyncio
+    async def test_transmit(self, mock_get_boundary):
         data = b"Mock data here and there."
         metadata = {u"Hey": u"You", u"Guys": u"90909"}
         content_type = BASIC_CONTENT
         upload = upload_mod.MultipartUpload(MULTIPART_URL)
 
-        transport = mock.Mock(spec=["request"])
-        transport.request.return_value = _make_response()
+        transport = mock.AsyncMock(spec=["request"])
+        transport.request = mock.AsyncMock(
+            spec=["__call__"], return_value=_make_response()
+        )
+
         assert not upload.finished
-        ret_val = upload.transmit(transport, data, metadata, content_type)
+
+        ret_val = await upload.transmit(transport, data, metadata, content_type)
+
         assert ret_val is transport.request.return_value
+
         expected_payload = (
             b"--==4==\r\n"
             + JSON_TYPE_LINE
@@ -114,30 +139,34 @@ class TestMultipartUpload(object):
         assert upload.finished
         mock_get_boundary.assert_called_once_with()
 
-    @mock.patch(u"google.resumable_media._upload.get_boundary", return_value=b"==4==")
-    def test_transmit_w_custom_timeout(self, mock_get_boundary):
+    @mock.patch(
+        u"google.async_resumable_media._upload.get_boundary", return_value=b"==4=="
+    )
+    @pytest.mark.asyncio
+    async def test_transmit_w_custom_timeout(self, mock_get_boundary):
         data = b"Mock data here and there."
         metadata = {u"Hey": u"You", u"Guys": u"90909"}
         content_type = BASIC_CONTENT
         upload = upload_mod.MultipartUpload(MULTIPART_URL)
-        transport = mock.Mock(spec=["request"])
-        transport.request.return_value = _make_response()
 
-        upload.transmit(transport, data, metadata, content_type, timeout=12.6)
+        transport = mock.AsyncMock(spec=["request"])
+        transport.request = mock.AsyncMock(
+            spec=["__call__"], return_value=_make_response()
+        )
 
-        expected_payload = b"".join(
-            (
-                b"--==4==\r\n",
-                JSON_TYPE_LINE,
-                b"\r\n",
-                json.dumps(metadata).encode(u"utf-8"),
-                b"\r\n",
-                b"--==4==\r\n",
-                b"content-type: text/plain\r\n",
-                b"\r\n",
-                b"Mock data here and there.\r\n",
-                b"--==4==--",
-            )
+        await upload.transmit(transport, data, metadata, content_type, timeout=12.6)
+
+        expected_payload = (
+            b"--==4==\r\n"
+            + JSON_TYPE_LINE
+            + b"\r\n"
+            + json.dumps(metadata).encode(u"utf-8")
+            + b"\r\n"
+            + b"--==4==\r\n"
+            b"content-type: text/plain\r\n"
+            b"\r\n"
+            b"Mock data here and there.\r\n"
+            b"--==4==--"
         )
         multipart_type = b'multipart/related; boundary="==4=="'
         upload_headers = {u"content-type": multipart_type}
@@ -154,23 +183,26 @@ class TestMultipartUpload(object):
 
 
 class TestResumableUpload(object):
-    def test_initiate(self):
+    @pytest.mark.asyncio
+    async def test_initiate(self):
         upload = upload_mod.ResumableUpload(RESUMABLE_URL, ONE_MB)
         data = b"Knock knock who is there"
         stream = io.BytesIO(data)
         metadata = {u"name": u"got-jokes.txt"}
 
-        transport = mock.Mock(spec=["request"])
+        transport = mock.AsyncMock(spec=["request"])
         location = (u"http://test.invalid?upload_id=AACODBBBxuw9u3AA",)
         response_headers = {u"location": location}
-        post_response = _make_response(headers=response_headers)
-        transport.request.return_value = post_response
+        transport.request = mock.AsyncMock(
+            spec=["__call__"], return_value=_make_response(headers=response_headers)
+        )
+
         # Check resumable_url before.
         assert upload._resumable_url is None
         # Make request and check the return value (against the mock).
         total_bytes = 100
         assert total_bytes > len(data)
-        response = upload.initiate(
+        response = await upload.initiate(
             transport,
             stream,
             metadata,
@@ -196,28 +228,43 @@ class TestResumableUpload(object):
             timeout=EXPECTED_TIMEOUT,
         )
 
-    def test_initiate_w_custom_timeout(self):
+    @pytest.mark.asyncio
+    async def test_initiate_w_custom_timeout(self):
         upload = upload_mod.ResumableUpload(RESUMABLE_URL, ONE_MB)
         data = b"Knock knock who is there"
         stream = io.BytesIO(data)
         metadata = {u"name": u"got-jokes.txt"}
 
-        transport = mock.Mock(spec=["request"])
+        transport = mock.AsyncMock(spec=["request"])
         location = (u"http://test.invalid?upload_id=AACODBBBxuw9u3AA",)
         response_headers = {u"location": location}
-        post_response = _make_response(headers=response_headers)
-        transport.request.return_value = post_response
-
-        upload.initiate(
-            transport, stream, metadata, BASIC_CONTENT, total_bytes=100, timeout=12.6,
+        transport.request = mock.AsyncMock(
+            spec=["__call__"], return_value=_make_response(headers=response_headers)
         )
 
-        # Make sure timeout was passed to the transport
+        # Check resumable_url before.
+        assert upload._resumable_url is None
+        # Make request and check the return value (against the mock).
+        total_bytes = 100
+        assert total_bytes > len(data)
+        response = await upload.initiate(
+            transport,
+            stream,
+            metadata,
+            BASIC_CONTENT,
+            total_bytes=total_bytes,
+            stream_final=False,
+            timeout=12.6,
+        )
+        assert response is transport.request.return_value
+        # Check resumable_url after.
+        assert upload._resumable_url == location
+        # Make sure the mock was called as expected.
         json_bytes = b'{"name": "got-jokes.txt"}'
         expected_headers = {
             u"content-type": JSON_TYPE,
             u"x-upload-content-type": BASIC_CONTENT,
-            u"x-upload-content-length": u"{:d}".format(100),
+            u"x-upload-content-length": u"{:d}".format(total_bytes),
         }
         transport.request.assert_called_once_with(
             u"POST",
@@ -238,13 +285,14 @@ class TestResumableUpload(object):
 
     @staticmethod
     def _chunk_mock(status_code, response_headers):
-        transport = mock.Mock(spec=["request"])
+        transport = mock.AsyncMock(spec=["request"])
         put_response = _make_response(status_code=status_code, headers=response_headers)
-        transport.request.return_value = put_response
+        transport.request = mock.AsyncMock(spec=["__call__"], return_value=put_response)
 
         return transport
 
-    def test_transmit_next_chunk(self):
+    @pytest.mark.asyncio
+    async def test_transmit_next_chunk(self):
         data = b"This time the data is official."
         upload = self._upload_in_flight(data)
         # Make a fake chunk size smaller than 256 KB.
@@ -254,13 +302,13 @@ class TestResumableUpload(object):
         # Make a fake 308 response.
         response_headers = {u"range": u"bytes=0-{:d}".format(chunk_size - 1)}
         transport = self._chunk_mock(
-            resumable_media.PERMANENT_REDIRECT, response_headers
+            async_resumable_media.PERMANENT_REDIRECT, response_headers
         )
         # Check the state before the request.
         assert upload._bytes_uploaded == 0
 
         # Make request and check the return value (against the mock).
-        response = upload.transmit_next_chunk(transport)
+        response = await upload.transmit_next_chunk(transport)
         assert response is transport.request.return_value
         # Check that the state has been updated.
         assert upload._bytes_uploaded == chunk_size
@@ -279,24 +327,28 @@ class TestResumableUpload(object):
             timeout=EXPECTED_TIMEOUT,
         )
 
-    def test_transmit_next_chunk_w_custom_timeout(self):
+    @pytest.mark.asyncio
+    async def test_transmit_next_chunk_w_custom_timeout(self):
         data = b"This time the data is official."
         upload = self._upload_in_flight(data)
-
         # Make a fake chunk size smaller than 256 KB.
         chunk_size = 10
+        assert chunk_size < len(data)
         upload._chunk_size = chunk_size
-
         # Make a fake 308 response.
         response_headers = {u"range": u"bytes=0-{:d}".format(chunk_size - 1)}
         transport = self._chunk_mock(
-            resumable_media.PERMANENT_REDIRECT, response_headers
+            async_resumable_media.PERMANENT_REDIRECT, response_headers
         )
+        # Check the state before the request.
+        assert upload._bytes_uploaded == 0
 
         # Make request and check the return value (against the mock).
-        upload.transmit_next_chunk(transport, timeout=12.6)
-
-        # Make sure timeout was passed to the transport
+        response = await upload.transmit_next_chunk(transport, timeout=12.6)
+        assert response is transport.request.return_value
+        # Check that the state has been updated.
+        assert upload._bytes_uploaded == chunk_size
+        # Make sure the mock was called as expected.
         payload = data[:chunk_size]
         content_range = u"bytes 0-{:d}/{:d}".format(chunk_size - 1, len(data))
         expected_headers = {
@@ -311,7 +363,8 @@ class TestResumableUpload(object):
             timeout=12.6,
         )
 
-    def test_recover(self):
+    @pytest.mark.asyncio
+    async def test_recover(self):
         upload = upload_mod.ResumableUpload(RESUMABLE_URL, ONE_MB)
         upload._invalid = True  # Make sure invalid.
         upload._stream = mock.Mock(spec=["seek"])
@@ -319,9 +372,9 @@ class TestResumableUpload(object):
 
         end = 55555
         headers = {u"range": u"bytes=0-{:d}".format(end)}
-        transport = self._chunk_mock(resumable_media.PERMANENT_REDIRECT, headers)
+        transport = self._chunk_mock(async_resumable_media.PERMANENT_REDIRECT, headers)
 
-        ret_val = upload.recover(transport)
+        ret_val = await upload.recover(transport)
         assert ret_val is transport.request.return_value
         # Check the state of ``upload`` after.
         assert upload.bytes_uploaded == end + 1
@@ -337,8 +390,11 @@ class TestResumableUpload(object):
         )
 
 
-def _make_response(status_code=http_client.OK, headers=None):
+def _make_response(status_code=200, headers=None):
     headers = headers or {}
     return mock.Mock(
-        headers=headers, status_code=status_code, spec=["headers", "status_code"]
+        _headers=headers,
+        headers=headers,
+        status=status_code,
+        spec=["_headers", "headers", "status_code"],
     )

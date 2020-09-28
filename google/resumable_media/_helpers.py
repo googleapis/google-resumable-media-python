@@ -182,14 +182,14 @@ def wait_and_retry(func, get_status_code, retry_strategy):
 
 
 def _get_crc32c_object():
-    """ Get crc32c object
+    """Get crc32c object
     Attempt to use the Google-CRC32c package. If it isn't available, try
     to use CRCMod. CRCMod might be using a 'slow' varietal. If so, warn...
     """
     try:
-        import crc32c
+        import google_crc32c
 
-        crc_obj = crc32c.Checksum()
+        crc_obj = google_crc32c.Checksum()
     except ImportError:
         try:
             import crcmod
@@ -206,7 +206,11 @@ def _get_crc32c_object():
 def _is_fast_crcmod():
     # Determine if this is using the slow form of crcmod.
     nested_crcmod = __import__(
-        "crcmod.crcmod", globals(), locals(), ["_usingExtension"], 0,
+        "crcmod.crcmod",
+        globals(),
+        locals(),
+        ["_usingExtension"],
+        0,
     )
     fast_crc = getattr(nested_crcmod, "_usingExtension", False)
     if not fast_crc:
@@ -313,7 +317,8 @@ def _parse_checksum_header(header_value, response, checksum_label):
     matches = []
     for checksum in header_value.split(u","):
         name, value = checksum.split(u"=", 1)
-        if name == checksum_label:
+        # Official docs say "," is the separator, but real-world responses have encountered ", "
+        if name.lstrip() == checksum_label:
             matches.append(value)
 
     if len(matches) == 0:

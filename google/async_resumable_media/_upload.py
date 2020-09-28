@@ -25,45 +25,34 @@ Supported here are:
 import json
 import os
 import random
-import re
 import sys
 
 import six
 from six.moves import http_client
 
-from google import resumable_media
-from google.resumable_media import _helpers
+from google import async_resumable_media
+from google.async_resumable_media import _helpers
+from google.resumable_media import _helpers as sync_helpers
+from google.resumable_media import _upload as sync_upload
 from google.resumable_media import common
 
 
-_CONTENT_TYPE_HEADER = u"content-type"
-_CONTENT_RANGE_TEMPLATE = u"bytes {:d}-{:d}/{:d}"
-_RANGE_UNKNOWN_TEMPLATE = u"bytes {:d}-{:d}/*"
-_EMPTY_RANGE_TEMPLATE = u"bytes */{:d}"
-_BOUNDARY_WIDTH = len(str(sys.maxsize - 1))
-_BOUNDARY_FORMAT = u"==============={{:0{:d}d}}==".format(_BOUNDARY_WIDTH)
-_MULTIPART_SEP = b"--"
-_CRLF = b"\r\n"
-_MULTIPART_BEGIN = b"\r\ncontent-type: application/json; charset=UTF-8\r\n\r\n"
-_RELATED_HEADER = b'multipart/related; boundary="'
-_BYTES_RANGE_RE = re.compile(r"bytes=0-(?P<end_byte>\d+)", flags=re.IGNORECASE)
-_STREAM_ERROR_TEMPLATE = (
-    u"Bytes stream is in unexpected state. "
-    u"The local stream has had {:d} bytes read from it while "
-    u"{:d} bytes have already been updated (they should match)."
-)
-_STREAM_READ_PAST_TEMPLATE = (
-    u"{:d} bytes have been read from the stream, which exceeds "
-    u"the expected total {:d}."
-)
-_POST = u"POST"
-_PUT = u"PUT"
-_UPLOAD_CHECKSUM_MISMATCH_MESSAGE = (
-    "The computed ``{}`` checksum, ``{}``, and the checksum reported by the "
-    "remote host, ``{}``, did not match."
-)
-_UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE = (
-    "Response metadata had no ``{}`` value; checksum could not be validated."
+from google.resumable_media._upload import (
+    _CONTENT_TYPE_HEADER,
+    _CONTENT_RANGE_TEMPLATE,
+    _RANGE_UNKNOWN_TEMPLATE,
+    _EMPTY_RANGE_TEMPLATE,
+    _BOUNDARY_FORMAT,
+    _MULTIPART_SEP,
+    _CRLF,
+    _MULTIPART_BEGIN,
+    _RELATED_HEADER,
+    _BYTES_RANGE_RE,
+    _STREAM_ERROR_TEMPLATE,
+    _POST,
+    _PUT,
+    _UPLOAD_CHECKSUM_MISMATCH_MESSAGE,
+    _UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE,
 )
 
 
@@ -214,13 +203,11 @@ class SimpleUpload(UploadBase):
             data (bytes): The resource content to be uploaded.
             content_type (str): The content type of the resource, e.g. a JPEG
                 image has content type ``image/jpeg``.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Raises:
             NotImplementedError: Always, since virtual.
@@ -291,17 +278,21 @@ class MultipartUpload(UploadBase):
         if not isinstance(data, six.binary_type):
             raise TypeError(u"`data` must be bytes, received", type(data))
 
-        checksum_object = _helpers._get_checksum_object(self._checksum_type)
+        checksum_object = sync_helpers._get_checksum_object(self._checksum_type)
+
         if checksum_object:
             checksum_object.update(data)
-            actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())
-            metadata_key = _helpers._get_metadata_key(self._checksum_type)
+            actual_checksum = sync_helpers.prepare_checksum_digest(
+                checksum_object.digest()
+            )
+            metadata_key = sync_helpers._get_metadata_key(self._checksum_type)
             metadata[metadata_key] = actual_checksum
 
         content, multipart_boundary = construct_multipart_request(
             data, metadata, content_type
         )
         multipart_content_type = _RELATED_HEADER + multipart_boundary + b'"'
+
         self._headers[_CONTENT_TYPE_HEADER] = multipart_content_type
 
         return _POST, self.upload_url, content, self._headers
@@ -317,13 +308,11 @@ class MultipartUpload(UploadBase):
                 ACL list.
             content_type (str): The content type of the resource, e.g. a JPEG
                 image has content type ``image/jpeg``.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Raises:
             NotImplementedError: Always, since virtual.
@@ -331,7 +320,7 @@ class MultipartUpload(UploadBase):
         raise NotImplementedError(u"This implementation is virtual.")
 
 
-class ResumableUpload(UploadBase):
+class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
     """Initiate and fulfill a resumable upload to a Google API.
 
     A **resumable** upload sends an initial request with the resource metadata
@@ -364,10 +353,10 @@ class ResumableUpload(UploadBase):
 
     def __init__(self, upload_url, chunk_size, checksum=None, headers=None):
         super(ResumableUpload, self).__init__(upload_url, headers=headers)
-        if chunk_size % resumable_media.UPLOAD_CHUNK_SIZE != 0:
+        if chunk_size % async_resumable_media.UPLOAD_CHUNK_SIZE != 0:
             raise ValueError(
                 u"{} KB must divide chunk size".format(
-                    resumable_media.UPLOAD_CHUNK_SIZE / 1024
+                    async_resumable_media.UPLOAD_CHUNK_SIZE / 1024
                 )
             )
         self._chunk_size = chunk_size
@@ -501,7 +490,7 @@ class ResumableUpload(UploadBase):
         """
         _helpers.require_status_code(
             response,
-            (http_client.OK, http_client.CREATED),
+            (http_client.OK,),
             self._get_status_code,
             callback=self._make_invalid,
         )
@@ -549,13 +538,11 @@ class ResumableUpload(UploadBase):
                 "final" (i.e. no more bytes will be added to it). In this case
                 we determine the upload size from the size of the stream. If
                 ``total_bytes`` is passed, this argument will be ignored.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Raises:
             NotImplementedError: Always, since virtual.
@@ -619,28 +606,6 @@ class ResumableUpload(UploadBase):
         }
         return _PUT, self.resumable_url, payload, headers
 
-    def _update_checksum(self, start_byte, payload):
-        """Update the checksum with the payload if not already updated.
-
-        Because error recovery can result in bytes being transmitted more than
-        once, the checksum tracks the number of bytes checked in
-        self._bytes_checksummed and skips bytes that have already been summed.
-        """
-        if not self._checksum_type:
-            return
-
-        if not self._checksum_object:
-            self._checksum_object = _helpers._get_checksum_object(self._checksum_type)
-
-        if start_byte < self._bytes_checksummed:
-            offset = self._bytes_checksummed - start_byte
-            data = payload[offset:]
-        else:
-            data = payload
-
-        self._checksum_object.update(data)
-        self._bytes_checksummed += len(data)
-
     def _make_invalid(self):
         """Simple setter for ``invalid``.
 
@@ -650,7 +615,7 @@ class ResumableUpload(UploadBase):
         """
         self._invalid = True
 
-    def _process_response(self, response, bytes_sent):
+    async def _process_response(self, response, bytes_sent):
         """Process the response from an HTTP request.
 
         This is everything that must be done after a request that doesn't
@@ -673,7 +638,7 @@ class ResumableUpload(UploadBase):
         """
         status_code = _helpers.require_status_code(
             response,
-            (http_client.OK, resumable_media.PERMANENT_REDIRECT),
+            (http_client.OK, async_resumable_media.PERMANENT_REDIRECT),
             self._get_status_code,
             callback=self._make_invalid,
         )
@@ -690,7 +655,7 @@ class ResumableUpload(UploadBase):
             # Tombstone the current upload so it cannot be used again.
             self._finished = True
             # Validate the checksum. This can raise an exception on failure.
-            self._validate_checksum(response)
+            await self._validate_checksum(response)
         else:
             bytes_range = _helpers.header_required(
                 response,
@@ -709,12 +674,10 @@ class ResumableUpload(UploadBase):
                 )
             self._bytes_uploaded = int(match.group(u"end_byte")) + 1
 
-    def _validate_checksum(self, response):
+    async def _validate_checksum(self, response):
         """Check the computed checksum, if any, against the response headers.
-
         Args:
             response (object): The HTTP response object.
-
         Raises:
             ~google.resumable_media.common.DataCorruption: If the checksum
             computed locally and the checksum reported by the remote host do
@@ -722,8 +685,8 @@ class ResumableUpload(UploadBase):
         """
         if self._checksum_type is None:
             return
-        metadata_key = _helpers._get_metadata_key(self._checksum_type)
-        metadata = response.json()
+        metadata_key = sync_helpers._get_metadata_key(self._checksum_type)
+        metadata = await response.json()
         remote_checksum = metadata.get(metadata_key)
         if remote_checksum is None:
             raise common.InvalidResponse(
@@ -731,7 +694,7 @@ class ResumableUpload(UploadBase):
                 _UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE.format(metadata_key),
                 self._get_headers(response),
             )
-        local_checksum = _helpers.prepare_checksum_digest(
+        local_checksum = sync_helpers.prepare_checksum_digest(
             self._checksum_object.digest()
         )
         if local_checksum != remote_checksum:
@@ -753,13 +716,11 @@ class ResumableUpload(UploadBase):
         Args:
             transport (object): An object which can make authenticated
                 requests.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Raises:
             NotImplementedError: Always, since virtual.
@@ -817,7 +778,7 @@ class ResumableUpload(UploadBase):
         .. _sans-I/O: https://sans-io.readthedocs.io/
         """
         _helpers.require_status_code(
-            response, (resumable_media.PERMANENT_REDIRECT,), self._get_status_code
+            response, (async_resumable_media.PERMANENT_REDIRECT,), self._get_status_code
         )
         headers = self._get_headers(response)
         if _helpers.RANGE_HEADER in headers:

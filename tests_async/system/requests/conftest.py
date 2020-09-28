@@ -13,46 +13,49 @@
 # limitations under the License.
 """py.test fixtures to be shared across multiple system test modules."""
 
-import google.auth
-import google.auth.transport.requests as tr_requests
-import pytest
-
 from tests.system import utils
 
+import google.auth
+import google.auth.transport.aiohttp_requests as tr_requests
+import pytest
 
-def ensure_bucket(transport):
-    get_response = transport.get(utils.BUCKET_URL)
-    if get_response.status_code == 404:
+
+async def ensure_bucket(transport):
+    get_response = await transport.request("GET", utils.BUCKET_URL)
+    if get_response.status == 404:
         credentials = transport.credentials
         query_params = {"project": credentials.project_id}
         payload = {"name": utils.BUCKET_NAME}
-        post_response = transport.post(
-            utils.BUCKET_POST_URL, params=query_params, json=payload
+        post_response = await transport.request(
+            "POST", utils.BUCKET_POST_URL, params=query_params, json=payload
         )
-
-        if not post_response.ok:
+        if not (post_response.status == 200):
             raise ValueError(
-                "{}: {}".format(post_response.status_code, post_response.reason)
+                "{}: {}".format(post_response.status, post_response.reason)
             )
 
 
-def cleanup_bucket(transport):
-    del_response = transport.delete(utils.BUCKET_URL)
+async def cleanup_bucket(transport):
+    del_response = await transport.request("DELETE", utils.BUCKET_URL)
 
-    if not del_response.ok:
-        raise ValueError("{}: {}".format(del_response.status_code, del_response.reason))
+    if not (del_response.status == 204):
+        raise ValueError("{}: {}".format(del_response.status, del_response.reason))
+
+
+def _get_authorized_transport():
+    credentials, project_id = google.auth.default_async(scopes=(utils.GCS_RW_SCOPE,))
+    return tr_requests.AuthorizedSession(credentials)
+
+
+@pytest.fixture(scope=u"module")
+async def authorized_transport():
+    credentials, project_id = google.auth.default_async(scopes=(utils.GCS_RW_SCOPE,))
+    yield _get_authorized_transport()
 
 
 @pytest.fixture(scope=u"session")
-def authorized_transport():
-    credentials, _ = google.auth.default(scopes=(utils.GCS_RW_SCOPE,))
-    yield tr_requests.AuthorizedSession(credentials)
-
-
-@pytest.fixture(scope=u"session")
-def bucket(authorized_transport):
-    ensure_bucket(authorized_transport)
-
+async def bucket():
+    authorized_transport = _get_authorized_transport()
+    await ensure_bucket(authorized_transport)
     yield utils.BUCKET_URL
-
-    cleanup_bucket(authorized_transport)
+    await cleanup_bucket(authorized_transport)

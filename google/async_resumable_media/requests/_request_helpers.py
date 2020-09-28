@@ -20,18 +20,25 @@ This utilities are explicitly catered to ``requests``-like transports.
 
 import functools
 
-from google.resumable_media import _helpers
+from google.async_resumable_media import _helpers
 from google.resumable_media import common
 
+import google.auth.transport.aiohttp_requests as aiohttp_requests
+import aiohttp
 
 _DEFAULT_RETRY_STRATEGY = common.RetryStrategy()
 _SINGLE_GET_CHUNK_SIZE = 8192
+
+
 # The number of seconds to wait to establish a connection
 # (connect() call on socket). Avoid setting this to a multiple of 3 to not
 # Align with TCP Retransmission timing. (typically 2.5-3s)
 _DEFAULT_CONNECT_TIMEOUT = 61
 # The number of seconds to wait between bytes sent from the server.
 _DEFAULT_READ_TIMEOUT = 60
+_DEFAULT_TIMEOUT = aiohttp.ClientTimeout(
+    connect=_DEFAULT_CONNECT_TIMEOUT, sock_read=_DEFAULT_READ_TIMEOUT
+)
 
 
 class RequestsMixin(object):
@@ -51,7 +58,7 @@ class RequestsMixin(object):
         Returns:
             int: The status code.
         """
-        return response.status_code
+        return response.status
 
     @staticmethod
     def _get_headers(response):
@@ -64,10 +71,12 @@ class RequestsMixin(object):
             ~requests.structures.CaseInsensitiveDict: The header mapping (keys
             are case-insensitive).
         """
-        return response.headers
+        # For Async testing,`_headers` is modified instead of headers
+        # access via the internal field.
+        return response._headers
 
     @staticmethod
-    def _get_body(response):
+    async def _get_body(response):
         """Access the response body from an HTTP response.
 
         Args:
@@ -76,12 +85,14 @@ class RequestsMixin(object):
         Returns:
             bytes: The body of the ``response``.
         """
-        return response.content
+        wrapped_response = aiohttp_requests._CombinedResponse(response)
+        content = await wrapped_response.data.read()
+        return content
 
 
 class RawRequestsMixin(RequestsMixin):
     @staticmethod
-    def _get_body(response):
+    async def _get_body(response):
         """Access the response body from an HTTP response.
 
         Args:
@@ -90,15 +101,13 @@ class RawRequestsMixin(RequestsMixin):
         Returns:
             bytes: The body of the ``response``.
         """
-        if response._content is False:
-            response._content = b"".join(
-                response.raw.stream(_SINGLE_GET_CHUNK_SIZE, decode_content=False)
-            )
-            response._content_consumed = True
-        return response._content
+
+        wrapped_response = aiohttp_requests._CombinedResponse(response)
+        content = await wrapped_response.raw_content()
+        return content
 
 
-def http_request(
+async def http_request(
     transport,
     method,
     url,
@@ -127,10 +136,20 @@ def http_request(
     Returns:
         ~requests.Response: The return value of ``transport.request()``.
     """
+
+    # NOTE(asyncio/aiohttp): Sync versions use a tuple for two timeouts,
+    # default connect timeout and read timeout. Since async requests only
+    # accepts a single value, this is using the connect timeout. This logic
+    # diverges from the sync implementation.
     if "timeout" not in transport_kwargs:
-        transport_kwargs["timeout"] = (_DEFAULT_CONNECT_TIMEOUT, _DEFAULT_READ_TIMEOUT)
+        timeout = _DEFAULT_TIMEOUT
+        transport_kwargs["timeout"] = timeout
 
     func = functools.partial(
         transport.request, method, url, data=data, headers=headers, **transport_kwargs
     )
-    return _helpers.wait_and_retry(func, RequestsMixin._get_status_code, retry_strategy)
+
+    resp = await _helpers.wait_and_retry(
+        func, RequestsMixin._get_status_code, retry_strategy
+    )
+    return resp

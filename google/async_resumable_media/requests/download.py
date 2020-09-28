@@ -16,25 +16,14 @@
 
 import urllib3.response
 
-from google.resumable_media import _download
+from google.async_resumable_media import _download
+from google.async_resumable_media import _helpers
+from google.async_resumable_media.requests import _request_helpers
 from google.resumable_media import common
-from google.resumable_media import _helpers
-from google.resumable_media.requests import _request_helpers
+from google.resumable_media import _helpers as sync_helpers
+from google.resumable_media.requests import download
 
-
-_CHECKSUM_MISMATCH = u"""\
-Checksum mismatch while downloading:
-
-  {}
-
-The X-Goog-Hash header indicated an {checksum_type} checksum of:
-
-  {}
-
-but the actual {checksum_type} checksum of the downloaded contents was:
-
-  {}
-"""
+_CHECKSUM_MISMATCH = download._CHECKSUM_MISMATCH
 
 
 class Download(_request_helpers.RequestsMixin, _download.Download):
@@ -70,7 +59,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
         end (Optional[int]): The last byte in a range to be downloaded.
     """
 
-    def _write_to_stream(self, response):
+    async def _write_to_stream(self, response):
         """Write response body to a write-able stream.
 
         .. note:
@@ -89,27 +78,25 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
         # `_get_expected_checksum()` may return None even if a checksum was
         # requested, in which case it will emit an info log _MISSING_CHECKSUM.
         # If an invalid checksum type is specified, this will raise ValueError.
-        expected_checksum, checksum_object = _helpers._get_expected_checksum(
+        expected_checksum, checksum_object = sync_helpers._get_expected_checksum(
             response, self._get_headers, self.media_url, checksum_type=self.checksum
         )
 
-        with response:
-            # NOTE: In order to handle compressed streams gracefully, we try
-            # to insert our checksum object into the decompression stream. If
-            # the stream is indeed compressed, this will delegate the checksum
-            # object to the decoder and return a _DoNothingHash here.
-            local_checksum_object = _add_decoder(response.raw, checksum_object)
-            body_iter = response.iter_content(
-                chunk_size=_request_helpers._SINGLE_GET_CHUNK_SIZE, decode_unicode=False
-            )
-            for chunk in body_iter:
-                self._stream.write(chunk)
-                local_checksum_object.update(chunk)
+        local_checksum_object = _add_decoder(response, checksum_object)
+
+        async for chunk in response.content.iter_chunked(
+            _request_helpers._SINGLE_GET_CHUNK_SIZE
+        ):
+            self._stream.write(chunk)
+            local_checksum_object.update(chunk)
 
         if expected_checksum is None:
             return
+
         else:
-            actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())
+            actual_checksum = sync_helpers.prepare_checksum_digest(
+                checksum_object.digest()
+            )
             if actual_checksum != expected_checksum:
                 msg = _CHECKSUM_MISMATCH.format(
                     self.media_url,
@@ -119,14 +106,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                 )
                 raise common.DataCorruption(response, msg)
 
-    def consume(
-        self,
-        transport,
-        timeout=(
-            _request_helpers._DEFAULT_CONNECT_TIMEOUT,
-            _request_helpers._DEFAULT_READ_TIMEOUT,
-        ),
-    ):
+    async def consume(self, transport, timeout=_request_helpers._DEFAULT_TIMEOUT):
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded
@@ -135,13 +115,11 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -160,15 +138,18 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             u"retry_strategy": self._retry_strategy,
             u"timeout": timeout,
         }
+
         if self._stream is not None:
             request_kwargs[u"stream"] = True
 
-        result = _request_helpers.http_request(transport, method, url, **request_kwargs)
+        result = await _request_helpers.http_request(
+            transport, method, url, **request_kwargs
+        )
 
         self._process_response(result)
 
         if self._stream is not None:
-            self._write_to_stream(result)
+            await self._write_to_stream(result)
 
         return result
 
@@ -199,13 +180,14 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
             ranged downloads where the remote service does not know the
             correct checksum) an INFO-level log will be emitted. Supported
             values are "md5", "crc32c" and None. The default is "md5".
+
     Attributes:
         media_url (str): The URL containing the media to be downloaded.
         start (Optional[int]): The first byte in a range to be downloaded.
         end (Optional[int]): The last byte in a range to be downloaded.
     """
 
-    def _write_to_stream(self, response):
+    async def _write_to_stream(self, response):
         """Write response body to a write-able stream.
 
         .. note:
@@ -224,23 +206,22 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
         # `_get_expected_checksum()` may return None even if a checksum was
         # requested, in which case it will emit an info log _MISSING_CHECKSUM.
         # If an invalid checksum type is specified, this will raise ValueError.
-        expected_checksum, checksum_object = _helpers._get_expected_checksum(
+        expected_checksum, checksum_object = sync_helpers._get_expected_checksum(
             response, self._get_headers, self.media_url, checksum_type=self.checksum
         )
 
-        with response:
-            body_iter = response.raw.stream(
-                _request_helpers._SINGLE_GET_CHUNK_SIZE, decode_content=False
-            )
-            for chunk in body_iter:
-                self._stream.write(chunk)
-                checksum_object.update(chunk)
-            response._content_consumed = True
+        async for chunk in response.content.iter_chunked(
+            _request_helpers._SINGLE_GET_CHUNK_SIZE
+        ):
+            self._stream.write(chunk)
+            checksum_object.update(chunk)
 
         if expected_checksum is None:
             return
         else:
-            actual_checksum = _helpers.prepare_checksum_digest(checksum_object.digest())
+            actual_checksum = sync_helpers.prepare_checksum_digest(
+                checksum_object.digest()
+            )
 
             if actual_checksum != expected_checksum:
                 msg = _CHECKSUM_MISMATCH.format(
@@ -251,14 +232,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
                 )
                 raise common.DataCorruption(response, msg)
 
-    def consume(
-        self,
-        transport,
-        timeout=(
-            _request_helpers._DEFAULT_CONNECT_TIMEOUT,
-            _request_helpers._DEFAULT_READ_TIMEOUT,
-        ),
-    ):
+    async def consume(self, transport, timeout=_request_helpers._DEFAULT_TIMEOUT):
         """Consume the resource to be downloaded.
 
         If a ``stream`` is attached to this download, then the downloaded
@@ -271,7 +245,6 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-
                 Can also be passed as a tuple (connect_timeout, read_timeout).
                 See :meth:`requests.Session.request` documentation for details.
 
@@ -286,21 +259,19 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
         """
         method, url, payload, headers = self._prepare_request()
         # NOTE: We assume "payload is None" but pass it along anyway.
-        result = _request_helpers.http_request(
+        result = await _request_helpers.http_request(
             transport,
             method,
             url,
             data=payload,
             headers=headers,
             retry_strategy=self._retry_strategy,
-            stream=True,
-            timeout=timeout,
         )
 
         self._process_response(result)
 
         if self._stream is not None:
-            self._write_to_stream(result)
+            await self._write_to_stream(result)
 
         return result
 
@@ -333,26 +304,21 @@ class ChunkedDownload(_request_helpers.RequestsMixin, _download.ChunkedDownload)
         ValueError: If ``start`` is negative.
     """
 
-    def consume_next_chunk(
-        self,
-        transport,
-        timeout=(
-            _request_helpers._DEFAULT_CONNECT_TIMEOUT,
-            _request_helpers._DEFAULT_READ_TIMEOUT,
-        ),
+    async def consume_next_chunk(
+        self, transport, timeout=_request_helpers._DEFAULT_TIMEOUT
     ):
-        """Consume the next chunk of the resource to be downloaded.
+
+        """
+        Consume the next chunk of the resource to be downloaded.
 
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -362,7 +328,7 @@ class ChunkedDownload(_request_helpers.RequestsMixin, _download.ChunkedDownload)
         """
         method, url, payload, headers = self._prepare_request()
         # NOTE: We assume "payload is None" but pass it along anyway.
-        result = _request_helpers.http_request(
+        result = await _request_helpers.http_request(
             transport,
             method,
             url,
@@ -371,7 +337,8 @@ class ChunkedDownload(_request_helpers.RequestsMixin, _download.ChunkedDownload)
             retry_strategy=self._retry_strategy,
             timeout=timeout,
         )
-        self._process_response(result)
+
+        await self._process_response(result)
         return result
 
 
@@ -403,26 +370,19 @@ class RawChunkedDownload(_request_helpers.RawRequestsMixin, _download.ChunkedDow
         ValueError: If ``start`` is negative.
     """
 
-    def consume_next_chunk(
-        self,
-        transport,
-        timeout=(
-            _request_helpers._DEFAULT_CONNECT_TIMEOUT,
-            _request_helpers._DEFAULT_READ_TIMEOUT,
-        ),
+    async def consume_next_chunk(
+        self, transport, timeout=_request_helpers._DEFAULT_TIMEOUT
     ):
         """Consume the next chunk of the resource to be downloaded.
 
         Args:
             transport (~requests.Session): A ``requests`` object which can
                 make authenticated requests.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
+            timeout (Optional[Union[float, aiohttp.ClientTimeout]]):
                 The number of seconds to wait for the server response.
                 Depending on the retry strategy, a request may be repeated
                 several times using the same timeout each time.
-
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
+                Can also be passed as an `aiohttp.ClientTimeout` object.
 
         Returns:
             ~requests.Response: The HTTP response returned by ``transport``.
@@ -432,17 +392,16 @@ class RawChunkedDownload(_request_helpers.RawRequestsMixin, _download.ChunkedDow
         """
         method, url, payload, headers = self._prepare_request()
         # NOTE: We assume "payload is None" but pass it along anyway.
-        result = _request_helpers.http_request(
+        result = await _request_helpers.http_request(
             transport,
             method,
             url,
             data=payload,
             headers=headers,
-            stream=True,
             retry_strategy=self._retry_strategy,
             timeout=timeout,
         )
-        self._process_response(result)
+        await self._process_response(result)
         return result
 
 
@@ -465,6 +424,7 @@ def _add_decoder(response_raw, checksum):
         patched, or a ``_DoNothingHash`` if the decoder is patched, since the
         caller will no longer need to hash to decoded bytes.
     """
+
     encoding = response_raw.headers.get(u"content-encoding", u"").lower()
     if encoding != u"gzip":
         return checksum
