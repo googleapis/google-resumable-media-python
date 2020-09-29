@@ -15,7 +15,6 @@
 
 from tests.system import utils
 
-import google.auth
 from google.auth._default_async import default_async
 import google.auth.transport._aiohttp_requests as tr_requests
 import pytest
