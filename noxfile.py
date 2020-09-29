@@ -30,10 +30,7 @@ DEFAULT_PYTHON_VERSION = "3.8"
 SYSTEM_TEST_PYTHON_VERSIONS = ["2.7", "3.8"]
 UNIT_TEST_PYTHON_VERSIONS = ["2.7", "3.5", "3.6", "3.7", "3.8"]
 
-<<<<<<< HEAD
-=======
 
->>>>>>> b412e9fc9c54dca44ba34f101d384abfe1b6915d
 @nox.session(python=UNIT_TEST_PYTHON_VERSIONS)
 def unit(session):
     """Run the unit test suite."""
