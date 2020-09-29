@@ -20,6 +20,7 @@ import nox
 
 SYSTEM_TEST_ENV_VARS = ("GOOGLE_APPLICATION_CREDENTIALS",)
 BLACK_VERSION = "black==20.8b1"
+GOOGLE_AUTH = 'google-auth >= 1.22.0, < 2.0dev',
 
 DEFAULT_PYTHON_VERSION = "3.8"
 SYSTEM_TEST_PYTHON_VERSIONS = ["2.7", "3.8"]
@@ -148,6 +149,7 @@ def doctest(session):
         "sphinx_rtd_theme",
         "sphinx-docstring-typing >= 0.0.3",
         "mock",
+        GOOGLE_AUTH,
     )
 
     # Run the doctests with Sphinx.
@@ -226,7 +228,7 @@ def system(session):
 
     # Install all test dependencies, then install this package into the
     # virtualenv's dist-packages.
-    session.install("mock", "pytest", "google-cloud-testutils")
+    session.install("mock", "pytest", GOOGLE_AUTH, "google-cloud-testutils")
     session.install("-e", ".[requests]")
 
     # Run py.test against the async system tests.
