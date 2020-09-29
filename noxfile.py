@@ -26,7 +26,14 @@ SYSTEM_TEST_PYTHON_VERSIONS = ["2.7", "3.8"]
 UNIT_TEST_PYTHON_VERSIONS = ["3.6", "3.7", "3.8"]
 UNIT_TEST_SYNC_PYTHON_VERSIONS = ["2.7", "3.5"]
 
+DEFAULT_PYTHON_VERSION = "3.8"
+SYSTEM_TEST_PYTHON_VERSIONS = ["2.7", "3.8"]
+UNIT_TEST_PYTHON_VERSIONS = ["2.7", "3.5", "3.6", "3.7", "3.8"]
 
+<<<<<<< HEAD
+=======
+
+>>>>>>> b412e9fc9c54dca44ba34f101d384abfe1b6915d
 @nox.session(python=UNIT_TEST_PYTHON_VERSIONS)
 def unit(session):
     """Run the unit test suite."""
@@ -101,7 +108,6 @@ def docs(session):
         os.path.join("docs", "_build", "html", ""),
     )
 
-
 @nox.session(python=DEFAULT_PYTHON_VERSION)
 def docfx(session):
     """Build the docfx yaml files for this library."""
@@ -136,6 +142,42 @@ def docfx(session):
 
 
 @nox.session(python=DEFAULT_PYTHON_VERSION)
+<<<<<<< HEAD
+def docfx(session):
+    """Build the docfx yaml files for this library."""
+
+    session.install("-e", ".")
+    session.install("sphinx", "alabaster", "recommonmark", "sphinx-docfx-yaml")
+
+    shutil.rmtree(os.path.join("docs", "_build"), ignore_errors=True)
+    session.run(
+        "sphinx-build",
+        "-T",  # show full traceback on exception
+        "-N",  # no colors
+        "-D",
+        (
+            "extensions=sphinx.ext.autodoc,"
+            "sphinx.ext.autosummary,"
+            "docfx_yaml.extension,"
+            "sphinx.ext.intersphinx,"
+            "sphinx.ext.coverage,"
+            "sphinx.ext.napoleon,"
+            "sphinx.ext.todo,"
+            "sphinx.ext.viewcode,"
+            "recommonmark"
+        ),
+        "-b",
+        "html",
+        "-d",
+        os.path.join("docs", "_build", "doctrees", ""),
+        os.path.join("docs", ""),
+        os.path.join("docs", "_build", "html", ""),
+    )
+
+
+@nox.session(python=DEFAULT_PYTHON_VERSION)
+=======
+>>>>>>> b412e9fc9c54dca44ba34f101d384abfe1b6915d
 def doctest(session):
     """Run the doctests."""
     session.install("-e", ".[requests]")
