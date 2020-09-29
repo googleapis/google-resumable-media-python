@@ -42,7 +42,7 @@ def unit(session):
     session.run(
         "py.test",
         "--cov=google.resumable_media",
-        "--cov=google.async_resumable_media",
+        "--cov=google._async_resumable_media",
         "--cov=tests.unit",
         "--cov=tests_async.unit",
         "--cov-append",
@@ -173,7 +173,7 @@ def lint(session):
         "flake8",
         os.path.join("google", "resumable_media"),
         "tests",
-        os.path.join("google", "async_resumable_media"),
+        os.path.join("google", "_async_resumable_media"),
         "tests_async",
     )
     session.run(
@@ -181,7 +181,7 @@ def lint(session):
         "--check",
         os.path.join("google", "resumable_media"),
         "tests",
-        os.path.join("google", "async_resumable_media"),
+        os.path.join("google", "_async_resumable_media"),
         "tests_async",
     )
 
@@ -200,7 +200,7 @@ def blacken(session):
         "black",
         os.path.join("google", "resumable_media"),
         "tests",
-        os.path.join("google", "async_resumable_media"),
+        os.path.join("google", "_async_resumable_media"),
         "tests_async",
     )
 

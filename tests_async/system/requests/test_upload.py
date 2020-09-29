@@ -25,8 +25,8 @@ from six.moves import urllib_parse
 import asyncio
 
 from google.resumable_media import common
-from google import async_resumable_media
-import google.async_resumable_media.requests as resumable_requests
+from google import _async_resumable_media
+import google._async_resumable_media.requests as resumable_requests
 
 from google.resumable_media import _helpers
 from tests.system import utils
@@ -171,7 +171,7 @@ async def check_initiate(response, upload, stream, transport, metadata):
 
 
 async def check_bad_chunk(upload, transport):
-    with pytest.raises(async_resumable_media.InvalidResponse) as exc_info:
+    with pytest.raises(_async_resumable_media.InvalidResponse) as exc_info:
         await upload.transmit_next_chunk(transport)
     error = exc_info.value
     response = error.response
@@ -197,7 +197,7 @@ async def transmit_chunks(
             )
         else:
             assert upload.bytes_uploaded == num_chunks * upload.chunk_size
-            assert response.status == async_resumable_media.PERMANENT_REDIRECT
+            assert response.status == _async_resumable_media.PERMANENT_REDIRECT
 
     return num_chunks
 
@@ -360,7 +360,7 @@ async def _resumable_upload_helper(
     await cleanup(blob_name, authorized_transport)
     await check_does_not_exist(authorized_transport, blob_name)
     # Create the actual upload object.
-    chunk_size = async_resumable_media.UPLOAD_CHUNK_SIZE
+    chunk_size = _async_resumable_media.UPLOAD_CHUNK_SIZE
     upload = resumable_requests.ResumableUpload(
         utils.RESUMABLE_UPLOAD, chunk_size, headers=headers, checksum=checksum
     )
@@ -420,7 +420,7 @@ async def test_resumable_upload_with_bad_checksum(
             )
     expected_checksums = {"md5": "1bsd83IYNug8hd+V1ING3Q==", "crc32c": "YQGPxA=="}
     expected_message = (
-        async_resumable_media._upload._UPLOAD_CHECKSUM_MISMATCH_MESSAGE.format(
+        _async_resumable_media._upload._UPLOAD_CHECKSUM_MISMATCH_MESSAGE.format(
             checksum.upper(),
             fake_prepared_checksum_digest,
             expected_checksums[checksum],
@@ -434,12 +434,12 @@ async def test_resumable_upload_bad_chunk_size(authorized_transport, img_stream)
     blob_name = os.path.basename(img_stream.name)
     # Create the actual upload object.
     upload = resumable_requests.ResumableUpload(
-        utils.RESUMABLE_UPLOAD, async_resumable_media.UPLOAD_CHUNK_SIZE
+        utils.RESUMABLE_UPLOAD, _async_resumable_media.UPLOAD_CHUNK_SIZE
     )
     # Modify the ``upload`` **after** construction so we can
     # use a bad chunk size.
     upload._chunk_size = 1024
-    assert upload._chunk_size < async_resumable_media.UPLOAD_CHUNK_SIZE
+    assert upload._chunk_size < _async_resumable_media.UPLOAD_CHUNK_SIZE
     # Initiate the upload.
     metadata = {u"name": blob_name}
     response = await upload.initiate(
@@ -451,7 +451,7 @@ async def test_resumable_upload_bad_chunk_size(authorized_transport, img_stream)
     await check_bad_chunk(upload, authorized_transport)
     # Reset the chunk size (and the stream) and verify the "resumable"
     # URL is unusable.
-    upload._chunk_size = async_resumable_media.UPLOAD_CHUNK_SIZE
+    upload._chunk_size = _async_resumable_media.UPLOAD_CHUNK_SIZE
     img_stream.seek(0)
     upload._invalid = False
     await check_bad_chunk(upload, authorized_transport)
@@ -466,7 +466,7 @@ async def sabotage_and_recover(upload, stream, transport, chunk_size):
     upload._bytes_uploaded = 0  # Make ``bytes_uploaded`` wrong as well.
     # Recover the (artifically) invalid upload.
     response = await upload.recover(transport)
-    assert response.status == async_resumable_media.PERMANENT_REDIRECT
+    assert response.status == _async_resumable_media.PERMANENT_REDIRECT
     assert not upload.invalid
     assert upload.bytes_uploaded == chunk_size
     assert stream.tell() == chunk_size
@@ -474,7 +474,7 @@ async def sabotage_and_recover(upload, stream, transport, chunk_size):
 
 async def _resumable_upload_recover_helper(authorized_transport, cleanup, headers=None):
     blob_name = u"some-bytes.bin"
-    chunk_size = async_resumable_media.UPLOAD_CHUNK_SIZE
+    chunk_size = _async_resumable_media.UPLOAD_CHUNK_SIZE
     data = b"123" * chunk_size  # 3 chunks worth.
     # Make sure to clean up the uploaded blob when we are done.
     await cleanup(blob_name, authorized_transport)
@@ -493,7 +493,7 @@ async def _resumable_upload_recover_helper(authorized_transport, cleanup, header
     await check_initiate(response, upload, stream, authorized_transport, metadata)
     # Make the first request.
     response = await upload.transmit_next_chunk(authorized_transport)
-    assert response.status == async_resumable_media.PERMANENT_REDIRECT
+    assert response.status == _async_resumable_media.PERMANENT_REDIRECT
     # Call upload.recover().
     await sabotage_and_recover(upload, stream, authorized_transport, chunk_size)
     # Now stream what remains.
@@ -552,7 +552,7 @@ class TestResumableUploadUnknownSize(object):
 
         assert not upload.finished
         assert upload.bytes_uploaded == end_byte + 1
-        assert response.status == async_resumable_media.PERMANENT_REDIRECT
+        assert response.status == _async_resumable_media.PERMANENT_REDIRECT
         content = await response.content.read()
         assert content == b""
 
@@ -562,7 +562,7 @@ class TestResumableUploadUnknownSize(object):
     @pytest.mark.asyncio
     async def test_smaller_than_chunk_size(self, authorized_transport, bucket, cleanup):
         blob_name = os.path.basename(ICO_FILE)
-        chunk_size = async_resumable_media.UPLOAD_CHUNK_SIZE
+        chunk_size = _async_resumable_media.UPLOAD_CHUNK_SIZE
         # Make sure to clean up the uploaded blob when we are done.
         await cleanup(blob_name, authorized_transport)
         await check_does_not_exist(authorized_transport, blob_name)
@@ -601,7 +601,7 @@ class TestResumableUploadUnknownSize(object):
     @pytest.mark.asyncio
     async def test_finish_at_chunk(self, authorized_transport, bucket, cleanup):
         blob_name = u"some-clean-stuff.bin"
-        chunk_size = async_resumable_media.UPLOAD_CHUNK_SIZE
+        chunk_size = _async_resumable_media.UPLOAD_CHUNK_SIZE
         # Make sure to clean up the uploaded blob when we are done.
         await cleanup(blob_name, authorized_transport)
         await check_does_not_exist(authorized_transport, blob_name)
@@ -654,7 +654,7 @@ class TestResumableUploadUnknownSize(object):
     @pytest.mark.asyncio
     async def test_interleave_writes(self, authorized_transport, bucket, cleanup):
         blob_name = u"some-moar-stuff.bin"
-        chunk_size = async_resumable_media.UPLOAD_CHUNK_SIZE
+        chunk_size = _async_resumable_media.UPLOAD_CHUNK_SIZE
         # Make sure to clean up the uploaded blob when we are done.
         await cleanup(blob_name, authorized_transport)
         await check_does_not_exist(authorized_transport, blob_name)

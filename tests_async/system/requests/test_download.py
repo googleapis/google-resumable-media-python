@@ -26,9 +26,9 @@ from six.moves import http_client
 import asyncio
 import multidict
 
-import google.async_resumable_media.requests as resumable_requests
+import google._async_resumable_media.requests as resumable_requests
 from google.resumable_media import _helpers
-import google.async_resumable_media.requests.download as download_mod
+import google._async_resumable_media.requests.download as download_mod
 from google.resumable_media import common
 from tests.system import utils
 

@@ -20,7 +20,7 @@ This utilities are explicitly catered to ``requests``-like transports.
 
 import functools
 
-from google.async_resumable_media import _helpers
+from google._async_resumable_media import _helpers
 from google.resumable_media import common
 
 import google.auth.transport._aiohttp_requests as aiohttp_requests
