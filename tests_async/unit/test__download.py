@@ -22,7 +22,7 @@ from google.async_resumable_media import _download
 from google.resumable_media import common
 from tests.unit import test__download as sync_test
 
-import google.auth.transport.aiohttp_requests as aiohttp_requests
+import google.auth.transport._aiohttp_requests as aiohttp_requests
 
 EXAMPLE_URL = sync_test.EXAMPLE_URL
 

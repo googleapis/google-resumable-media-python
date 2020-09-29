@@ -19,8 +19,6 @@ import shutil
 import nox
 
 SYSTEM_TEST_ENV_VARS = ("GOOGLE_APPLICATION_CREDENTIALS",)
-GOOGLE_AUTH = "git+https://github.com/googleapis/google-auth-library-python.git@c9adc2744b37a41424e959bb11c3559c41e42496"
-# GOOGLE_AUTH = "google-auth >= 0.10.0"
 BLACK_VERSION = "black==20.8b1"
 
 DEFAULT_PYTHON_VERSION = "3.8"
@@ -36,7 +34,6 @@ def unit(session):
     # Install all test dependencies, then install this package in-place.
     session.install("mock", "pytest", "pytest-cov", "pytest-asyncio")
     session.install("-e", ".[requests]")
-    session.install(GOOGLE_AUTH)
 
     # Run py.test against the unit tests.
     # NOTE: We don't require 100% line coverage for unit test runs since
@@ -65,7 +62,6 @@ def unit_2(session):
     # Install all test dependencies, then install this package in-place.
     session.install("mock", "pytest", "pytest-cov")
     session.install("-e", ".[requests]")
-    session.install(GOOGLE_AUTH)
 
     # Run py.test against the unit tests.
     # NOTE: We don't require 100% line coverage for unit test runs since
@@ -149,7 +145,6 @@ def doctest(session):
         "sphinx_rtd_theme",
         "sphinx-docstring-typing >= 0.0.3",
         "mock",
-        GOOGLE_AUTH,
     )
 
     # Run the doctests with Sphinx.
@@ -228,7 +223,7 @@ def system(session):
 
     # Install all test dependencies, then install this package into the
     # virtualenv's dist-packages.
-    session.install("mock", "pytest", GOOGLE_AUTH, "google-cloud-testutils")
+    session.install("mock", "pytest", "google-cloud-testutils")
     session.install("-e", ".[requests]")
 
     # Run py.test against the async system tests.

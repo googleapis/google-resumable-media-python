@@ -15,8 +15,8 @@
 
 from tests.system import utils
 
-import google.auth
-import google.auth.transport.aiohttp_requests as tr_requests
+from google.auth._default_async import default_async
+import google.auth.transport._aiohttp_requests as tr_requests
 import pytest
 
 
@@ -43,13 +43,13 @@ async def cleanup_bucket(transport):
 
 
 def _get_authorized_transport():
-    credentials, project_id = google.auth.default_async(scopes=(utils.GCS_RW_SCOPE,))
+    credentials, project_id = default_async(scopes=(utils.GCS_RW_SCOPE,))
     return tr_requests.AuthorizedSession(credentials)
 
 
 @pytest.fixture(scope=u"module")
 async def authorized_transport():
-    credentials, project_id = google.auth.default_async(scopes=(utils.GCS_RW_SCOPE,))
+    credentials, project_id = default_async(scopes=(utils.GCS_RW_SCOPE,))
     yield _get_authorized_transport()
 
 
