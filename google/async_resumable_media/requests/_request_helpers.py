@@ -23,7 +23,7 @@ import functools
 from google.async_resumable_media import _helpers
 from google.resumable_media import common
 
-import google.auth.transport.aiohttp_requests as aiohttp_requests
+import google.auth.transport._aiohttp_requests as aiohttp_requests
 import aiohttp
 
 _DEFAULT_RETRY_STRATEGY = common.RetryStrategy()
