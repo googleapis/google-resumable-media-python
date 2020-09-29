@@ -20,7 +20,7 @@ import nox
 
 SYSTEM_TEST_ENV_VARS = ("GOOGLE_APPLICATION_CREDENTIALS",)
 BLACK_VERSION = "black==20.8b1"
-GOOGLE_AUTH = 'google-auth >= 1.22.0, < 2.0dev',
+GOOGLE_AUTH = "google-auth >= 1.22.0, < 2.0dev"
 
 DEFAULT_PYTHON_VERSION = "3.8"
 SYSTEM_TEST_PYTHON_VERSIONS = ["2.7", "3.8"]
@@ -37,7 +37,7 @@ def unit(session):
     """Run the unit test suite."""
 
     # Install all test dependencies, then install this package in-place.
-    session.install("mock", "pytest", "pytest-cov", "pytest-asyncio")
+    session.install("mock", "pytest", "pytest-cov", "pytest-asyncio", GOOGLE_AUTH)
     session.install("-e", ".[requests]")
 
     # Run py.test against the unit tests.
