@@ -16,9 +16,9 @@
 
 import urllib3.response
 
-from google.async_resumable_media import _download
-from google.async_resumable_media import _helpers
-from google.async_resumable_media.requests import _request_helpers
+from google._async_resumable_media import _download
+from google._async_resumable_media import _helpers
+from google._async_resumable_media.requests import _request_helpers
 from google.resumable_media import common
 from google.resumable_media import _helpers as sync_helpers
 from google.resumable_media.requests import download

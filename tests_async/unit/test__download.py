@@ -18,7 +18,7 @@ import mock
 import pytest
 from six.moves import http_client
 
-from google.async_resumable_media import _download
+from google._async_resumable_media import _download
 from google.resumable_media import common
 from tests.unit import test__download as sync_test
 

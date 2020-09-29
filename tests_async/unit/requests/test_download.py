@@ -21,8 +21,8 @@ from six.moves import http_client
 
 
 from google.resumable_media import common
-from google.async_resumable_media import _helpers
-from google.async_resumable_media.requests import download as download_mod
+from google._async_resumable_media import _helpers
+from google._async_resumable_media.requests import download as download_mod
 from tests.unit.requests import test_download as sync_test
 
 EXPECTED_TIMEOUT = aiohttp.ClientTimeout(

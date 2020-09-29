@@ -18,7 +18,7 @@ import mock
 from six.moves import http_client
 import pytest
 
-from google.async_resumable_media.requests import _request_helpers as _helpers
+from google._async_resumable_media.requests import _request_helpers as _helpers
 
 # async version takes a single timeout, not a tuple of connect, read timeouts.
 EXPECTED_TIMEOUT = aiohttp.ClientTimeout(connect=61, sock_read=60)

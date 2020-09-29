@@ -19,8 +19,8 @@ uploads that contain both metadata and a small file as payload.
 """
 
 
-from google.async_resumable_media import _upload
-from google.async_resumable_media.requests import _request_helpers
+from google._async_resumable_media import _upload
+from google._async_resumable_media.requests import _request_helpers
 
 
 class SimpleUpload(_request_helpers.RequestsMixin, _upload.SimpleUpload):

@@ -19,8 +19,8 @@ import mock
 import pytest
 from six.moves import http_client
 
-from google import async_resumable_media
-from google.async_resumable_media import _upload
+from google import _async_resumable_media
+from google._async_resumable_media import _upload
 
 from google.resumable_media import common
 from google.resumable_media import _helpers as sync_helpers
@@ -190,7 +190,7 @@ class TestMultipartUpload(object):
             upload._prepare_request(data, {}, sync_test.BASIC_CONTENT)
 
     @mock.patch(
-        u"google.async_resumable_media._upload.get_boundary", return_value=b"==3=="
+        u"google._async_resumable_media._upload.get_boundary", return_value=b"==3=="
     )
     def _prepare_request_helper(
         self,
@@ -723,7 +723,7 @@ class TestResumableUpload(object):
         assert len(error.args) == 5
         assert error.args[1] == response.status_code
         assert error.args[3] == http_client.OK
-        assert error.args[4] == async_resumable_media.PERMANENT_REDIRECT
+        assert error.args[4] == _async_resumable_media.PERMANENT_REDIRECT
         # Make sure the upload is invalid after the failure.
         assert upload.invalid
 
@@ -758,7 +758,7 @@ class TestResumableUpload(object):
         upload = _upload.ResumableUpload(sync_test.RESUMABLE_URL, sync_test.ONE_MB)
         _fix_up_virtual(upload)
 
-        response = _make_response(status_code=async_resumable_media.PERMANENT_REDIRECT)
+        response = _make_response(status_code=_async_resumable_media.PERMANENT_REDIRECT)
         # Make sure the upload is valid before the failure.
         assert not upload.invalid
         with pytest.raises(common.InvalidResponse) as exc_info:
@@ -781,7 +781,7 @@ class TestResumableUpload(object):
         assert not upload.invalid
         headers = {u"range": u"nights 1-81"}
         response = _make_response(
-            status_code=async_resumable_media.PERMANENT_REDIRECT, headers=headers
+            status_code=_async_resumable_media.PERMANENT_REDIRECT, headers=headers
         )
         with pytest.raises(common.InvalidResponse) as exc_info:
             await upload._process_response(response, 81)
@@ -803,7 +803,7 @@ class TestResumableUpload(object):
         assert upload._bytes_uploaded == 0
         headers = {u"range": u"bytes=0-171"}
         response = _make_response(
-            status_code=async_resumable_media.PERMANENT_REDIRECT, headers=headers
+            status_code=_async_resumable_media.PERMANENT_REDIRECT, headers=headers
         )
         ret_val = await upload._process_response(response, 172)
         assert ret_val is None
@@ -987,7 +987,7 @@ class TestResumableUpload(object):
         assert error.response is response
         assert len(error.args) == 4
         assert error.args[1] == response.status_code
-        assert error.args[3] == async_resumable_media.PERMANENT_REDIRECT
+        assert error.args[3] == _async_resumable_media.PERMANENT_REDIRECT
         # Make sure still invalid.
         assert upload.invalid
 
@@ -1000,7 +1000,7 @@ class TestResumableUpload(object):
         upload._bytes_uploaded = mock.sentinel.not_zero
         assert upload.bytes_uploaded != 0
 
-        response = _make_response(status_code=async_resumable_media.PERMANENT_REDIRECT)
+        response = _make_response(status_code=_async_resumable_media.PERMANENT_REDIRECT)
         ret_val = upload._process_recover_response(response)
         assert ret_val is None
         # Check the state of ``upload`` after.
@@ -1018,7 +1018,7 @@ class TestResumableUpload(object):
 
         headers = {u"range": u"bites=9-11"}
         response = _make_response(
-            status_code=async_resumable_media.PERMANENT_REDIRECT, headers=headers
+            status_code=_async_resumable_media.PERMANENT_REDIRECT, headers=headers
         )
         with pytest.raises(common.InvalidResponse) as exc_info:
             upload._process_recover_response(response)
@@ -1044,7 +1044,7 @@ class TestResumableUpload(object):
         end = 11
         headers = {u"range": u"bytes=0-{:d}".format(end)}
         response = _make_response(
-            status_code=async_resumable_media.PERMANENT_REDIRECT, headers=headers
+            status_code=_async_resumable_media.PERMANENT_REDIRECT, headers=headers
         )
         ret_val = upload._process_recover_response(response)
         assert ret_val is None
@@ -1070,7 +1070,7 @@ def test_get_boundary(mock_rand):
 
 class Test_construct_multipart_request(object):
     @mock.patch(
-        u"google.async_resumable_media._upload.get_boundary", return_value=b"==1=="
+        u"google._async_resumable_media._upload.get_boundary", return_value=b"==1=="
     )
     def test_binary(self, mock_get_boundary):
         data = b"By nary day tuh"
@@ -1094,7 +1094,7 @@ class Test_construct_multipart_request(object):
         mock_get_boundary.assert_called_once_with()
 
     @mock.patch(
-        u"google.async_resumable_media._upload.get_boundary", return_value=b"==2=="
+        u"google._async_resumable_media._upload.get_boundary", return_value=b"==2=="
     )
     def test_unicode(self, mock_get_boundary):
         data_unicode = u"\N{snowman}"

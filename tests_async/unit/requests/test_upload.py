@@ -19,8 +19,8 @@ import pytest
 
 import mock
 
-from google import async_resumable_media
-import google.async_resumable_media.requests.upload as upload_mod
+from google import _async_resumable_media
+import google._async_resumable_media.requests.upload as upload_mod
 from tests.unit.requests import test_upload as sync_test
 
 SIMPLE_URL = sync_test.SIMPLE_URL
@@ -95,7 +95,7 @@ class TestSimpleUpload(object):
 
 class TestMultipartUpload(object):
     @mock.patch(
-        u"google.async_resumable_media._upload.get_boundary", return_value=b"==4=="
+        u"google._async_resumable_media._upload.get_boundary", return_value=b"==4=="
     )
     @pytest.mark.asyncio
     async def test_transmit(self, mock_get_boundary):
@@ -140,7 +140,7 @@ class TestMultipartUpload(object):
         mock_get_boundary.assert_called_once_with()
 
     @mock.patch(
-        u"google.async_resumable_media._upload.get_boundary", return_value=b"==4=="
+        u"google._async_resumable_media._upload.get_boundary", return_value=b"==4=="
     )
     @pytest.mark.asyncio
     async def test_transmit_w_custom_timeout(self, mock_get_boundary):
@@ -302,7 +302,7 @@ class TestResumableUpload(object):
         # Make a fake 308 response.
         response_headers = {u"range": u"bytes=0-{:d}".format(chunk_size - 1)}
         transport = self._chunk_mock(
-            async_resumable_media.PERMANENT_REDIRECT, response_headers
+            _async_resumable_media.PERMANENT_REDIRECT, response_headers
         )
         # Check the state before the request.
         assert upload._bytes_uploaded == 0
@@ -338,7 +338,7 @@ class TestResumableUpload(object):
         # Make a fake 308 response.
         response_headers = {u"range": u"bytes=0-{:d}".format(chunk_size - 1)}
         transport = self._chunk_mock(
-            async_resumable_media.PERMANENT_REDIRECT, response_headers
+            _async_resumable_media.PERMANENT_REDIRECT, response_headers
         )
         # Check the state before the request.
         assert upload._bytes_uploaded == 0
@@ -372,7 +372,7 @@ class TestResumableUpload(object):
 
         end = 55555
         headers = {u"range": u"bytes=0-{:d}".format(end)}
-        transport = self._chunk_mock(async_resumable_media.PERMANENT_REDIRECT, headers)
+        transport = self._chunk_mock(_async_resumable_media.PERMANENT_REDIRECT, headers)
 
         ret_val = await upload.recover(transport)
         assert ret_val is transport.request.return_value

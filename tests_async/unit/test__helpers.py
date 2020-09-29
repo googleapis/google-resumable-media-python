@@ -16,7 +16,7 @@ import mock
 import pytest
 from six.moves import http_client
 
-from google.async_resumable_media import _helpers
+from google._async_resumable_media import _helpers
 from google.resumable_media import common
 
 

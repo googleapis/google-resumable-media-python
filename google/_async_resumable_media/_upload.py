@@ -30,8 +30,8 @@ import sys
 import six
 from six.moves import http_client
 
-from google import async_resumable_media
-from google.async_resumable_media import _helpers
+from google import _async_resumable_media
+from google._async_resumable_media import _helpers
 from google.resumable_media import _helpers as sync_helpers
 from google.resumable_media import _upload as sync_upload
 from google.resumable_media import common
@@ -353,10 +353,10 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
 
     def __init__(self, upload_url, chunk_size, checksum=None, headers=None):
         super(ResumableUpload, self).__init__(upload_url, headers=headers)
-        if chunk_size % async_resumable_media.UPLOAD_CHUNK_SIZE != 0:
+        if chunk_size % _async_resumable_media.UPLOAD_CHUNK_SIZE != 0:
             raise ValueError(
                 u"{} KB must divide chunk size".format(
-                    async_resumable_media.UPLOAD_CHUNK_SIZE / 1024
+                    _async_resumable_media.UPLOAD_CHUNK_SIZE / 1024
                 )
             )
         self._chunk_size = chunk_size
@@ -638,7 +638,7 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
         """
         status_code = _helpers.require_status_code(
             response,
-            (http_client.OK, async_resumable_media.PERMANENT_REDIRECT),
+            (http_client.OK, _async_resumable_media.PERMANENT_REDIRECT),
             self._get_status_code,
             callback=self._make_invalid,
         )
@@ -778,7 +778,7 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
         .. _sans-I/O: https://sans-io.readthedocs.io/
         """
         _helpers.require_status_code(
-            response, (async_resumable_media.PERMANENT_REDIRECT,), self._get_status_code
+            response, (_async_resumable_media.PERMANENT_REDIRECT,), self._get_status_code
         )
         headers = self._get_headers(response)
         if _helpers.RANGE_HEADER in headers:
