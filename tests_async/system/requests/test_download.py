@@ -19,6 +19,7 @@ import io
 import os
 
 import google.auth
+from google.auth._default_async import default_async
 import google.auth.transport._aiohttp_requests as tr_requests
 import pytest
 from six.moves import http_client
@@ -185,7 +186,7 @@ async def secret_file(authorized_transport, bucket):
 # Transport that returns corrupt data, so we can exercise checksum handling.
 @pytest.fixture(scope=u"module")
 async def corrupting_transport():
-    credentials, _ = google.auth._default_async(scopes=(utils.GCS_RW_SCOPE,))
+    credentials, _ = default_async(scopes=(utils.GCS_RW_SCOPE,))
     yield CorruptingAuthorizedSession(credentials)
 
 
