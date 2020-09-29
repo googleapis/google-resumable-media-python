@@ -778,7 +778,9 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
         .. _sans-I/O: https://sans-io.readthedocs.io/
         """
         _helpers.require_status_code(
-            response, (_async_resumable_media.PERMANENT_REDIRECT,), self._get_status_code
+            response,
+            (_async_resumable_media.PERMANENT_REDIRECT,),
+            self._get_status_code,
         )
         headers = self._get_headers(response)
         if _helpers.RANGE_HEADER in headers:
