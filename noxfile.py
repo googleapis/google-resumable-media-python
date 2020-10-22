@@ -34,7 +34,7 @@ def unit(session):
 
     # Install all test dependencies, then install this package in-place.
     session.install("mock", "pytest", "pytest-cov", "pytest-asyncio", GOOGLE_AUTH)
-    session.install("-e", ".[requests]")
+    session.install("-e", ".[requests,aiohttp]")
 
     # Run py.test against the unit tests.
     # NOTE: We don't require 100% line coverage for unit test runs since
