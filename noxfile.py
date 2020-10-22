@@ -225,7 +225,7 @@ def system(session):
     # Install all test dependencies, then install this package into the
     # virtualenv's dist-packages.
     session.install("mock", "pytest", GOOGLE_AUTH, "google-cloud-testutils")
-    session.install("-e", ".[requests]")
+    session.install("-e", ".[requests,aiohttp]")
 
     # Run py.test against the async system tests.
     if session.python.startswith("3"):
