@@ -153,7 +153,7 @@ class Test_wait_and_retry(object):
     @pytest.mark.asyncio
     async def test_success_no_retry(self):
         truthy = http_client.OK
-        assert truthy not in _helpers.RETRYABLE
+        assert truthy not in common.RETRYABLE
         response = _make_response(truthy)
 
         func = mock.AsyncMock(return_value=response, spec=[])
@@ -182,7 +182,7 @@ class Test_wait_and_retry(object):
         ret_val = await _helpers.wait_and_retry(func, _get_status_code, retry_strategy)
 
         assert ret_val == responses[-1]
-        assert status_codes[-1] not in _helpers.RETRYABLE
+        assert status_codes[-1] not in common.RETRYABLE
 
         assert func.call_count == 4
         assert func.mock_calls == [mock.call()] * 4

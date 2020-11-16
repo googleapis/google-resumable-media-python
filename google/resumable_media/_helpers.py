@@ -28,13 +28,6 @@ from google.resumable_media import common
 
 RANGE_HEADER = u"range"
 CONTENT_RANGE_HEADER = u"content-range"
-RETRYABLE = (  # requests.ConnectionError is also retried, but is not listed here.
-    common.TOO_MANY_REQUESTS,  # 429
-    http_client.INTERNAL_SERVER_ERROR,  # 500
-    http_client.BAD_GATEWAY,  # 502
-    http_client.SERVICE_UNAVAILABLE,  # 503
-    http_client.GATEWAY_TIMEOUT,  # 504
-)
 
 _SLOW_CRC32C_WARNING = (
     "Currently using crcmod in pure python form. This is a slow "
@@ -172,18 +165,18 @@ def wait_and_retry(func, get_status_code, retry_strategy):
     try:
         import requests
 
-        retriable_exception_type = requests.exceptions.ConnectionError
+        connection_error_exception = requests.ConnectionError
     except ImportError:
-        retriable_exception_type = None
+        connection_error_exception = None
 
     while True:  # return on success or when retries exhausted.
         error = None
         try:
             response = func()
-        except retriable_exception_type as e:
+        except connection_error_exception as e:
             error = e
         else:
-            if get_status_code(response) not in RETRYABLE:
+            if get_status_code(response) not in common.RETRYABLE:
                 return response
 
         if not retry_strategy.retry_allowed(total_sleep, num_retries):

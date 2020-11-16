@@ -152,7 +152,7 @@ class Test_calculate_retry_wait(object):
 class Test_wait_and_retry(object):
     def test_success_no_retry(self):
         truthy = http_client.OK
-        assert truthy not in _helpers.RETRYABLE
+        assert truthy not in common.RETRYABLE
         response = _make_response(truthy)
 
         func = mock.Mock(return_value=response, spec=[])
@@ -180,7 +180,7 @@ class Test_wait_and_retry(object):
         ret_val = _helpers.wait_and_retry(func, _get_status_code, retry_strategy)
 
         assert ret_val == responses[-1]
-        assert status_codes[-1] not in _helpers.RETRYABLE
+        assert status_codes[-1] not in common.RETRYABLE
 
         assert func.call_count == 4
         assert func.mock_calls == [mock.call()] * 4
@@ -245,7 +245,7 @@ class Test_wait_and_retry(object):
         ret_val = _helpers.wait_and_retry(func, _get_status_code, retry_strategy)
 
         assert ret_val == responses[-1]
-        assert status_codes[-1] in _helpers.RETRYABLE
+        assert status_codes[-1] in common.RETRYABLE
 
         assert func.call_count == 8
         assert func.mock_calls == [mock.call()] * 8

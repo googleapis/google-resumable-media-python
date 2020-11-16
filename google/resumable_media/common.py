@@ -60,6 +60,19 @@ This is provided (10 minutes) as a default. When the cumulative sleep
 exceeds this limit, no more retries will occur.
 """
 
+RETRYABLE = (
+    common.TOO_MANY_REQUESTS,  # 429
+    http_client.INTERNAL_SERVER_ERROR,  # 500
+    http_client.BAD_GATEWAY,  # 502
+    http_client.SERVICE_UNAVAILABLE,  # 503
+    http_client.GATEWAY_TIMEOUT,  # 504
+)
+"""iterable: HTTP status codes that indicate a retryable error.
+
+Connection errors are also retried, but are not listed as they are
+exceptions, not status codes.
+"""
+
 
 class InvalidResponse(Exception):
     """Error class for responses which are not in the correct state.
