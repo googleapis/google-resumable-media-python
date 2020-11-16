@@ -21,8 +21,6 @@ import random
 import time
 import warnings
 
-from six.moves import http_client
-
 from google.resumable_media import common
 
 

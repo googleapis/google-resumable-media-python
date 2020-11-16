@@ -17,6 +17,7 @@
 Includes custom exception types, useful constants and shared helpers.
 """
 
+from six.moves import http_client
 
 _SLEEP_RETRY_ERROR_MSG = (
     u"At most one of `max_cumulative_retry` and `max_retries` " u"can be specified."
@@ -61,7 +62,7 @@ exceeds this limit, no more retries will occur.
 """
 
 RETRYABLE = (
-    common.TOO_MANY_REQUESTS,  # 429
+    TOO_MANY_REQUESTS,  # 429
     http_client.INTERNAL_SERVER_ERROR,  # 500
     http_client.BAD_GATEWAY,  # 502
     http_client.SERVICE_UNAVAILABLE,  # 503

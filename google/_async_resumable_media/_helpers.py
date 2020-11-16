@@ -19,9 +19,6 @@ import random
 import time
 
 
-from six.moves import http_client
-
-
 from google.resumable_media import common
 
 
