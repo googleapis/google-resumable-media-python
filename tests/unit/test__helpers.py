@@ -15,6 +15,7 @@
 import hashlib
 import mock
 import pytest
+import requests
 from six.moves import http_client
 
 from google.resumable_media import _helpers
@@ -198,8 +199,12 @@ class Test_wait_and_retry(object):
         randint_mock.side_effect = [125, 625, 375]
 
         response = _make_response(http_client.NOT_FOUND)
-        import requests
-        responses = [requests.ConnectionError, requests.ConnectionError, requests.ConnectionError, response]
+        responses = [
+            requests.ConnectionError,
+            requests.ConnectionError,
+            requests.ConnectionError,
+            response,
+        ]
         func = mock.Mock(side_effect=responses, spec=[])
 
         retry_strategy = common.RetryStrategy()
@@ -241,6 +246,33 @@ class Test_wait_and_retry(object):
 
         assert ret_val == responses[-1]
         assert status_codes[-1] in _helpers.RETRYABLE
+
+        assert func.call_count == 8
+        assert func.mock_calls == [mock.call()] * 8
+
+        assert randint_mock.call_count == 7
+        assert randint_mock.mock_calls == [mock.call(0, 1000)] * 7
+
+        assert sleep_mock.call_count == 7
+        sleep_mock.assert_any_call(1.875)
+        sleep_mock.assert_any_call(2.0)
+        sleep_mock.assert_any_call(4.375)
+        sleep_mock.assert_any_call(8.5)
+        sleep_mock.assert_any_call(16.5)
+        sleep_mock.assert_any_call(32.25)
+        sleep_mock.assert_any_call(64.125)
+
+    @mock.patch(u"time.sleep")
+    @mock.patch(u"random.randint")
+    def test_retry_exceeded_reraises_connection_error(self, randint_mock, sleep_mock):
+        randint_mock.side_effect = [875, 0, 375, 500, 500, 250, 125]
+
+        responses = [requests.ConnectionError] * 8
+        func = mock.Mock(side_effect=responses, spec=[])
+
+        retry_strategy = common.RetryStrategy(max_cumulative_retry=100.0)
+        with pytest.raises(requests.ConnectionError):
+            _helpers.wait_and_retry(func, _get_status_code, retry_strategy)
 
         assert func.call_count == 8
         assert func.mock_calls == [mock.call()] * 8

@@ -27,12 +27,12 @@ from google.resumable_media import common
 
 RANGE_HEADER = u"range"
 CONTENT_RANGE_HEADER = u"content-range"
-RETRYABLE = (
-    common.TOO_MANY_REQUESTS,
-    http_client.INTERNAL_SERVER_ERROR,
-    http_client.BAD_GATEWAY,
-    http_client.SERVICE_UNAVAILABLE,
-    http_client.GATEWAY_TIMEOUT,
+RETRYABLE = (  # ConnectionError is also retried, but is not listed here.
+    common.TOO_MANY_REQUESTS,  # 429
+    http_client.INTERNAL_SERVER_ERROR,  # 500
+    http_client.BAD_GATEWAY,  # 502
+    http_client.SERVICE_UNAVAILABLE,  # 503
+    http_client.GATEWAY_TIMEOUT,  # 504
 )
 
 _SLOW_CRC32C_WARNING = (
@@ -162,24 +162,33 @@ async def wait_and_retry(func, get_status_code, retry_strategy):
         object: The return value of ``func``.
     """
 
-    response = await func()
-
-    if get_status_code(response) not in RETRYABLE:
-        return response
-
     total_sleep = 0.0
     num_retries = 0
     base_wait = 0.5  # When doubled will give 1.0
-    while retry_strategy.retry_allowed(total_sleep, num_retries):
+
+    while True:  # return on success or when retries exhausted.
+        error = None
+        try:
+            response = await func()
+        except ConnectionError as e:
+            error = e
+        else:
+            if get_status_code(response) not in RETRYABLE:
+                return response
+
+        if not retry_strategy.retry_allowed(total_sleep, num_retries):
+            # Retries are exhausted and no acceptable response was received. Raise the
+            # retriable_error or return the unacceptable response.
+            if error:
+                raise error
+
+            return response
+
         base_wait, wait_time = calculate_retry_wait(base_wait, retry_strategy.max_sleep)
+
         num_retries += 1
         total_sleep += wait_time
         time.sleep(wait_time)
-        response = await func()
-        if get_status_code(response) not in RETRYABLE:
-            return response
-
-    return response
 
 
 class _DoNothingHash(object):

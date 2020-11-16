@@ -198,27 +198,43 @@ class Test_wait_and_retry(object):
     @mock.patch(u"time.sleep")
     @mock.patch(u"random.randint")
     @pytest.mark.asyncio
-    async def test_retry_exceeds_max_cumulative(self, randint_mock, sleep_mock):
-        randint_mock.side_effect = [875, 0, 375, 500, 500, 250, 125]
+    async def test_success_with_retry_connection_error(self, randint_mock, sleep_mock):
+        randint_mock.side_effect = [125, 625, 375]
 
-        status_codes = (
-            http_client.SERVICE_UNAVAILABLE,
-            http_client.GATEWAY_TIMEOUT,
-            common.TOO_MANY_REQUESTS,
-            http_client.INTERNAL_SERVER_ERROR,
-            http_client.SERVICE_UNAVAILABLE,
-            http_client.BAD_GATEWAY,
-            http_client.GATEWAY_TIMEOUT,
-            common.TOO_MANY_REQUESTS,
-        )
-        responses = [_make_response(status_code) for status_code in status_codes]
+        response = _make_response(http_client.NOT_FOUND)
+        responses = [ConnectionError, ConnectionError, ConnectionError, response]
         func = mock.AsyncMock(side_effect=responses, spec=[])
 
-        retry_strategy = common.RetryStrategy(max_cumulative_retry=100.0)
+        retry_strategy = common.RetryStrategy()
         ret_val = await _helpers.wait_and_retry(func, _get_status_code, retry_strategy)
 
         assert ret_val == responses[-1]
-        assert status_codes[-1] in _helpers.RETRYABLE
+
+        assert func.call_count == 4
+        assert func.mock_calls == [mock.call()] * 4
+
+        assert randint_mock.call_count == 3
+        assert randint_mock.mock_calls == [mock.call(0, 1000)] * 3
+
+        assert sleep_mock.call_count == 3
+        sleep_mock.assert_any_call(1.125)
+        sleep_mock.assert_any_call(2.625)
+        sleep_mock.assert_any_call(4.375)
+
+    @mock.patch(u"time.sleep")
+    @mock.patch(u"random.randint")
+    @pytest.mark.asyncio
+    async def test_retry_exceeded_reraises_connection_error(
+        self, randint_mock, sleep_mock
+    ):
+        randint_mock.side_effect = [875, 0, 375, 500, 500, 250, 125]
+
+        responses = [ConnectionError] * 8
+        func = mock.AsyncMock(side_effect=responses, spec=[])
+
+        retry_strategy = common.RetryStrategy(max_cumulative_retry=100.0)
+        with pytest.raises(ConnectionError):
+            await _helpers.wait_and_retry(func, _get_status_code, retry_strategy)
 
         assert func.call_count == 8
         assert func.mock_calls == [mock.call()] * 8

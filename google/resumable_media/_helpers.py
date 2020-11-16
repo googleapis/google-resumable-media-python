@@ -28,7 +28,7 @@ from google.resumable_media import common
 
 RANGE_HEADER = u"range"
 CONTENT_RANGE_HEADER = u"content-range"
-RETRYABLE = (  # ConnectionError is also retried, but is not listed here.
+RETRYABLE = (  # requests.ConnectionError is also retried, but is not listed here.
     common.TOO_MANY_REQUESTS,  # 429
     http_client.INTERNAL_SERVER_ERROR,  # 500
     http_client.BAD_GATEWAY,  # 502
@@ -171,6 +171,7 @@ def wait_and_retry(func, get_status_code, retry_strategy):
     # but due to loose coupling with the transport layer we can't guarantee it.
     try:
         import requests
+
         retriable_exception_type = requests.exceptions.ConnectionError
     except ImportError:
         retriable_exception_type = None
