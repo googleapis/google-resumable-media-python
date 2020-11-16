@@ -12,10 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from __future__ import absolute_import
+
 import hashlib
 import mock
 import pytest
-import requests
+import requests.exceptions
 from six.moves import http_client
 
 from google.resumable_media import _helpers
@@ -200,9 +202,9 @@ class Test_wait_and_retry(object):
 
         response = _make_response(http_client.NOT_FOUND)
         responses = [
-            requests.ConnectionError,
-            requests.ConnectionError,
-            requests.ConnectionError,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.ConnectionError,
+            requests.exceptions.ConnectionError,
             response,
         ]
         func = mock.Mock(side_effect=responses, spec=[])
@@ -267,11 +269,11 @@ class Test_wait_and_retry(object):
     def test_retry_exceeded_reraises_connection_error(self, randint_mock, sleep_mock):
         randint_mock.side_effect = [875, 0, 375, 500, 500, 250, 125]
 
-        responses = [requests.ConnectionError] * 8
+        responses = [requests.exceptions.ConnectionError] * 8
         func = mock.Mock(side_effect=responses, spec=[])
 
         retry_strategy = common.RetryStrategy(max_cumulative_retry=100.0)
-        with pytest.raises(requests.ConnectionError):
+        with pytest.raises(requests.exceptions.ConnectionError):
             _helpers.wait_and_retry(func, _get_status_code, retry_strategy)
 
         assert func.call_count == 8

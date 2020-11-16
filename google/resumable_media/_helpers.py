@@ -14,6 +14,8 @@
 
 """Shared utilities used by both downloads and uploads."""
 
+from __future__ import absolute_import
+
 import base64
 import hashlib
 import logging
@@ -161,9 +163,9 @@ def wait_and_retry(func, get_status_code, retry_strategy):
     # present here and the transport to be using requests.exceptions errors,
     # but due to loose coupling with the transport layer we can't guarantee it.
     try:
-        import requests
+        import requests.exceptions
 
-        connection_error_exception = requests.ConnectionError
+        connection_error_exception = requests.exceptions.ConnectionError
     except ImportError:
         connection_error_exception = None
 
