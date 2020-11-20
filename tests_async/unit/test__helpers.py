@@ -251,6 +251,46 @@ class Test_wait_and_retry(object):
         sleep_mock.assert_any_call(32.25)
         sleep_mock.assert_any_call(64.125)
 
+    @mock.patch(u"time.sleep")
+    @mock.patch(u"random.randint")
+    @pytest.mark.asyncio
+    async def test_retry_exceeds_max_cumulative(self, randint_mock, sleep_mock):
+        randint_mock.side_effect = [875, 0, 375, 500, 500, 250, 125]
+
+        status_codes = (
+            http_client.SERVICE_UNAVAILABLE,
+            http_client.GATEWAY_TIMEOUT,
+            common.TOO_MANY_REQUESTS,
+            http_client.INTERNAL_SERVER_ERROR,
+            http_client.SERVICE_UNAVAILABLE,
+            http_client.BAD_GATEWAY,
+            http_client.GATEWAY_TIMEOUT,
+            common.TOO_MANY_REQUESTS,
+        )
+        responses = [_make_response(status_code) for status_code in status_codes]
+        func = mock.AsyncMock(side_effect=responses, spec=[])
+
+        retry_strategy = common.RetryStrategy(max_cumulative_retry=100.0)
+        ret_val = await _helpers.wait_and_retry(func, _get_status_code, retry_strategy)
+
+        assert ret_val == responses[-1]
+        assert status_codes[-1] in common.RETRYABLE
+
+        assert func.call_count == 8
+        assert func.mock_calls == [mock.call()] * 8
+
+        assert randint_mock.call_count == 7
+        assert randint_mock.mock_calls == [mock.call(0, 1000)] * 7
+
+        assert sleep_mock.call_count == 7
+        sleep_mock.assert_any_call(1.875)
+        sleep_mock.assert_any_call(2.0)
+        sleep_mock.assert_any_call(4.375)
+        sleep_mock.assert_any_call(8.5)
+        sleep_mock.assert_any_call(16.5)
+        sleep_mock.assert_any_call(32.25)
+        sleep_mock.assert_any_call(64.125)
+
 
 def _make_response(status_code):
     return mock.AsyncMock(status_code=status_code, spec=["status_code"])

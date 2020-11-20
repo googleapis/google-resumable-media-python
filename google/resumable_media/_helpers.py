@@ -163,11 +163,11 @@ def wait_and_retry(func, get_status_code, retry_strategy):
     # present here and the transport to be using requests.exceptions errors,
     # but due to loose coupling with the transport layer we can't guarantee it.
     try:
-        import requests.exceptions
-
-        connection_error_exception = requests.exceptions.ConnectionError
+        connection_error_exception = _get_connection_error_class()
     except ImportError:
-        connection_error_exception = None
+        # We don't know the correct class to use to catch ConnectionError, so
+        # an empty tuple here communicates "catch no exception".
+        connection_error_exception = ()
 
     while True:  # return on success or when retries exhausted.
         error = None
@@ -360,6 +360,16 @@ def _get_checksum_object(checksum_type):
         return None
     else:
         raise ValueError("checksum must be ``'md5'``, ``'crc32c'`` or ``None``")
+
+
+def _get_connection_error_class():
+    """Get the exception error class.
+
+    This is a separate function for testing purposes."""
+
+    import requests.exceptions
+
+    return requests.exceptions.ConnectionError
 
 
 class _DoNothingHash(object):
