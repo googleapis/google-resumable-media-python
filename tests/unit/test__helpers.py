@@ -239,7 +239,7 @@ class Test_wait_and_retry(object):
         ]
 
         with mock.patch(
-            "google.resumable_media._helpers._get_connection_error_class",
+            "google.resumable_media._helpers._get_connection_error_classes",
             side_effect=ImportError,
         ):
             with pytest.raises(requests.exceptions.ConnectionError):

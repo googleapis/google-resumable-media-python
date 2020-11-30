@@ -163,17 +163,17 @@ def wait_and_retry(func, get_status_code, retry_strategy):
     # present here and the transport to be using requests.exceptions errors,
     # but due to loose coupling with the transport layer we can't guarantee it.
     try:
-        connection_error_exception = _get_connection_error_class()
+        connection_error_exceptions = _get_connection_error_classes()
     except ImportError:
-        # We don't know the correct class to use to catch ConnectionError, so
-        # an empty tuple here communicates "catch no exception".
-        connection_error_exception = ()
+        # We don't know the correct classes to use to catch connection errors,
+        # so an empty tuple here communicates "catch no exceptions".
+        connection_error_exceptions = ()
 
     while True:  # return on success or when retries exhausted.
         error = None
         try:
             response = func()
-        except connection_error_exception as e:
+        except connection_error_exceptions as e:
             error = e
         else:
             if get_status_code(response) not in common.RETRYABLE:
@@ -362,14 +362,20 @@ def _get_checksum_object(checksum_type):
         raise ValueError("checksum must be ``'md5'``, ``'crc32c'`` or ``None``")
 
 
-def _get_connection_error_class():
-    """Get the exception error class.
+def _get_connection_error_classes():
+    """Get the exception error classes.
 
-    This is a separate function for testing purposes."""
+    Requests is a soft dependency here so that multiple transport layers can be
+    added in the future. This code is in a separate function here so that the
+    test framework can override its behavior to simulate requests being
+    unavailable."""
 
     import requests.exceptions
 
-    return requests.exceptions.ConnectionError
+    return (
+        requests.exceptions.ConnectionError,
+        requests.exceptions.ChunkedEncodingError,
+    )
 
 
 class _DoNothingHash(object):
