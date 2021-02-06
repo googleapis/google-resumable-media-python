@@ -4,14 +4,14 @@
       "git": {
         "name": ".",
         "remote": "https://github.com/googleapis/google-resumable-media-python.git",
-        "sha": "c0490dd07632ccd11a1cdb04091e9dd8ccfc9b1b"
+        "sha": "dbf07e1c690adb9325b96416952682019c5b1cde"
       }
     },
     {
       "git": {
         "name": "synthtool",
         "remote": "https://github.com/googleapis/synthtool.git",
-        "sha": "da5c6050d13b4950c82666a81d8acd25157664ae"
+        "sha": "fb53b6fb373b7c3edf4e55f3e8036bc6d73fa483"
       }
     }
   ],
