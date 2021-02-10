@@ -210,7 +210,7 @@ def blacken(session):
 def system(session):
     """Run the system test suite."""
 
-    # Confidence check: environment variables are set.
+    # Environment check: environment variables are set.
     missing = []
     for env_var in SYSTEM_TEST_ENV_VARS:
         if env_var not in os.environ:
