@@ -287,7 +287,7 @@ might break the hypothetical usecase of downloading a blob marked with
 
 ### Implementation Changes
 
-- Refactor upload / download support into public, transport-agnostic classes and private, `requests`-specific implementations.
+- Refactor upload / download support into public, transport-independent classes and private, `requests`-specific implementations.
 
 
 ## 0.0.3
