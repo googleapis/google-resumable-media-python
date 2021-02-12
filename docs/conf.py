@@ -64,7 +64,7 @@ source_suffix = [".rst", ".md"]
 # source_encoding = 'utf-8-sig'
 
 # The main toctree document.
-main_doc = "index"
+master_doc = "index"
 
 # General information about the project.
 project = u"google-resumable-media"
@@ -266,7 +266,7 @@ latex_elements = {
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
     (
-        main_doc,
+        master_doc,
         "google-resumable-media.tex",
         u"google-resumable-media Documentation",
         author,
@@ -301,7 +301,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     (
-        main_doc,
+        master_doc,
         "google-resumable-media",
         u"google-resumable-media Documentation",
         [author],
@@ -320,7 +320,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (
-        main_doc,
+        master_doc,
         "google-resumable-media",
         u"google-resumable-media Documentation",
         author,
