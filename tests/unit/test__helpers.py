@@ -150,6 +150,13 @@ class Test_calculate_retry_wait(object):
         assert wait_time == 32.875
         randint_mock.assert_called_once_with(0, 1000)
 
+    @mock.patch(u"random.randint", return_value=875)
+    def test_custom_multiplier(self, randint_mock):
+        base_wait, wait_time = _helpers.calculate_retry_wait(16.0, 64.0, 3)
+
+        assert base_wait == 48.0
+        assert wait_time == 48.875
+        randint_mock.assert_called_once_with(0, 1000)
 
 class Test_wait_and_retry(object):
     def test_success_no_retry(self):
