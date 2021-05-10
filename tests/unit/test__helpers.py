@@ -158,6 +158,7 @@ class Test_calculate_retry_wait(object):
         assert wait_time == 48.875
         randint_mock.assert_called_once_with(0, 1000)
 
+
 class Test_wait_and_retry(object):
     def test_success_no_retry(self):
         truthy = http_client.OK

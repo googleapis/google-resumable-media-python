@@ -136,7 +136,12 @@ class RetryStrategy(object):
     """
 
     def __init__(
-        self, max_sleep=MAX_SLEEP, max_cumulative_retry=None, max_retries=None, initial_delay=1.0, multiplier=2.0
+        self,
+        max_sleep=MAX_SLEEP,
+        max_cumulative_retry=None,
+        max_retries=None,
+        initial_delay=1.0,
+        multiplier=2.0,
     ):
         if max_cumulative_retry is not None and max_retries is not None:
             raise ValueError(_SLEEP_RETRY_ERROR_MSG)

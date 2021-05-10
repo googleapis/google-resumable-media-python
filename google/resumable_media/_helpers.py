@@ -189,7 +189,9 @@ def wait_and_retry(func, get_status_code, retry_strategy):
 
             return response
 
-        base_wait, wait_time = calculate_retry_wait(base_wait, retry_strategy.max_sleep, retry_strategy.multiplier)
+        base_wait, wait_time = calculate_retry_wait(
+            base_wait, retry_strategy.max_sleep, retry_strategy.multiplier
+        )
 
         num_retries += 1
         total_sleep += wait_time
