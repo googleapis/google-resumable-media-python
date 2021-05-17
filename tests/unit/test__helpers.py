@@ -205,6 +205,38 @@ class Test_wait_and_retry(object):
 
     @mock.patch(u"time.sleep")
     @mock.patch(u"random.randint")
+    def test_success_with_retry_custom_delay(self, randint_mock, sleep_mock):
+        randint_mock.side_effect = [125, 625, 375]
+
+        status_codes = (
+            http_client.INTERNAL_SERVER_ERROR,
+            http_client.BAD_GATEWAY,
+            http_client.SERVICE_UNAVAILABLE,
+            http_client.NOT_FOUND,
+        )
+        responses = [_make_response(status_code) for status_code in status_codes]
+        func = mock.Mock(side_effect=responses, spec=[])
+
+        retry_strategy = common.RetryStrategy(initial_delay=3.0, multiplier=4)
+        ret_val = _helpers.wait_and_retry(func, _get_status_code, retry_strategy)
+
+        assert ret_val == responses[-1]
+        assert status_codes[-1] not in common.RETRYABLE
+
+        assert func.call_count == 4
+        assert func.mock_calls == [mock.call()] * 4
+
+        assert randint_mock.call_count == 3
+        assert randint_mock.mock_calls == [mock.call(0, 1000)] * 3
+
+        assert sleep_mock.call_count == 3
+        sleep_mock.assert_any_call(3.125)
+        sleep_mock.assert_any_call(12.625)
+        sleep_mock.assert_any_call(48.375)
+
+
+    @mock.patch(u"time.sleep")
+    @mock.patch(u"random.randint")
     def test_success_with_retry_connection_error(self, randint_mock, sleep_mock):
         randint_mock.side_effect = [125, 625, 375]
 
