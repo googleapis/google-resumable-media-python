@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-resumable-media/#history
 
+### [1.2.1](https://www.github.com/googleapis/google-resumable-media-python/compare/v1.2.0...v1.2.1) (2021-05-18)
+
+
+### Documentation
+
+* address terminology ([#201](https://www.github.com/googleapis/google-resumable-media-python/issues/201)) ([a88cfb9](https://www.github.com/googleapis/google-resumable-media-python/commit/a88cfb9637015839307ea4e967eef6f232c007a5))
+
 ## [1.2.0](https://www.github.com/googleapis/google-resumable-media-python/compare/v1.1.0...v1.2.0) (2020-12-14)
 
 
