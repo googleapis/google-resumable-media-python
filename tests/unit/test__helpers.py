@@ -230,10 +230,13 @@ class Test_wait_and_retry(object):
         assert randint_mock.mock_calls == [mock.call(0, 1000)] * 3
 
         assert sleep_mock.call_count == 3
-        sleep_mock.assert_any_call(3.125)
-        sleep_mock.assert_any_call(12.625)
-        sleep_mock.assert_any_call(48.375)
-
+        sleep_mock.assert_any_call(3.125)  # initial delay 3 + jitter 0.125
+        sleep_mock.assert_any_call(
+            12.625
+        )  # previous delay 3 * multiplier 4 + jitter 0.625
+        sleep_mock.assert_any_call(
+            48.375
+        )  # previous delay 12 * multiplier 4 + jitter 0.375
 
     @mock.patch(u"time.sleep")
     @mock.patch(u"random.randint")
