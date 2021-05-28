@@ -13,20 +13,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# A customized test runner for samples.
+#
+# For periodic builds, you can specify this file for testing against head.
+
+# `-e` enables the script to automatically fail when a command fails
+# `-o pipefail` sets the exit code to the rightmost comment to exit with a non-zero
 set -eo pipefail
+# Enables `**` to include files nested inside sub-folders
+shopt -s globstar
 
-# Start the releasetool reporter
-python3 -m pip install gcp-releasetool
-python3 -m releasetool publish-reporter-script > /tmp/publisher-script; source /tmp/publisher-script
-
-# Ensure that we have the latest versions of Twine, Wheel, and Setuptools.
-python3 -m pip install --upgrade twine wheel setuptools
-
-# Disable buffering, so that the logs stream through.
-export PYTHONUNBUFFERED=1
-
-# Move into the package, build the distribution and upload.
-TWINE_PASSWORD=$(cat "${KOKORO_GFILE_DIR}/secret_manager/google-cloud-pypi-token")
 cd github/google-resumable-media-python
-python3 setup.py sdist bdist_wheel
-twine upload --username __token__ --password "${TWINE_PASSWORD}" dist/*
+
+exec .kokoro/test-samples-impl.sh
