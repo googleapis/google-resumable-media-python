@@ -32,9 +32,9 @@ def test_do_nothing():
 
 class Test_header_required(object):
     def _success_helper(self, **kwargs):
-        name = u"some-header"
-        value = u"The Right Hand Side"
-        headers = {name: value, u"other-name": u"other-value"}
+        name = "some-header"
+        value = "The Right Hand Side"
+        headers = {name: value, "other-name": "other-value"}
         response = mock.Mock(headers=headers, spec=["headers"])
         result = _helpers.header_required(response, name, _get_headers, **kwargs)
         assert result == value
@@ -49,7 +49,7 @@ class Test_header_required(object):
 
     def _failure_helper(self, **kwargs):
         response = mock.Mock(headers={}, spec=["headers"])
-        name = u"any-name"
+        name = "any-name"
         with pytest.raises(common.InvalidResponse) as exc_info:
             _helpers.header_required(response, name, _get_headers, **kwargs)
 
@@ -127,7 +127,7 @@ class Test_require_status_code(object):
 
 
 class Test_calculate_retry_wait(object):
-    @mock.patch(u"random.randint", return_value=125)
+    @mock.patch("random.randint", return_value=125)
     def test_past_limit(self, randint_mock):
         base_wait, wait_time = _helpers.calculate_retry_wait(70.0, 64.0)
 
@@ -135,7 +135,7 @@ class Test_calculate_retry_wait(object):
         assert wait_time == 64.125
         randint_mock.assert_called_once_with(0, 1000)
 
-    @mock.patch(u"random.randint", return_value=250)
+    @mock.patch("random.randint", return_value=250)
     def test_at_limit(self, randint_mock):
         base_wait, wait_time = _helpers.calculate_retry_wait(50.0, 50.0)
 
@@ -143,7 +143,7 @@ class Test_calculate_retry_wait(object):
         assert wait_time == 50.25
         randint_mock.assert_called_once_with(0, 1000)
 
-    @mock.patch(u"random.randint", return_value=875)
+    @mock.patch("random.randint", return_value=875)
     def test_under_limit(self, randint_mock):
         base_wait, wait_time = _helpers.calculate_retry_wait(16.0, 33.0)
 
@@ -151,7 +151,7 @@ class Test_calculate_retry_wait(object):
         assert wait_time == 32.875
         randint_mock.assert_called_once_with(0, 1000)
 
-    @mock.patch(u"random.randint", return_value=875)
+    @mock.patch("random.randint", return_value=875)
     def test_custom_multiplier(self, randint_mock):
         base_wait, wait_time = _helpers.calculate_retry_wait(16.0, 64.0, 3)
 
@@ -173,8 +173,8 @@ class Test_wait_and_retry(object):
         assert ret_val is response
         func.assert_called_once_with()
 
-    @mock.patch(u"time.sleep")
-    @mock.patch(u"random.randint")
+    @mock.patch("time.sleep")
+    @mock.patch("random.randint")
     def test_success_with_retry(self, randint_mock, sleep_mock):
         randint_mock.side_effect = [125, 625, 375]
 
@@ -204,8 +204,8 @@ class Test_wait_and_retry(object):
         sleep_mock.assert_any_call(2.625)
         sleep_mock.assert_any_call(4.375)
 
-    @mock.patch(u"time.sleep")
-    @mock.patch(u"random.randint")
+    @mock.patch("time.sleep")
+    @mock.patch("random.randint")
     def test_success_with_retry_custom_delay(self, randint_mock, sleep_mock):
         randint_mock.side_effect = [125, 625, 375]
 
@@ -239,8 +239,8 @@ class Test_wait_and_retry(object):
             48.375
         )  # previous delay 12 * multiplier 4 + jitter 0.375
 
-    @mock.patch(u"time.sleep")
-    @mock.patch(u"random.randint")
+    @mock.patch("time.sleep")
+    @mock.patch("random.randint")
     def test_success_with_retry_connection_error(self, randint_mock, sleep_mock):
         randint_mock.side_effect = [125, 625, 375]
 
@@ -269,8 +269,8 @@ class Test_wait_and_retry(object):
         sleep_mock.assert_any_call(2.625)
         sleep_mock.assert_any_call(4.375)
 
-    @mock.patch(u"time.sleep")
-    @mock.patch(u"random.randint")
+    @mock.patch("time.sleep")
+    @mock.patch("random.randint")
     def test_connection_import_error_failure(self, randint_mock, sleep_mock):
         randint_mock.side_effect = [125, 625, 375]
 
@@ -292,8 +292,8 @@ class Test_wait_and_retry(object):
                 retry_strategy = common.RetryStrategy()
                 _helpers.wait_and_retry(func, _get_status_code, retry_strategy)
 
-    @mock.patch(u"time.sleep")
-    @mock.patch(u"random.randint")
+    @mock.patch("time.sleep")
+    @mock.patch("random.randint")
     def test_retry_exceeds_max_cumulative(self, randint_mock, sleep_mock):
         randint_mock.side_effect = [875, 0, 375, 500, 500, 250, 125]
 
@@ -331,8 +331,8 @@ class Test_wait_and_retry(object):
         sleep_mock.assert_any_call(32.25)
         sleep_mock.assert_any_call(64.125)
 
-    @mock.patch(u"time.sleep")
-    @mock.patch(u"random.randint")
+    @mock.patch("time.sleep")
+    @mock.patch("random.randint")
     def test_retry_exceeded_reraises_connection_error(self, randint_mock, sleep_mock):
         randint_mock.side_effect = [875, 0, 375, 500, 500, 250, 125]
 
@@ -467,11 +467,11 @@ def test__DoNothingHash():
 
 
 class Test__get_expected_checksum(object):
-    @pytest.mark.parametrize("template", [u"crc32c={},md5={}", u"crc32c={}, md5={}"])
+    @pytest.mark.parametrize("template", ["crc32c={},md5={}", "crc32c={}, md5={}"])
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     @mock.patch("google.resumable_media._helpers._LOGGER")
     def test__w_header_present(self, _LOGGER, template, checksum):
-        checksums = {"md5": u"b2twdXNodGhpc2J1dHRvbg==", "crc32c": u"3q2+7w=="}
+        checksums = {"md5": "b2twdXNodGhpc2J1dHRvbg==", "crc32c": "3q2+7w=="}
         header_value = template.format(checksums["crc32c"], checksums["md5"])
         headers = {_helpers._HASH_HEADER: header_value}
         response = _mock_response(headers=headers)
@@ -516,8 +516,8 @@ class Test__get_expected_checksum(object):
 
 class Test__parse_checksum_header(object):
 
-    CRC32C_CHECKSUM = u"3q2+7w=="
-    MD5_CHECKSUM = u"c2l4dGVlbmJ5dGVzbG9uZw=="
+    CRC32C_CHECKSUM = "3q2+7w=="
+    MD5_CHECKSUM = "c2l4dGVlbmJ5dGVzbG9uZw=="
 
     def test_empty_value(self):
         header_value = None
@@ -532,7 +532,7 @@ class Test__parse_checksum_header(object):
         assert crc32c_header is None
 
     def test_crc32c_only(self):
-        header_value = u"crc32c={}".format(self.CRC32C_CHECKSUM)
+        header_value = "crc32c={}".format(self.CRC32C_CHECKSUM)
         response = None
         md5_header = _helpers._parse_checksum_header(
             header_value, response, checksum_label="md5"
@@ -544,7 +544,7 @@ class Test__parse_checksum_header(object):
         assert crc32c_header == self.CRC32C_CHECKSUM
 
     def test_md5_only(self):
-        header_value = u"md5={}".format(self.MD5_CHECKSUM)
+        header_value = "md5={}".format(self.MD5_CHECKSUM)
         response = None
         md5_header = _helpers._parse_checksum_header(
             header_value, response, checksum_label="md5"
@@ -556,7 +556,7 @@ class Test__parse_checksum_header(object):
         assert crc32c_header is None
 
     def test_both_crc32c_and_md5(self):
-        header_value = u"crc32c={},md5={}".format(
+        header_value = "crc32c={},md5={}".format(
             self.CRC32C_CHECKSUM, self.MD5_CHECKSUM
         )
         response = None
@@ -570,8 +570,8 @@ class Test__parse_checksum_header(object):
         assert crc32c_header == self.CRC32C_CHECKSUM
 
     def test_md5_multiple_matches(self):
-        another_checksum = u"eW91IGRpZCBXQVQgbm93Pw=="
-        header_value = u"md5={},md5={}".format(self.MD5_CHECKSUM, another_checksum)
+        another_checksum = "eW91IGRpZCBXQVQgbm93Pw=="
+        header_value = "md5={},md5={}".format(self.MD5_CHECKSUM, another_checksum)
         response = mock.sentinel.response
 
         with pytest.raises(common.InvalidResponse) as exc_info:

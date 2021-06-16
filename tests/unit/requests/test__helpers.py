@@ -28,7 +28,7 @@ class TestRequestsMixin(object):
         assert status_code == _request_helpers.RequestsMixin._get_status_code(response)
 
     def test__get_headers(self):
-        headers = {u"fruit": u"apple"}
+        headers = {"fruit": "apple"}
         response = mock.Mock(headers=headers, spec=["headers"])
         assert headers == _request_helpers.RequestsMixin._get_headers(response)
 
@@ -57,10 +57,10 @@ class TestRawRequestsMixin(object):
 
 def test_http_request():
     transport, responses = _make_transport(http.client.OK)
-    method = u"POST"
-    url = u"http://test.invalid"
+    method = "POST"
+    url = "http://test.invalid"
     data = mock.sentinel.data
-    headers = {u"one": u"fish", u"blue": u"fish"}
+    headers = {"one": "fish", "blue": "fish"}
     timeout = mock.sentinel.timeout
     ret_val = _request_helpers.http_request(
         transport,
@@ -87,8 +87,8 @@ def test_http_request():
 
 def test_http_request_defaults():
     transport, responses = _make_transport(http.client.OK)
-    method = u"POST"
-    url = u"http://test.invalid"
+    method = "POST"
+    url = "http://test.invalid"
     ret_val = _request_helpers.http_request(transport, method, url)
 
     assert ret_val is responses[0]

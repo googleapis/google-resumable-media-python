@@ -32,11 +32,11 @@ from tests.system import utils
 
 
 CURR_DIR = os.path.dirname(os.path.realpath(__file__))
-DATA_DIR = os.path.join(CURR_DIR, u"..", u"..", u"data")
-PLAIN_TEXT = u"text/plain"
-IMAGE_JPEG = u"image/jpeg"
+DATA_DIR = os.path.join(CURR_DIR, "..", "..", "data")
+PLAIN_TEXT = "text/plain"
+IMAGE_JPEG = "image/jpeg"
 ENCRYPTED_ERR = b"The target object is encrypted by a customer-supplied encryption key."
-NO_BODY_ERR = u"The content for this response was already consumed"
+NO_BODY_ERR = "The content for this response was already consumed"
 NOT_FOUND_ERR = (
     b"No such object: " + utils.BUCKET_NAME.encode("utf-8") + b"/does-not-exist.txt"
 )
@@ -60,17 +60,17 @@ class CorruptingAuthorizedSession(tr_requests.AuthorizedSession):
             constructor.
     """
 
-    EMPTY_MD5 = base64.b64encode(hashlib.md5(b"").digest()).decode(u"utf-8")
+    EMPTY_MD5 = base64.b64encode(hashlib.md5(b"").digest()).decode("utf-8")
     crc32c = _helpers._get_crc32c_object()
     crc32c.update(b"")
-    EMPTY_CRC32C = base64.b64encode(crc32c.digest()).decode(u"utf-8")
+    EMPTY_CRC32C = base64.b64encode(crc32c.digest()).decode("utf-8")
 
     def request(self, method, url, data=None, headers=None, **kwargs):
         """Implementation of Requests' request."""
         response = tr_requests.AuthorizedSession.request(
             self, method, url, data=data, headers=headers, **kwargs
         )
-        response.headers[_helpers._HASH_HEADER] = u"crc32c={},md5={}".format(
+        response.headers[_helpers._HASH_HEADER] = "crc32c={},md5={}".format(
             self.EMPTY_CRC32C, self.EMPTY_MD5
         )
         return response
@@ -82,11 +82,11 @@ def get_path(filename):
 
 ALL_FILES = (
     {
-        u"path": get_path(u"image1.jpg"),
-        u"content_type": IMAGE_JPEG,
-        u"md5": u"1bsd83IYNug8hd+V1ING3Q==",
-        u"crc32c": u"YQGPxA==",
-        u"slices": (
+        "path": get_path("image1.jpg"),
+        "content_type": IMAGE_JPEG,
+        "md5": "1bsd83IYNug8hd+V1ING3Q==",
+        "crc32c": "YQGPxA==",
+        "slices": (
             slice(1024, 16386, None),  # obj[1024:16386]
             slice(None, 8192, None),  # obj[:8192]
             slice(-256, None, None),  # obj[-256:]
@@ -94,11 +94,11 @@ ALL_FILES = (
         ),
     },
     {
-        u"path": get_path(u"image2.jpg"),
-        u"content_type": IMAGE_JPEG,
-        u"md5": u"gdLXJltiYAMP9WZZFEQI1Q==",
-        u"crc32c": u"sxxEFQ==",
-        u"slices": (
+        "path": get_path("image2.jpg"),
+        "content_type": IMAGE_JPEG,
+        "md5": "gdLXJltiYAMP9WZZFEQI1Q==",
+        "crc32c": "sxxEFQ==",
+        "slices": (
             slice(1024, 16386, None),  # obj[1024:16386]
             slice(None, 8192, None),  # obj[:8192]
             slice(-256, None, None),  # obj[-256:]
@@ -106,43 +106,43 @@ ALL_FILES = (
         ),
     },
     {
-        u"path": get_path(u"file.txt"),
-        u"content_type": PLAIN_TEXT,
-        u"md5": u"XHSHAr/SpIeZtZbjgQ4nGw==",
-        u"crc32c": u"MeMHoQ==",
-        u"slices": (),
+        "path": get_path("file.txt"),
+        "content_type": PLAIN_TEXT,
+        "md5": "XHSHAr/SpIeZtZbjgQ4nGw==",
+        "crc32c": "MeMHoQ==",
+        "slices": (),
     },
     {
-        u"path": get_path(u"gzipped.txt.gz"),
-        u"uncompressed": get_path(u"gzipped.txt"),
-        u"content_type": PLAIN_TEXT,
-        u"md5": u"KHRs/+ZSrc/FuuR4qz/PZQ==",
-        u"crc32c": u"/LIRNg==",
-        u"slices": (),
-        u"metadata": {u"contentEncoding": u"gzip"},
+        "path": get_path("gzipped.txt.gz"),
+        "uncompressed": get_path("gzipped.txt"),
+        "content_type": PLAIN_TEXT,
+        "md5": "KHRs/+ZSrc/FuuR4qz/PZQ==",
+        "crc32c": "/LIRNg==",
+        "slices": (),
+        "metadata": {"contentEncoding": "gzip"},
     },
 )
 
 
 def get_contents_for_upload(info):
-    with open(info[u"path"], u"rb") as file_obj:
+    with open(info["path"], "rb") as file_obj:
         return file_obj.read()
 
 
 def get_contents(info):
-    full_path = info.get(u"uncompressed", info[u"path"])
-    with open(full_path, u"rb") as file_obj:
+    full_path = info.get("uncompressed", info["path"])
+    with open(full_path, "rb") as file_obj:
         return file_obj.read()
 
 
 def get_raw_contents(info):
-    full_path = info[u"path"]
-    with open(full_path, u"rb") as file_obj:
+    full_path = info["path"]
+    with open(full_path, "rb") as file_obj:
         return file_obj.read()
 
 
 def get_blob_name(info):
-    full_path = info.get(u"uncompressed", info[u"path"])
+    full_path = info.get("uncompressed", info["path"])
     return os.path.basename(full_path)
 
 
@@ -152,9 +152,9 @@ def delete_blob(transport, blob_name):
     assert response.status_code == http.client.NO_CONTENT
 
 
-@pytest.fixture(scope=u"module")
+@pytest.fixture(scope="module")
 def secret_file(authorized_transport, bucket):
-    blob_name = u"super-seekrit.txt"
+    blob_name = "super-seekrit.txt"
     data = b"Please do not tell anyone my encrypted seekrit."
 
     upload_url = utils.SIMPLE_UPLOAD_TEMPLATE.format(blob_name=blob_name)
@@ -169,15 +169,15 @@ def secret_file(authorized_transport, bucket):
 
 
 # Transport that returns corrupt data, so we can exercise checksum handling.
-@pytest.fixture(scope=u"module")
+@pytest.fixture(scope="module")
 def corrupting_transport():
     credentials, _ = google.auth.default(scopes=(utils.GCS_RW_SCOPE,))
     yield CorruptingAuthorizedSession(credentials)
 
 
-@pytest.fixture(scope=u"module")
+@pytest.fixture(scope="module")
 def simple_file(authorized_transport, bucket):
-    blob_name = u"basic-file.txt"
+    blob_name = "basic-file.txt"
     upload_url = utils.SIMPLE_UPLOAD_TEMPLATE.format(blob_name=blob_name)
     upload = resumable_requests.SimpleUpload(upload_url)
     data = b"Simple contents"
@@ -189,7 +189,7 @@ def simple_file(authorized_transport, bucket):
     delete_blob(authorized_transport, blob_name)
 
 
-@pytest.fixture(scope=u"module")
+@pytest.fixture(scope="module")
 def add_files(authorized_transport, bucket):
     blob_names = []
     for info in ALL_FILES:
@@ -197,18 +197,18 @@ def add_files(authorized_transport, bucket):
         blob_name = get_blob_name(info)
 
         blob_names.append(blob_name)
-        if u"metadata" in info:
+        if "metadata" in info:
             upload = resumable_requests.MultipartUpload(utils.MULTIPART_UPLOAD)
-            metadata = copy.deepcopy(info[u"metadata"])
-            metadata[u"name"] = blob_name
+            metadata = copy.deepcopy(info["metadata"])
+            metadata["name"] = blob_name
             response = upload.transmit(
-                authorized_transport, to_upload, metadata, info[u"content_type"]
+                authorized_transport, to_upload, metadata, info["content_type"]
             )
         else:
             upload_url = utils.SIMPLE_UPLOAD_TEMPLATE.format(blob_name=blob_name)
             upload = resumable_requests.SimpleUpload(upload_url)
             response = upload.transmit(
-                authorized_transport, to_upload, info[u"content_type"]
+                authorized_transport, to_upload, info["content_type"]
             )
 
         assert response.status_code == http.client.OK
@@ -225,11 +225,11 @@ def check_tombstoned(download, transport):
     if isinstance(download, SIMPLE_DOWNLOADS):
         with pytest.raises(ValueError) as exc_info:
             download.consume(transport)
-        assert exc_info.match(u"A download can only be used once.")
+        assert exc_info.match("A download can only be used once.")
     else:
         with pytest.raises(ValueError) as exc_info:
             download.consume_next_chunk(transport)
-        assert exc_info.match(u"Download has finished.")
+        assert exc_info.match("Download has finished.")
 
 
 def check_error_response(exc_info, status_code, message):
@@ -287,7 +287,7 @@ class TestDownload(object):
             response = download.consume(authorized_transport)
             assert response.status_code == http.client.OK
             with pytest.raises(RuntimeError) as exc_info:
-                getattr(response, u"content")
+                getattr(response, "content")
             assert exc_info.value.args == (NO_BODY_ERR,)
             assert response._content is False
             assert response._content_consumed is True
@@ -313,7 +313,7 @@ class TestDownload(object):
         check_tombstoned(download_wo, authorized_transport)
 
     def test_non_existent_file(self, authorized_transport, bucket):
-        blob_name = u"does-not-exist.txt"
+        blob_name = "does-not-exist.txt"
         media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
         download = self._make_one(media_url)
 
@@ -359,7 +359,7 @@ class TestDownload(object):
             blob_name = get_blob_name(info)
 
             media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
-            for slice_ in info[u"slices"]:
+            for slice_ in info["slices"]:
                 download = self._download_slice(media_url, slice_)
                 response = download.consume(authorized_transport)
                 assert response.status_code == http.client.PARTIAL_CONTENT
@@ -479,7 +479,7 @@ class TestChunkedDownload(object):
             blob_name = get_blob_name(info)
 
             media_url = utils.DOWNLOAD_URL_TEMPLATE.format(blob_name=blob_name)
-            for slice_ in info[u"slices"]:
+            for slice_ in info["slices"]:
                 # Manually replace a missing start with 0.
                 start = 0 if slice_.start is None else slice_.start
                 # Chunked downloads don't support a negative index.

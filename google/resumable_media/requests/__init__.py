@@ -668,11 +668,11 @@ from google.resumable_media.requests.upload import SimpleUpload
 
 
 __all__ = [
-    u"ChunkedDownload",
-    u"Download",
-    u"MultipartUpload",
-    u"RawChunkedDownload",
-    u"RawDownload",
-    u"ResumableUpload",
-    u"SimpleUpload",
+    "ChunkedDownload",
+    "Download",
+    "MultipartUpload",
+    "RawChunkedDownload",
+    "RawDownload",
+    "ResumableUpload",
+    "SimpleUpload",
 ]
