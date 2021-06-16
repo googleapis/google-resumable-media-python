@@ -17,7 +17,7 @@ import hashlib
 import http.client
 import io
 import os
-import urllib_parse
+import urllib.parse
 
 import asyncio
 import mock
@@ -85,8 +85,8 @@ def get_md5(data):
 
 
 def get_upload_id(upload_url):
-    parse_result = urllib_parse.urlparse(upload_url)
-    parsed_query = urllib_parse.parse_qs(parse_result.query)
+    parse_result = urllib.parse.urlparse(upload_url)
+    parsed_query = urllib.parse.parse_qs(parse_result.query)
     # NOTE: We are unpacking here, so asserting exactly one match.
     (upload_id,) = parsed_query["upload_id"]
     return upload_id
