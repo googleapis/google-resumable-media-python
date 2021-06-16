@@ -25,18 +25,10 @@ from google.resumable_media import _upload
 from google.resumable_media import common
 
 
-SIMPLE_URL = (
-    "https://www.googleapis.com/upload/storage/v1/b/{BUCKET}/o?"
-    "uploadType=media&name={OBJECT}"
-)
-MULTIPART_URL = (
-    "https://www.googleapis.com/upload/storage/v1/b/{BUCKET}/o?"
-    "uploadType=multipart"
-)
-RESUMABLE_URL = (
-    "https://www.googleapis.com/upload/storage/v1/b/{BUCKET}/o?"
-    "uploadType=resumable"
-)
+URL_PREFIX = "https://www.googleapis.com/upload/storage/v1/b/{BUCKET}/o"
+SIMPLE_URL = URL_PREFIX + "?uploadType=media&name={OBJECT}"
+MULTIPART_URL = URL_PREFIX + "?uploadType=multipart"
+RESUMABLE_URL = URL_PREFIX + "?uploadType=resumable"
 ONE_MB = 1024 * 1024
 BASIC_CONTENT = "text/plain"
 JSON_TYPE = "application/json; charset=UTF-8"

@@ -24,10 +24,8 @@ from google.resumable_media.requests import download as download_mod
 from google.resumable_media.requests import _request_helpers
 
 
-EXAMPLE_URL = (
-    "https://www.googleapis.com/download/storage/v1/b/"
-    "{BUCKET}/o/{OBJECT}?alt=media"
-)
+URL_PREFIX = "https://www.googleapis.com/download/storage/v1/b/{BUCKET}/o/"
+EXAMPLE_URL = URL_PREFIX + "{OBJECT}?alt=media"
 EXPECTED_TIMEOUT = (61, 60)
 
 

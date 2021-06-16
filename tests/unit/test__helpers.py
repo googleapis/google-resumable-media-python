@@ -446,7 +446,11 @@ def test__is_fast_crcmod_wo_extension_warning(mock_import):
     assert not _helpers._is_fast_crcmod()
 
     mock_import.assert_called_once_with(
-        "crcmod.crcmod", mock.ANY, {}, ["_usingExtension"], 0,
+        "crcmod.crcmod",
+        mock.ANY,
+        {},
+        ["_usingExtension"],
+        0,
     )
 
 
