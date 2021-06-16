@@ -15,16 +15,15 @@
 import base64
 import copy
 import hashlib
+import http.client
 import io
 import os
 
+import asyncio
 from google.auth._default_async import default_async
 import google.auth.transport._aiohttp_requests as tr_requests
-import pytest
-from six.moves import http_client
-
-import asyncio
 import multidict
+import pytest
 
 import google._async_resumable_media.requests as resumable_requests
 from google.resumable_media import _helpers
@@ -163,7 +162,7 @@ def get_blob_name(info):
 async def delete_blob(transport, blob_name):
     metadata_url = utils.METADATA_URL_TEMPLATE.format(blob_name=blob_name)
     response = await transport.request("DELETE", metadata_url)
-    assert response.status == http_client.NO_CONTENT
+    assert response.status == http.client.NO_CONTENT
 
 
 @pytest.fixture(scope=u"module")
@@ -175,7 +174,7 @@ async def secret_file(authorized_transport, bucket):
     headers = utils.get_encryption_headers()
     upload = resumable_requests.SimpleUpload(upload_url, headers=headers)
     response = await upload.transmit(authorized_transport, data, PLAIN_TEXT)
-    assert response.status == http_client.OK
+    assert response.status == http.client.OK
 
     yield blob_name, data, headers
 
@@ -196,7 +195,7 @@ async def simple_file(authorized_transport, bucket):
     upload = resumable_requests.SimpleUpload(upload_url)
     data = b"Simple contents"
     response = await upload.transmit(authorized_transport, data, PLAIN_TEXT)
-    assert response.status == http_client.OK
+    assert response.status == http.client.OK
 
     yield blob_name, data
 
@@ -225,7 +224,7 @@ async def add_files(authorized_transport, bucket):
                 authorized_transport, to_upload, info[u"content_type"]
             )
 
-        assert response.status == http_client.OK
+        assert response.status == http.client.OK
 
     yield
 
@@ -254,8 +253,8 @@ async def check_error_response(exc_info, status_code, message):
     assert content.startswith(message)
     assert len(error.args) == 5
     assert error.args[1] == status_code
-    assert error.args[3] == http_client.OK
-    assert error.args[4] == http_client.PARTIAL_CONTENT
+    assert error.args[3] == http.client.OK
+    assert error.args[4] == http.client.PARTIAL_CONTENT
 
 
 class TestDownload(object):
@@ -288,7 +287,7 @@ class TestDownload(object):
             # Consume the resource.
             response = await download.consume(authorized_transport)
             response = tr_requests._CombinedResponse(response)
-            assert response.status == http_client.OK
+            assert response.status == http.client.OK
             content = await self._read_response_content(response)
             assert content == actual_contents
             await check_tombstoned(download, authorized_transport)
@@ -301,7 +300,7 @@ class TestDownload(object):
         download = self._make_one(media_url, headers=headers)
         # Consume the resource.
         response = await download.consume(authorized_transport)
-        assert response.status == http_client.OK
+        assert response.status == http.client.OK
         content = await response.content.read()
         assert content == data
         await check_tombstoned(download, authorized_transport)
@@ -313,7 +312,7 @@ class TestDownload(object):
         with pytest.raises(common.InvalidResponse) as exc_info:
             await download_wo.consume(authorized_transport)
 
-        await check_error_response(exc_info, http_client.BAD_REQUEST, ENCRYPTED_ERR)
+        await check_error_response(exc_info, http.client.BAD_REQUEST, ENCRYPTED_ERR)
         await check_tombstoned(download_wo, authorized_transport)
 
     @pytest.mark.asyncio
@@ -325,7 +324,7 @@ class TestDownload(object):
         # Try to consume the resource and fail.
         with pytest.raises(common.InvalidResponse) as exc_info:
             await download.consume(authorized_transport)
-        await check_error_response(exc_info, http_client.NOT_FOUND, NOT_FOUND_ERR)
+        await check_error_response(exc_info, http.client.NOT_FOUND, NOT_FOUND_ERR)
         await check_tombstoned(download, authorized_transport)
 
     @pytest.mark.asyncio
@@ -345,7 +344,7 @@ class TestDownload(object):
 
         await check_error_response(
             exc_info,
-            http_client.REQUESTED_RANGE_NOT_SATISFIABLE,
+            http.client.REQUESTED_RANGE_NOT_SATISFIABLE,
             b"Request range not satisfiable",
         )
         await check_tombstoned(download, authorized_transport)
@@ -369,7 +368,7 @@ class TestDownload(object):
             for slice_ in info[u"slices"]:
                 download = self._download_slice(media_url, slice_)
                 response = await download.consume(authorized_transport)
-                assert response.status == http_client.PARTIAL_CONTENT
+                assert response.status == http.client.PARTIAL_CONTENT
                 content = await response.content.read()
                 assert content == actual_contents[slice_]
                 with pytest.raises(ValueError):
@@ -465,7 +464,7 @@ async def consume_chunks(download, authorized_transport, total_bytes, actual_con
         next_byte = min(start_byte + download.chunk_size, end_byte + 1)
         assert download.bytes_downloaded == next_byte - download.start
         assert download.total_bytes == total_bytes
-        assert response.status == http_client.PARTIAL_CONTENT
+        assert response.status == http.client.PARTIAL_CONTENT
         # NOTE: Due to the consumption of the stream in the respone, the
         # response object for async requests will be EOF at this point. In
         # sync versions we could compare the content with the range of
@@ -569,7 +568,7 @@ class TestChunkedDownload(object):
             await download_wo.consume_next_chunk(authorized_transport)
 
         assert stream_wo.tell() == 0
-        await check_error_response(exc_info, http_client.BAD_REQUEST, ENCRYPTED_ERR)
+        await check_error_response(exc_info, http.client.BAD_REQUEST, ENCRYPTED_ERR)
         assert download_wo.invalid
 
 

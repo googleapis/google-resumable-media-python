@@ -15,13 +15,13 @@
 import base64
 import copy
 import hashlib
+import http.client
 import io
 import os
 
 import google.auth
 import google.auth.transport.requests as tr_requests
 import pytest
-from six.moves import http_client
 
 from google.resumable_media import common
 import google.resumable_media.requests as resumable_requests
@@ -149,7 +149,7 @@ def get_blob_name(info):
 def delete_blob(transport, blob_name):
     metadata_url = utils.METADATA_URL_TEMPLATE.format(blob_name=blob_name)
     response = transport.delete(metadata_url)
-    assert response.status_code == http_client.NO_CONTENT
+    assert response.status_code == http.client.NO_CONTENT
 
 
 @pytest.fixture(scope=u"module")
@@ -161,7 +161,7 @@ def secret_file(authorized_transport, bucket):
     headers = utils.get_encryption_headers()
     upload = resumable_requests.SimpleUpload(upload_url, headers=headers)
     response = upload.transmit(authorized_transport, data, PLAIN_TEXT)
-    assert response.status_code == http_client.OK
+    assert response.status_code == http.client.OK
 
     yield blob_name, data, headers
 
@@ -182,7 +182,7 @@ def simple_file(authorized_transport, bucket):
     upload = resumable_requests.SimpleUpload(upload_url)
     data = b"Simple contents"
     response = upload.transmit(authorized_transport, data, PLAIN_TEXT)
-    assert response.status_code == http_client.OK
+    assert response.status_code == http.client.OK
 
     yield blob_name, data
 
@@ -211,7 +211,7 @@ def add_files(authorized_transport, bucket):
                 authorized_transport, to_upload, info[u"content_type"]
             )
 
-        assert response.status_code == http_client.OK
+        assert response.status_code == http.client.OK
 
     yield
 
@@ -239,8 +239,8 @@ def check_error_response(exc_info, status_code, message):
     assert response.content.startswith(message)
     assert len(error.args) == 5
     assert error.args[1] == status_code
-    assert error.args[3] == http_client.OK
-    assert error.args[4] == http_client.PARTIAL_CONTENT
+    assert error.args[3] == http.client.OK
+    assert error.args[4] == http.client.PARTIAL_CONTENT
 
 
 class TestDownload(object):
@@ -270,7 +270,7 @@ class TestDownload(object):
             download = self._make_one(media_url, checksum=checksum)
             # Consume the resource.
             response = download.consume(authorized_transport)
-            assert response.status_code == http_client.OK
+            assert response.status_code == http.client.OK
             assert self._read_response_content(response) == actual_contents
             check_tombstoned(download, authorized_transport)
 
@@ -285,7 +285,7 @@ class TestDownload(object):
             download = self._make_one(media_url, stream=stream)
             # Consume the resource.
             response = download.consume(authorized_transport)
-            assert response.status_code == http_client.OK
+            assert response.status_code == http.client.OK
             with pytest.raises(RuntimeError) as exc_info:
                 getattr(response, u"content")
             assert exc_info.value.args == (NO_BODY_ERR,)
@@ -301,7 +301,7 @@ class TestDownload(object):
         download = self._make_one(media_url, headers=headers)
         # Consume the resource.
         response = download.consume(authorized_transport)
-        assert response.status_code == http_client.OK
+        assert response.status_code == http.client.OK
         assert response.content == data
         check_tombstoned(download, authorized_transport)
         # Attempt to consume the resource **without** the headers.
@@ -309,7 +309,7 @@ class TestDownload(object):
         with pytest.raises(common.InvalidResponse) as exc_info:
             download_wo.consume(authorized_transport)
 
-        check_error_response(exc_info, http_client.BAD_REQUEST, ENCRYPTED_ERR)
+        check_error_response(exc_info, http.client.BAD_REQUEST, ENCRYPTED_ERR)
         check_tombstoned(download_wo, authorized_transport)
 
     def test_non_existent_file(self, authorized_transport, bucket):
@@ -320,7 +320,7 @@ class TestDownload(object):
         # Try to consume the resource and fail.
         with pytest.raises(common.InvalidResponse) as exc_info:
             download.consume(authorized_transport)
-        check_error_response(exc_info, http_client.NOT_FOUND, NOT_FOUND_ERR)
+        check_error_response(exc_info, http.client.NOT_FOUND, NOT_FOUND_ERR)
         check_tombstoned(download, authorized_transport)
 
     def test_bad_range(self, simple_file, authorized_transport):
@@ -339,7 +339,7 @@ class TestDownload(object):
 
         check_error_response(
             exc_info,
-            http_client.REQUESTED_RANGE_NOT_SATISFIABLE,
+            http.client.REQUESTED_RANGE_NOT_SATISFIABLE,
             b"Request range not satisfiable",
         )
         check_tombstoned(download, authorized_transport)
@@ -362,7 +362,7 @@ class TestDownload(object):
             for slice_ in info[u"slices"]:
                 download = self._download_slice(media_url, slice_)
                 response = download.consume(authorized_transport)
-                assert response.status_code == http_client.PARTIAL_CONTENT
+                assert response.status_code == http.client.PARTIAL_CONTENT
                 assert response.content == actual_contents[slice_]
                 with pytest.raises(ValueError):
                     download.consume(authorized_transport)
@@ -454,7 +454,7 @@ def consume_chunks(download, authorized_transport, total_bytes, actual_contents)
         next_byte = min(start_byte + download.chunk_size, end_byte + 1)
         assert download.bytes_downloaded == next_byte - download.start
         assert download.total_bytes == total_bytes
-        assert response.status_code == http_client.PARTIAL_CONTENT
+        assert response.status_code == http.client.PARTIAL_CONTENT
         assert response.content == actual_contents[start_byte:next_byte]
         start_byte = next_byte
 
@@ -546,7 +546,7 @@ class TestChunkedDownload(object):
             download_wo.consume_next_chunk(authorized_transport)
 
         assert stream_wo.tell() == 0
-        check_error_response(exc_info, http_client.BAD_REQUEST, ENCRYPTED_ERR)
+        check_error_response(exc_info, http.client.BAD_REQUEST, ENCRYPTED_ERR)
         assert download_wo.invalid
 
 

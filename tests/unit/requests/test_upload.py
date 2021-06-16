@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import http.client
 import io
 import json
 
 import mock
-from six.moves import http_client
 
 from google import resumable_media
 import google.resumable_media.requests.upload as upload_mod
@@ -346,7 +346,7 @@ class TestResumableUpload(object):
         )
 
 
-def _make_response(status_code=http_client.OK, headers=None):
+def _make_response(status_code=http.client.OK, headers=None):
     headers = headers or {}
     return mock.Mock(
         headers=headers, status_code=status_code, spec=["headers", "status_code"]

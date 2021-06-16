@@ -188,7 +188,7 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
 
        import mock
        import requests
-       from six.moves import http_client
+       import http.client
 
        from google.resumable_media.requests import ResumableUpload
 
@@ -204,7 +204,7 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
            file_obj.write(data)
 
        fake_response = requests.Response()
-       fake_response.status_code = int(http_client.OK)
+       fake_response.status_code = int(http.client.OK)
        fake_response._content = b''
        resumable_url = u'http://test.invalid?upload_id=7up'
        fake_response.headers[u'location'] = resumable_url
@@ -245,7 +245,7 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
 
        import mock
        import requests
-       from six.moves import http_client
+       import http.client
 
        from google.resumable_media.requests import ResumableUpload
 
@@ -254,7 +254,7 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
        upload = ResumableUpload(upload_url, chunk_size)
 
        fake_response = requests.Response()
-       fake_response.status_code = int(http_client.OK)
+       fake_response.status_code = int(http.client.OK)
        fake_response._content = b''
        resumable_url = u'http://test.invalid?upload_id=7up'
        fake_response.headers[u'location'] = resumable_url
@@ -286,7 +286,7 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
 
        import mock
        import requests
-       from six.moves import http_client
+       import http.client
 
        from google.resumable_media.requests import ResumableUpload
 
@@ -295,7 +295,7 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
        upload = ResumableUpload(upload_url, chunk_size)
 
        fake_response = requests.Response()
-       fake_response.status_code = int(http_client.OK)
+       fake_response.status_code = int(http.client.OK)
        fake_response._content = b''
        resumable_url = u'http://test.invalid?upload_id=7up'
        fake_response.headers[u'location'] = resumable_url
@@ -437,14 +437,14 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
 
            import mock
            import requests
-           from six.moves import http_client
+           import http.client
 
            from google import resumable_media
            import google.resumable_media.requests.upload as upload_mod
 
            transport = mock.Mock(spec=['request'])
            fake_response = requests.Response()
-           fake_response.status_code = int(http_client.BAD_REQUEST)
+           fake_response.status_code = int(http.client.BAD_REQUEST)
            transport.request.return_value = fake_response
 
            upload_url = u'http://test.invalid'

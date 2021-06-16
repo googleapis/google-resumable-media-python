@@ -12,12 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import http.client
 import io
 
 import aiohttp
 import mock
 import pytest
-from six.moves import http_client
 
 
 from google.resumable_media import common
@@ -522,7 +522,7 @@ class TestChunkedDownload(object):
             start + chunk_size - 1,
             total_bytes,
             content=content,
-            status_code=int(http_client.OK),
+            status_code=int(http.client.OK),
         )
         transport.request = mock.AsyncMock(spec=["__call__"], return_value=mockResponse)
 
@@ -630,7 +630,7 @@ class TestRawChunkedDownload(object):
             start + chunk_size - 1,
             total_bytes,
             content=content,
-            status_code=int(http_client.OK),
+            status_code=int(http.client.OK),
         )
         transport.request = mock.AsyncMock(spec=["__call__"], return_value=mockResponse)
 
@@ -748,7 +748,7 @@ class AsyncIter:
             yield item
 
 
-def _mock_response(status=http_client.OK, chunks=(), headers=None):
+def _mock_response(status=http.client.OK, chunks=(), headers=None):
     if headers is None:
         headers = {}
 
@@ -788,7 +788,7 @@ def _mock_response(status=http_client.OK, chunks=(), headers=None):
         )
 
 
-def _mock_raw_response(status_code=http_client.OK, chunks=(), headers=None):
+def _mock_raw_response(status_code=http.client.OK, chunks=(), headers=None):
     if headers is None:
         headers = {}
     chunklist = b"".join(chunks)

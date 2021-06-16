@@ -70,13 +70,13 @@ access to the resource:
 
    import mock
    import requests
-   from six.moves import http_client
+   import http.client
 
    bucket = u'bucket-foo'
    blob_name = u'file.txt'
 
    fake_response = requests.Response()
-   fake_response.status_code = int(http_client.OK)
+   fake_response.status_code = int(http.client.OK)
    fake_response.headers[u'Content-Length'] = u'1364156'
    fake_content = mock.MagicMock(spec=['__len__'])
    fake_content.__len__.return_value = 1364156
@@ -113,7 +113,7 @@ specify ``start`` and ``end`` byte positions (both optional):
 
    import mock
    import requests
-   from six.moves import http_client
+   import http.client
 
    from google.resumable_media.requests import Download
 
@@ -123,7 +123,7 @@ specify ``start`` and ``end`` byte positions (both optional):
    slice_size = end - start + 1
 
    fake_response = requests.Response()
-   fake_response.status_code = int(http_client.PARTIAL_CONTENT)
+   fake_response.status_code = int(http.client.PARTIAL_CONTENT)
    fake_response.headers[u'Content-Length'] = u'{:d}'.format(slice_size)
    content_range = u'bytes {:d}-{:d}/1364156'.format(start, end)
    fake_response.headers[u'Content-Range'] = content_range
@@ -172,14 +172,14 @@ having to fit in memory all at once.
 
    import mock
    import requests
-   from six.moves import http_client
+   import http.client
 
    media_url = u'http://test.invalid'
 
    fifty_mb = 50 * 1024 * 1024
    one_gb = 1024 * 1024 * 1024
    fake_response = requests.Response()
-   fake_response.status_code = int(http_client.PARTIAL_CONTENT)
+   fake_response.status_code = int(http.client.PARTIAL_CONTENT)
    fake_response.headers[u'Content-Length'] = u'{:d}'.format(fifty_mb)
    content_range = u'bytes 0-{:d}/{:d}'.format(fifty_mb - 1, one_gb)
    fake_response.headers[u'Content-Range'] = content_range
@@ -232,7 +232,7 @@ not be the same size as the other chunks:
 
    import mock
    import requests
-   from six.moves import http_client
+   import http.client
 
    from google.resumable_media.requests import ChunkedDownload
 
@@ -246,7 +246,7 @@ not be the same size as the other chunks:
    download._total_bytes = one_gb
 
    fake_response = requests.Response()
-   fake_response.status_code = int(http_client.PARTIAL_CONTENT)
+   fake_response.status_code = int(http.client.PARTIAL_CONTENT)
    slice_size = one_gb - 20 * fifty_mb
    fake_response.headers[u'Content-Length'] = u'{:d}'.format(slice_size)
    content_range = u'bytes {:d}-{:d}/{:d}'.format(
@@ -301,13 +301,13 @@ associated with the resource.
 
    import mock
    import requests
-   from six.moves import http_client
+   import http.client
 
    bucket = u'some-bucket'
    blob_name = u'file.txt'
 
    fake_response = requests.Response()
-   fake_response.status_code = int(http_client.OK)
+   fake_response.status_code = int(http.client.OK)
    payload = {
        u'bucket': bucket,
        u'contentType': u'text/plain',
@@ -361,7 +361,7 @@ will be raised:
 
    import mock
    import requests
-   from six.moves import http_client
+   import http.client
 
    from google import resumable_media
    from google.resumable_media import _helpers
@@ -372,7 +372,7 @@ will be raised:
    content_type = u'text/plain'
 
    fake_response = requests.Response()
-   fake_response.status_code = int(http_client.SERVICE_UNAVAILABLE)
+   fake_response.status_code = int(http.client.SERVICE_UNAVAILABLE)
 
    post_method = mock.Mock(return_value=fake_response, spec=[])
    transport = mock.Mock(request=post_method, spec=['request'])
@@ -436,7 +436,7 @@ accepts an extra required argument: ``metadata``.
 
    import mock
    import requests
-   from six.moves import http_client
+   import http.client
 
    bucket = u'some-bucket'
    blob_name = u'file.txt'
@@ -444,7 +444,7 @@ accepts an extra required argument: ``metadata``.
    content_type = u'text/plain'
 
    fake_response = requests.Response()
-   fake_response.status_code = int(http_client.OK)
+   fake_response.status_code = int(http.client.OK)
    payload = {
        u'bucket': bucket,
        u'name': blob_name,
@@ -522,7 +522,7 @@ object or any other stream implementing the same interface.
 
    import mock
    import requests
-   from six.moves import http_client
+   import http.client
 
    bucket = u'some-bucket'
    blob_name = u'file.txt'
@@ -530,7 +530,7 @@ object or any other stream implementing the same interface.
    content_type = u'text/plain'
 
    fake_response = requests.Response()
-   fake_response.status_code = int(http_client.OK)
+   fake_response.status_code = int(http.client.OK)
    fake_response._content = b''
    upload_id = u'ABCdef189XY_super_serious'
    resumable_url_template = (
@@ -583,7 +583,7 @@ transmitted in chunks until completion:
 
    import mock
    import requests
-   from six.moves import http_client
+   import http.client
 
    from google import resumable_media
    import google.resumable_media.requests.upload as upload_mod
@@ -612,7 +612,7 @@ transmitted in chunks until completion:
    fake_response1.headers[u'range'] = u'bytes=0-7'
 
    fake_response2 = requests.Response()
-   fake_response2.status_code = int(http_client.OK)
+   fake_response2.status_code = int(http.client.OK)
    bucket = u'some-bucket'
    blob_name = u'file.txt'
    payload = {

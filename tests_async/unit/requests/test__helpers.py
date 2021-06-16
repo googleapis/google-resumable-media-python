@@ -12,10 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import aiohttp
+import http.client
 import io
+
+import aiohttp
 import mock
-from six.moves import http_client
 import pytest
 
 from google._async_resumable_media.requests import _request_helpers as _helpers
@@ -26,7 +27,7 @@ EXPECTED_TIMEOUT = aiohttp.ClientTimeout(connect=61, sock_read=60)
 
 class TestRequestsMixin(object):
     def test__get_status_code(self):
-        status_code = int(http_client.OK)
+        status_code = int(http.client.OK)
         response = _make_response(status_code)
         assert status_code == _helpers.RequestsMixin._get_status_code(response)
 
@@ -69,7 +70,7 @@ class TestRawRequestsMixin(object):
 
 @pytest.mark.asyncio
 async def test_http_request():
-    transport, response = _make_transport(http_client.OK)
+    transport, response = _make_transport(http.client.OK)
     method = u"POST"
     url = u"http://test.invalid"
     data = mock.sentinel.data
@@ -100,7 +101,7 @@ async def test_http_request():
 
 @pytest.mark.asyncio
 async def test_http_request_defaults():
-    transport, response = _make_transport(http_client.OK)
+    transport, response = _make_transport(http.client.OK)
     method = u"POST"
     url = u"http://test.invalid"
 

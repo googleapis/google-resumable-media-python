@@ -15,9 +15,8 @@
 """Virtual bases classes for downloading media from Google APIs."""
 
 
+import http.client
 import re
-
-from six.moves import http_client
 
 from google.resumable_media import _helpers
 from google.resumable_media import common
@@ -27,7 +26,7 @@ _CONTENT_RANGE_RE = re.compile(
     r"bytes (?P<start_byte>\d+)-(?P<end_byte>\d+)/(?P<total_bytes>\d+)",
     flags=re.IGNORECASE,
 )
-_ACCEPTABLE_STATUS_CODES = (http_client.OK, http_client.PARTIAL_CONTENT)
+_ACCEPTABLE_STATUS_CODES = (http.client.OK, http.client.PARTIAL_CONTENT)
 _GET = u"GET"
 _ZERO_CONTENT_RANGE_HEADER = u"bytes */0"
 
@@ -544,7 +543,7 @@ def _check_for_zero_content_range(response, get_status_code, get_headers):
     Returns:
         bool: True if content range total bytes is zero, false otherwise.
     """
-    if get_status_code(response) == http_client.REQUESTED_RANGE_NOT_SATISFIABLE:
+    if get_status_code(response) == http.client.REQUESTED_RANGE_NOT_SATISFIABLE:
         content_range = _helpers.header_required(
             response,
             _helpers.CONTENT_RANGE_HEADER,

@@ -14,20 +14,18 @@
 
 import base64
 import hashlib
+import http.client
 import io
 import os
-
-import mock
-import pytest
-from six.moves import http_client
-from six.moves import urllib_parse
+import urllib_parse
 
 import asyncio
+import mock
+import pytest
 
 from google.resumable_media import common
 from google import _async_resumable_media
 import google._async_resumable_media.requests as resumable_requests
-
 from google.resumable_media import _helpers
 from tests.system import utils
 
@@ -67,7 +65,7 @@ async def cleanup():
     for blob_name, transport in to_delete:
         metadata_url = utils.METADATA_URL_TEMPLATE.format(blob_name=blob_name)
         response = await transport.request("DELETE", metadata_url)
-        assert response.status == http_client.NO_CONTENT
+        assert response.status == http.client.NO_CONTENT
 
 
 @pytest.fixture
@@ -109,7 +107,7 @@ async def check_response(
     metadata=None,
     content_type=ICO_CONTENT_TYPE,
 ):
-    assert response.status == http_client.OK
+    assert response.status == http.client.OK
 
     json_response = await response.json()
     assert json_response[u"bucket"] == utils.BUCKET_NAME
@@ -133,7 +131,7 @@ async def check_content(blob_name, expected_content, transport, headers=None):
     download = resumable_requests.Download(media_url, headers=headers)
     response = await download.consume(transport)
     content = await response.content.read()
-    assert response.status == http_client.OK
+    assert response.status == http.client.OK
     assert content == expected_content
 
 
@@ -153,11 +151,11 @@ async def check_does_not_exist(transport, blob_name):
     metadata_url = utils.METADATA_URL_TEMPLATE.format(blob_name=blob_name)
     # Make sure we are creating a **new** object.
     response = await transport.request("GET", metadata_url)
-    assert response.status == http_client.NOT_FOUND
+    assert response.status == http.client.NOT_FOUND
 
 
 async def check_initiate(response, upload, stream, transport, metadata):
-    assert response.status == http_client.OK
+    assert response.status == http.client.OK
     content = await response.content.read()
     assert content == b""
     upload_id = get_upload_id(upload.resumable_url)
@@ -175,7 +173,7 @@ async def check_bad_chunk(upload, transport):
         await upload.transmit_next_chunk(transport)
     error = exc_info.value
     response = error.response
-    assert response.status == http_client.BAD_REQUEST
+    assert response.status == http.client.BAD_REQUEST
     content = await response.content.read()
     assert content == BAD_CHUNK_SIZE_MSG
 

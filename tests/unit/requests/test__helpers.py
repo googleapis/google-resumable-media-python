@@ -12,8 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import http.client
+
 import mock
-from six.moves import http_client
 
 from google.resumable_media.requests import _request_helpers
 
@@ -22,7 +23,7 @@ EXPECTED_TIMEOUT = (61, 60)
 
 class TestRequestsMixin(object):
     def test__get_status_code(self):
-        status_code = int(http_client.OK)
+        status_code = int(http.client.OK)
         response = _make_response(status_code)
         assert status_code == _request_helpers.RequestsMixin._get_status_code(response)
 
@@ -55,7 +56,7 @@ class TestRawRequestsMixin(object):
 
 
 def test_http_request():
-    transport, responses = _make_transport(http_client.OK)
+    transport, responses = _make_transport(http.client.OK)
     method = u"POST"
     url = u"http://test.invalid"
     data = mock.sentinel.data
@@ -85,7 +86,7 @@ def test_http_request():
 
 
 def test_http_request_defaults():
-    transport, responses = _make_transport(http_client.OK)
+    transport, responses = _make_transport(http.client.OK)
     method = u"POST"
     url = u"http://test.invalid"
     ret_val = _request_helpers.http_request(transport, method, url)

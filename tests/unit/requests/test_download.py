@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import http.client
 import io
 
 import mock
 import pytest
-from six.moves import http_client
 
 from google.resumable_media import common
 from google.resumable_media import _helpers
@@ -567,7 +567,7 @@ class TestChunkedDownload(object):
             start + chunk_size - 1,
             total_bytes,
             content=content,
-            status_code=int(http_client.OK),
+            status_code=int(http.client.OK),
         )
 
         return transport
@@ -668,7 +668,7 @@ class TestRawChunkedDownload(object):
             start + chunk_size - 1,
             total_bytes,
             content=content,
-            status_code=int(http_client.OK),
+            status_code=int(http.client.OK),
         )
 
         return transport
@@ -772,7 +772,7 @@ class Test_GzipDecoder(object):
         md5_hash.update.assert_called_once_with(data)
 
 
-def _mock_response(status_code=http_client.OK, chunks=(), headers=None):
+def _mock_response(status_code=http.client.OK, chunks=(), headers=None):
     if headers is None:
         headers = {}
 
@@ -804,7 +804,7 @@ def _mock_response(status_code=http_client.OK, chunks=(), headers=None):
         )
 
 
-def _mock_raw_response(status_code=http_client.OK, chunks=(), headers=None):
+def _mock_raw_response(status_code=http.client.OK, chunks=(), headers=None):
     if headers is None:
         headers = {}
 

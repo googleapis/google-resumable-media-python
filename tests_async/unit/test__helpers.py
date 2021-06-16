@@ -12,9 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import http.client
+
 import mock
 import pytest
-from six.moves import http_client
 
 from google._async_resumable_media import _helpers
 from google.resumable_media import common
@@ -70,12 +71,12 @@ class Test_require_status_code(object):
         return response.status_code
 
     def test_success(self):
-        status_codes = (http_client.OK, http_client.CREATED)
+        status_codes = (http.client.OK, http.client.CREATED)
         acceptable = (
-            http_client.OK,
-            int(http_client.OK),
-            http_client.CREATED,
-            int(http_client.CREATED),
+            http.client.OK,
+            int(http.client.OK),
+            http.client.CREATED,
+            int(http.client.CREATED),
         )
         for value in acceptable:
             response = _make_response(value)
@@ -85,18 +86,18 @@ class Test_require_status_code(object):
             assert value == status_code
 
     def test_success_with_callback(self):
-        status_codes = (http_client.OK,)
-        response = _make_response(http_client.OK)
+        status_codes = (http.client.OK,)
+        response = _make_response(http.client.OK)
         callback = mock.Mock(spec=[])
         status_code = _helpers.require_status_code(
             response, status_codes, self._get_status_code, callback=callback
         )
-        assert status_code == http_client.OK
+        assert status_code == http.client.OK
         callback.assert_not_called()
 
     def test_failure(self):
-        status_codes = (http_client.CREATED, http_client.NO_CONTENT)
-        response = _make_response(http_client.OK)
+        status_codes = (http.client.CREATED, http.client.NO_CONTENT)
+        response = _make_response(http.client.OK)
         with pytest.raises(common.InvalidResponse) as exc_info:
             _helpers.require_status_code(response, status_codes, self._get_status_code)
 
@@ -107,8 +108,8 @@ class Test_require_status_code(object):
         assert error.args[3:] == status_codes
 
     def test_failure_with_callback(self):
-        status_codes = (http_client.OK,)
-        response = _make_response(http_client.NOT_FOUND)
+        status_codes = (http.client.OK,)
+        response = _make_response(http.client.NOT_FOUND)
         callback = mock.Mock(spec=[])
         with pytest.raises(common.InvalidResponse) as exc_info:
             _helpers.require_status_code(
@@ -152,7 +153,7 @@ class Test_calculate_retry_wait(object):
 class Test_wait_and_retry(object):
     @pytest.mark.asyncio
     async def test_success_no_retry(self):
-        truthy = http_client.OK
+        truthy = http.client.OK
         assert truthy not in common.RETRYABLE
         response = _make_response(truthy)
 
@@ -170,10 +171,10 @@ class Test_wait_and_retry(object):
         randint_mock.side_effect = [125, 625, 375]
 
         status_codes = (
-            http_client.INTERNAL_SERVER_ERROR,
-            http_client.BAD_GATEWAY,
-            http_client.SERVICE_UNAVAILABLE,
-            http_client.NOT_FOUND,
+            http.client.INTERNAL_SERVER_ERROR,
+            http.client.BAD_GATEWAY,
+            http.client.SERVICE_UNAVAILABLE,
+            http.client.NOT_FOUND,
         )
         responses = [_make_response(status_code) for status_code in status_codes]
         func = mock.AsyncMock(side_effect=responses, spec=[])
@@ -201,7 +202,7 @@ class Test_wait_and_retry(object):
     async def test_success_with_retry_connection_error(self, randint_mock, sleep_mock):
         randint_mock.side_effect = [125, 625, 375]
 
-        response = _make_response(http_client.NOT_FOUND)
+        response = _make_response(http.client.NOT_FOUND)
         responses = [ConnectionError, ConnectionError, ConnectionError, response]
         func = mock.AsyncMock(side_effect=responses, spec=[])
 
@@ -258,13 +259,13 @@ class Test_wait_and_retry(object):
         randint_mock.side_effect = [875, 0, 375, 500, 500, 250, 125]
 
         status_codes = (
-            http_client.SERVICE_UNAVAILABLE,
-            http_client.GATEWAY_TIMEOUT,
+            http.client.SERVICE_UNAVAILABLE,
+            http.client.GATEWAY_TIMEOUT,
             common.TOO_MANY_REQUESTS,
-            http_client.INTERNAL_SERVER_ERROR,
-            http_client.SERVICE_UNAVAILABLE,
-            http_client.BAD_GATEWAY,
-            http_client.GATEWAY_TIMEOUT,
+            http.client.INTERNAL_SERVER_ERROR,
+            http.client.SERVICE_UNAVAILABLE,
+            http.client.BAD_GATEWAY,
+            http.client.GATEWAY_TIMEOUT,
             common.TOO_MANY_REQUESTS,
         )
         responses = [_make_response(status_code) for status_code in status_codes]

@@ -21,14 +21,11 @@ Supported here are:
 * resumable uploads (with metadata as well)
 """
 
-
+import http.client
 import json
 import os
 import random
 import sys
-
-import six
-from six.moves import http_client
 
 from google import _async_resumable_media
 from google._async_resumable_media import _helpers
@@ -102,7 +99,7 @@ class UploadBase(object):
         # Tombstone the current upload so it cannot be used again (in either
         # failure or success).
         self._finished = True
-        _helpers.require_status_code(response, (http_client.OK,), self._get_status_code)
+        _helpers.require_status_code(response, (http.client.OK,), self._get_status_code)
 
     @staticmethod
     def _get_status_code(response):
@@ -189,7 +186,7 @@ class SimpleUpload(UploadBase):
         if self.finished:
             raise ValueError(u"An upload can only be used once.")
 
-        if not isinstance(data, six.binary_type):
+        if not isinstance(data, bytes):
             raise TypeError(u"`data` must be bytes, received", type(data))
         self._headers[_CONTENT_TYPE_HEADER] = content_type
         return _POST, self.upload_url, data, self._headers
@@ -275,7 +272,7 @@ class MultipartUpload(UploadBase):
         if self.finished:
             raise ValueError(u"An upload can only be used once.")
 
-        if not isinstance(data, six.binary_type):
+        if not isinstance(data, bytes):
             raise TypeError(u"`data` must be bytes, received", type(data))
 
         checksum_object = sync_helpers._get_checksum_object(self._checksum_type)
@@ -490,7 +487,7 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
         """
         _helpers.require_status_code(
             response,
-            (http_client.OK,),
+            (http.client.OK,),
             self._get_status_code,
             callback=self._make_invalid,
         )
@@ -638,11 +635,11 @@ class ResumableUpload(UploadBase, sync_upload.ResumableUpload):
         """
         status_code = _helpers.require_status_code(
             response,
-            (http_client.OK, _async_resumable_media.PERMANENT_REDIRECT),
+            (http.client.OK, _async_resumable_media.PERMANENT_REDIRECT),
             self._get_status_code,
             callback=self._make_invalid,
         )
-        if status_code == http_client.OK:
+        if status_code == http.client.OK:
             # NOTE: We use the "local" information of ``bytes_sent`` to update
             #       ``bytes_uploaded``, but do not verify this against other
             #       state. However, there may be some other information:

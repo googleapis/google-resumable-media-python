@@ -12,19 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import http.client
 import io
 import sys
 
 import mock
 import pytest
-from six.moves import http_client
 
 from google import _async_resumable_media
 from google._async_resumable_media import _upload
-
 from google.resumable_media import common
 from google.resumable_media import _helpers as sync_helpers
-
 from tests.unit import test__upload as sync_test
 
 
@@ -63,7 +61,7 @@ class TestUploadBase(object):
 
         # Make sure **not finished** before.
         assert not upload.finished
-        status_code = http_client.SERVICE_UNAVAILABLE
+        status_code = http.client.SERVICE_UNAVAILABLE
         response = _make_response(status_code=status_code)
         with pytest.raises(common.InvalidResponse) as exc_info:
             upload._process_response(response)
@@ -72,7 +70,7 @@ class TestUploadBase(object):
         assert error.response is response
         assert len(error.args) == 4
         assert error.args[1] == status_code
-        assert error.args[3] == http_client.OK
+        assert error.args[3] == http.client.OK
         # Make sure **finished** after (even in failure).
         assert upload.finished
 
@@ -714,7 +712,7 @@ class TestResumableUpload(object):
 
         # Make sure the upload is valid before the failure.
         assert not upload.invalid
-        response = _make_response(status_code=http_client.NOT_FOUND)
+        response = _make_response(status_code=http.client.NOT_FOUND)
         with pytest.raises(common.InvalidResponse) as exc_info:
             await upload._process_response(response, None)
 
@@ -722,7 +720,7 @@ class TestResumableUpload(object):
         assert error.response is response
         assert len(error.args) == 5
         assert error.args[1] == response.status_code
-        assert error.args[3] == http_client.OK
+        assert error.args[3] == http.client.OK
         assert error.args[4] == _async_resumable_media.PERMANENT_REDIRECT
         # Make sure the upload is invalid after the failure.
         assert upload.invalid
@@ -744,7 +742,7 @@ class TestResumableUpload(object):
         response_body = response_body.encode(u"utf-8")
         response = mock.Mock(
             content=response_body,
-            status_code=http_client.OK,
+            status_code=http.client.OK,
             spec=["content", "status_code"],
         )
         ret_val = await upload._process_response(response, bytes_sent)
@@ -979,7 +977,7 @@ class TestResumableUpload(object):
 
         upload._invalid = True
 
-        response = _make_response(status_code=http_client.BAD_REQUEST)
+        response = _make_response(status_code=http.client.BAD_REQUEST)
         with pytest.raises(common.InvalidResponse) as exc_info:
             upload._process_recover_response(response)
 
@@ -1221,7 +1219,7 @@ class Test_get_content_range(object):
         assert result == u"bytes 1000-10000/*"
 
 
-def _make_response(status_code=http_client.OK, headers=None):
+def _make_response(status_code=http.client.OK, headers=None):
     headers = headers or {}
 
     response = mock.AsyncMock(
