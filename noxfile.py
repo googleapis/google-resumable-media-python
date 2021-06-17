@@ -221,6 +221,10 @@ def blacken(session):
 def system(session):
     """Run the system test suite."""
 
+    constraints_path = str(
+        CURRENT_DIRECTORY / "testing" / f"constraints-{session.python}.txt"
+    )
+
     # Environment check: environment variables are set.
     missing = []
     for env_var in SYSTEM_TEST_ENV_VARS:
