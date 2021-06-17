@@ -40,7 +40,7 @@ def unit(session):
     )
 
     # Install all test dependencies, then install this package in-place.
-    session.install("mock", "pytest", "pytest-cov", "pytest-asyncio", GOOGLE_AUTH)
+    session.install("mock", "pytest", "pytest-cov", "pytest-asyncio<=0.14.0", GOOGLE_AUTH)
     session.install("-e", ".[requests,aiohttp]", "-c", constraints_path)
 
     # Run py.test against the unit tests.
@@ -97,7 +97,7 @@ def docs(session):
     """Build the docs for this library."""
 
     session.install("-e", ".")
-    session.install("sphinx", "alabaster", "recommonmark")
+    session.install("sphinx==4.0.1", "alabaster", "recommonmark")
 
     shutil.rmtree(os.path.join("docs", "_build"), ignore_errors=True)
     session.run(
@@ -118,7 +118,7 @@ def docfx(session):
     """Build the docfx yaml files for this library."""
 
     session.install("-e", ".")
-    session.install("sphinx", "alabaster", "recommonmark", "sphinx-docfx-yaml")
+    session.install("sphinx==4.0.1", "alabaster", "recommonmark", "gcp-sphinx-docfx-yaml")
 
     shutil.rmtree(os.path.join("docs", "_build"), ignore_errors=True)
     session.run(
@@ -221,11 +221,7 @@ def blacken(session):
 def system(session):
     """Run the system test suite."""
 
-    constraints_path = str(
-        CURRENT_DIRECTORY / "testing" / f"constraints-{session.python}.txt"
-    )
-
-    # Sanity check: environment variables are set.
+    # Environment check: environment variables are set.
     missing = []
     for env_var in SYSTEM_TEST_ENV_VARS:
         if env_var not in os.environ:
@@ -244,7 +240,7 @@ def system(session):
 
     # Run py.test against the async system tests.
     if session.python.startswith("3"):
-        session.install("pytest-asyncio")
+        session.install("pytest-asyncio<=0.14.0")
         session.run(
             "py.test", "-s", os.path.join("tests_async", "system"), *session.posargs
         )
