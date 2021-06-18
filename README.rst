@@ -18,6 +18,14 @@ Supported Python Versions
 -------------------------
 Python >= 3.6
 
+Unsupported Python Versions
+---------------------------
+
+Python == 2.7, Python == 3.5.
+
+The last version of this library compatible with Python 2.7 and 3.5 is
+`google-resumable-media==1.3.1`.
+
 License
 -------
 
