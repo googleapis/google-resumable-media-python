@@ -518,7 +518,7 @@ def get_range_info(response, get_headers, callback=_helpers.do_nothing):
             response,
             "Unexpected content-range header",
             content_range,
-            u'Expected to be of the form "bytes {start}-{end}/{total}"',
+            'Expected to be of the form "bytes {start}-{end}/{total}"',
         )
 
     return (

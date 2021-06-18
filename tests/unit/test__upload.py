@@ -737,7 +737,7 @@ class TestResumableUpload(object):
         # Set the response body.
         bytes_sent = 158
         total_bytes = upload._bytes_uploaded + bytes_sent
-        response_body = u'{{"size": "{:d}"}}'.format(total_bytes)
+        response_body = '{{"size": "{:d}"}}'.format(total_bytes)
         response_body = response_body.encode("utf-8")
         response = mock.Mock(
             content=response_body,

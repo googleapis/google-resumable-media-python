@@ -700,9 +700,9 @@ class ResumableUpload(UploadBase):
                 self._make_invalid()
                 raise common.InvalidResponse(
                     response,
-                    u'Unexpected "range" header',
+                    'Unexpected "range" header',
                     bytes_range,
-                    u'Expected to be of the form "bytes=0-{end}"',
+                    'Expected to be of the form "bytes=0-{end}"',
                 )
             self._bytes_uploaded = int(match.group("end_byte")) + 1
 
@@ -823,9 +823,9 @@ class ResumableUpload(UploadBase):
             if match is None:
                 raise common.InvalidResponse(
                     response,
-                    u'Unexpected "range" header',
+                    'Unexpected "range" header',
                     bytes_range,
-                    u'Expected to be of the form "bytes=0-{end}"',
+                    'Expected to be of the form "bytes=0-{end}"',
                 )
             self._bytes_uploaded = int(match.group("end_byte")) + 1
         else:
