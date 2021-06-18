@@ -23,7 +23,7 @@ from google.resumable_media import common
 
 
 EXAMPLE_URL = (
-    "https://www.googleapis.com/download/storage/v1/b/" "{BUCKET}/o/{OBJECT}?alt=media"
+    "https://www.googleapis.com/download/storage/v1/b/{BUCKET}/o/{OBJECT}?alt=media"
 )
 
 
