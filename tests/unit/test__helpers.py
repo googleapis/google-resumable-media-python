@@ -501,6 +501,18 @@ class Test__parse_checksum_header(object):
         )
         assert crc32c_header is None
 
+    def test_none_str_value(self):
+        header_value = "None"
+        response = None
+        md5_header = _helpers._parse_checksum_header(
+            header_value, response, checksum_label="md5"
+        )
+        assert md5_header is None
+        crc32c_header = _helpers._parse_checksum_header(
+            header_value, response, checksum_label="crc32c"
+        )
+        assert crc32c_header is None
+
     def test_crc32c_only(self):
         header_value = u"crc32c={}".format(self.CRC32C_CHECKSUM)
         response = None

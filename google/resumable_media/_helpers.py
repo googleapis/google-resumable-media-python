@@ -328,7 +328,7 @@ def _parse_checksum_header(header_value, response, checksum_label):
         ~google.resumable_media.common.InvalidResponse: If there are
             multiple checksums of the requested type in ``header_value``.
     """
-    if header_value is None:
+    if header_value == "None" or header_value is None:
         return None
 
     matches = []
