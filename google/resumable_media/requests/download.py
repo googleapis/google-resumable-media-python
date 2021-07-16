@@ -15,7 +15,6 @@
 """Support for downloading media from Google APIs."""
 
 import functools
-import time
 import urllib3.response
 
 from google.resumable_media import _download
@@ -121,7 +120,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                 )
                 raise common.DataCorruption(response, msg)
 
-    def original_consume(
+    def _consume(
         self,
         transport,
         timeout=(
@@ -159,13 +158,12 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
         request_kwargs = {
             u"data": payload,
             u"headers": headers,
-            u"retry_strategy": self._retry_strategy,
             u"timeout": timeout,
         }
         if self._stream is not None:
             request_kwargs[u"stream"] = True
 
-        result = _request_helpers.http_request(transport, method, url, **request_kwargs)
+        result = transport.request(method, url, **request_kwargs)
 
         self._process_response(result)
 
@@ -182,65 +180,36 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             _request_helpers._DEFAULT_READ_TIMEOUT,
         ),
     ):
-        total_sleep = 0.0
-        num_retries = 0
-        # base_wait will be multiplied by the multiplier on the first retry.
-        base_wait = (
-            float(self._retry_strategy.initial_delay) / self._retry_strategy.multiplier
+        """Consume the resource to be downloaded.
+
+        This operation is retry-able based on the download HTTP response and
+        connection error type. Will retry until :meth:`~.RetryStrategy.retry_allowed`
+        (on the current``self._retry_strategy``) returns :data:`False`.
+
+        Args:
+            transport (~requests.Session): A ``requests`` object which can
+                make authenticated requests.
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
+
+        Returns:
+            ~requests.Response: The HTTP response returned by ``transport``.
+
+        Raises:
+            ~google.resumable_media.common.DataCorruption: If the download's
+                checksum doesn't agree with server-computed checksum.
+            ValueError: If the current :class:`Download` has already
+                finished.
+        """
+        func = functools.partial(self._consume, transport=transport, timeout=timeout)
+        return _helpers.wait_and_retry(
+            func, self._get_status_code, self._retry_strategy
         )
-
-        method, url, payload, headers = self._prepare_request()
-        # NOTE: We assume "payload is None" but pass it along anyway.
-        request_kwargs = {
-            u"data": payload,
-            u"headers": headers,
-            u"timeout": timeout,
-        }
-        if self._stream is not None:
-            request_kwargs[u"stream"] = True
-
-        func = functools.partial(transport.request, method, url, **request_kwargs)
-
-        # Set the retriable_exception_type if possible. We expect requests to be
-        # present here and the transport to be using requests.exceptions errors,
-        # but due to loose coupling with the transport layer we can't guarantee it.
-        try:
-            connection_error_exceptions = _helpers._get_connection_error_classes()
-        except ImportError:
-            # We don't know the correct classes to use to catch connection errors,
-            # so an empty tuple here communicates "catch no exceptions".
-            connection_error_exceptions = ()
-
-        while True:  # return on success or when retries exhausted.
-            error = None
-            try:
-                response = func()
-                self._process_response(response)
-                if self._stream is not None:
-                    self._write_to_stream(response)
-            except connection_error_exceptions as e:
-                error = e
-            else:
-                if self._get_status_code(response) not in common.RETRYABLE:
-                    return response
-
-            if not self._retry_strategy.retry_allowed(total_sleep, num_retries):
-                # Retries are exhausted and no acceptable response was received. Raise the
-                # retriable_error or return the unacceptable response.
-                if error:
-                    raise error
-
-                return response
-
-            base_wait, wait_time = _helpers.calculate_retry_wait(
-                base_wait,
-                self._retry_strategy.max_sleep,
-                self._retry_strategy.multiplier,
-            )
-
-            num_retries += 1
-            total_sleep += wait_time
-            time.sleep(wait_time)
 
 
 class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
