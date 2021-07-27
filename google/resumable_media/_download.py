@@ -210,15 +210,14 @@ class Download(DownloadBase):
         raise NotImplementedError(u"This implementation is virtual.")
 
     def _consume_with_retries(self, func, transport, timeout=None):
-        """Attempts to retry a call to ``func`` until success.
+        """Attempts to retry a download and consume until success.
 
-        Expects ``func`` to return an HTTP response and uses ``get_status_code``
-        to check if the response is retry-able.
+        The consume ``func`` is retry-able based on the HTTP response and
+        connection error type. Retry covers both the initial response and
+        the streaming portion of the download.
 
         Will retry until :meth:`~.RetryStrategy.retry_allowed` (on the current
-        ``retry_strategy``) returns :data:`False`. Uses
-        :func:`calculate_retry_wait` to double the wait time (with jitter) after
-        each attempt.
+        ``retry_strategy``) returns :data:`False`.
 
         Args:
             func (Callable): A callable that takes no arguments and produces
@@ -234,7 +233,7 @@ class Download(DownloadBase):
                 See :meth:`requests.Session.request` documentation for details.
 
         Returns:
-            ~requests.Response: The HTTP response returned by ``transport``.
+            ~requests.Response: The return value of ``transport.request()``.
         """
         func_to_retry = functools.partial(func, transport=transport, timeout=timeout)
         return _helpers.wait_and_retry(
@@ -473,15 +472,14 @@ class ChunkedDownload(DownloadBase):
         raise NotImplementedError(u"This implementation is virtual.")
 
     def _consume_with_retries(self, func, transport, timeout=None):
-        """Attempts to retry a call to ``func`` until success.
+        """Attempts to retry a consume_next_chunk until success.
 
-        Expects ``func`` to return an HTTP response and uses ``get_status_code``
-        to check if the response is retry-able.
+        The consume_next_chunk ``func`` is retry-able based on the HTTP response
+        and connection error type. Retry covers both the initial response and
+        the streaming portion of the download.
 
         Will retry until :meth:`~.RetryStrategy.retry_allowed` (on the current
-        ``retry_strategy``) returns :data:`False`. Uses
-        :func:`calculate_retry_wait` to double the wait time (with jitter) after
-        each attempt.
+        ``retry_strategy``) returns :data:`False`.
 
         Args:
             func (Callable): A callable that takes no arguments and produces
@@ -497,7 +495,7 @@ class ChunkedDownload(DownloadBase):
                 See :meth:`requests.Session.request` documentation for details.
 
         Returns:
-            ~requests.Response: The HTTP response returned by ``transport``.
+            ~requests.Response: The return value of ``transport.request()``.
         """
         func_to_retry = functools.partial(func, transport=transport, timeout=timeout)
         return _helpers.wait_and_retry(

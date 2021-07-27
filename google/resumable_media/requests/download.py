@@ -127,10 +127,10 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             _request_helpers._DEFAULT_READ_TIMEOUT,
         ),
     ):
-        """Consume the resource to be downloaded.
+        """Consume the resource to be downloaded without any retries.
 
-        If a ``stream`` is attached to this download, then the downloaded
-        resource will be written to the stream.
+        This is intended to be called by :meth:`consume` so it can be
+        wrapped with error handling and retry strategy.
 
         Args:
             transport (~requests.Session): A ``requests`` object which can
@@ -180,6 +180,9 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
         ),
     ):
         """Consume the resource to be downloaded.
+
+        If a ``stream`` is attached to this download, then the downloaded
+        resource will be written to the stream.
 
         This operation is retry-able based on the download HTTP response and
         connection error type. Will retry until :meth:`~.RetryStrategy.retry_allowed`
@@ -296,10 +299,10 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
             _request_helpers._DEFAULT_READ_TIMEOUT,
         ),
     ):
-        """Consume the resource to be downloaded.
+        """Consume the resource to be downloaded without any retries.
 
-        If a ``stream`` is attached to this download, then the downloaded
-        resource will be written to the stream.
+        This is intended to be called by :meth:`consume` so it can be
+        wrapped with error handling and retry strategy.
 
         Args:
             transport (~requests.Session): A ``requests`` object which can
@@ -348,6 +351,9 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
         ),
     ):
         """Consume the resource to be downloaded.
+
+        If a ``stream`` is attached to this download, then the downloaded
+        resource will be written to the stream.
 
         This operation is retry-able based on the download HTTP response and
         connection error type. Will retry until :meth:`~.RetryStrategy.retry_allowed`
@@ -414,7 +420,10 @@ class ChunkedDownload(_request_helpers.RequestsMixin, _download.ChunkedDownload)
             _request_helpers._DEFAULT_READ_TIMEOUT,
         ),
     ):
-        """Consume the next chunk of the resource to be downloaded.
+        """Consume the next chunk of the resource to be downloaded without any retries.
+
+        This is intended to be called by :meth:`consume_next_chunk` so it can be
+        wrapped with error handling and retry strategy.
 
         Args:
             transport (~requests.Session): A ``requests`` object which can
@@ -453,6 +462,26 @@ class ChunkedDownload(_request_helpers.RequestsMixin, _download.ChunkedDownload)
             _request_helpers._DEFAULT_READ_TIMEOUT,
         ),
     ):
+        """Consume the next chunk of the resource to be downloaded.
+
+        This operation is retry-able based on the download HTTP response and
+        connection error type. Will retry until :meth:`~.RetryStrategy.retry_allowed`
+        (on the current``self._retry_strategy``) returns :data:`False`.
+
+        Args:
+            transport (~requests.Session): A ``requests`` object which can
+                make authenticated requests.
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
+        Returns:
+            ~requests.Response: The HTTP response returned by ``transport``.
+        Raises:
+            ValueError: If the current download has finished.
+        """
         return self._consume_with_retries(
             self._consume_next_chunk, transport=transport, timeout=timeout
         )
@@ -494,7 +523,10 @@ class RawChunkedDownload(_request_helpers.RawRequestsMixin, _download.ChunkedDow
             _request_helpers._DEFAULT_READ_TIMEOUT,
         ),
     ):
-        """Consume the next chunk of the resource to be downloaded.
+        """Consume the next chunk of the resource to be downloaded without any retries.
+
+        This is intended to be called by :meth:`consume_next_chunk` so it can be
+        wrapped with error handling and retry strategy.
 
         Args:
             transport (~requests.Session): A ``requests`` object which can
@@ -534,6 +566,26 @@ class RawChunkedDownload(_request_helpers.RawRequestsMixin, _download.ChunkedDow
             _request_helpers._DEFAULT_READ_TIMEOUT,
         ),
     ):
+        """Consume the next chunk of the resource to be downloaded.
+
+        This operation is retry-able based on the download HTTP response and
+        connection error type. Will retry until :meth:`~.RetryStrategy.retry_allowed`
+        (on the current``self._retry_strategy``) returns :data:`False`.
+
+        Args:
+            transport (~requests.Session): A ``requests`` object which can
+                make authenticated requests.
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
+        Returns:
+            ~requests.Response: The HTTP response returned by ``transport``.
+        Raises:
+            ValueError: If the current download has finished.
+        """
         return self._consume_with_retries(
             self._consume_next_chunk, transport=transport, timeout=timeout
         )
