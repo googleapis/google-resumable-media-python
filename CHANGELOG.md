@@ -9,10 +9,6 @@
 
 ### ⚠ BREAKING CHANGES
 
-* drop Python 2.7 support (#229)
-
-### Bug Fixes
-
 * drop Python 2.7 support ([#229](https://www.github.com/googleapis/google-resumable-media-python/issues/229)) ([af10d4b](https://www.github.com/googleapis/google-resumable-media-python/commit/af10d4b9a5a3f97f08cf1c634f13b0fb24fc83b3))
 
 ### [1.3.3](https://www.github.com/googleapis/google-resumable-media-python/compare/v1.3.2...v1.3.3) (2021-07-30)
