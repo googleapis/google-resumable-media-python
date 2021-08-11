@@ -176,8 +176,18 @@ def wait_and_retry(func, get_status_code, retry_strategy):
         try:
             response = func()
         except connection_error_exceptions as e:
-            error = e
+            error = e  # Fall through to retry, if there are retries left.
+        except common.InvalidResponse as e:
+            # An InvalidResponse is only retriable if its status code matches.
+            # The `process_response()` method on a Download or Upload method
+            # will convert the status code into an exception.
+            if get_status_code(e.response) in common.RETRYABLE:
+                error = e  # Fall through to retry, if there are retries left.
+            else:
+                raise  # If the status code is not retriable, raise w/o retry.
         else:
+            # This code is only relevant if the retry block does not wrap the
+            # `process_response()` method.
             if get_status_code(response) not in common.RETRYABLE:
                 return response
 

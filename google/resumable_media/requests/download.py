@@ -157,20 +157,25 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
         request_kwargs = {
             "data": payload,
             "headers": headers,
-            "retry_strategy": self._retry_strategy,
             "timeout": timeout,
         }
         if self._stream is not None:
             request_kwargs["stream"] = True
 
-        result = _request_helpers.http_request(transport, method, url, **request_kwargs)
+        # Wrap the request business logic in a function to be retried.
+        def retriable_request():
+            result = transport.request(method, url, **request_kwargs)
 
-        self._process_response(result)
+            self._process_response(result)
 
-        if self._stream is not None:
-            self._write_to_stream(result)
+            if self._stream is not None:
+                self._write_to_stream(result)
 
-        return result
+            return result
+
+        return _helpers.wait_and_retry(
+            retriable_request, self._get_status_code, self._retry_strategy
+        )
 
 
 class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
