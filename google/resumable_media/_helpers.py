@@ -140,6 +140,10 @@ def wait_and_retry(func, get_status_code, retry_strategy):
     Expects ``func`` to return an HTTP response and uses ``get_status_code``
     to check if the response is retry-able.
 
+    ``func`` is expected to raise a failure status code as a
+    common.InvalidResponse, at which point this method will check the code
+    against the common.RETRIABLE list of retriable status codes.
+
     Will retry until :meth:`~.RetryStrategy.retry_allowed` (on the current
     ``retry_strategy``) returns :data:`False`. Uses
     :func:`calculate_retry_wait` to double the wait time (with jitter) after
@@ -186,10 +190,7 @@ def wait_and_retry(func, get_status_code, retry_strategy):
             else:
                 raise  # If the status code is not retriable, raise w/o retry.
         else:
-            # This code is only relevant if the retry block does not wrap the
-            # `process_response()` method.
-            if get_status_code(response) not in common.RETRYABLE:
-                return response
+            return response
 
         if not retry_strategy.retry_allowed(total_sleep, num_retries):
             # Retries are exhausted and no acceptable response was received. Raise the
