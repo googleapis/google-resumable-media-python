@@ -193,12 +193,9 @@ def wait_and_retry(func, get_status_code, retry_strategy):
             return response
 
         if not retry_strategy.retry_allowed(total_sleep, num_retries):
-            # Retries are exhausted and no acceptable response was received. Raise the
-            # retriable_error or return the unacceptable response.
-            if error:
-                raise error
-
-            return response
+            # Retries are exhausted and no acceptable response was received.
+            # Raise the retriable_error.
+            raise error
 
         base_wait, wait_time = calculate_retry_wait(
             base_wait, retry_strategy.max_sleep, retry_strategy.multiplier

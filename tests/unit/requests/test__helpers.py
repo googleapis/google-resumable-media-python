@@ -57,10 +57,3 @@ class TestRawRequestsMixin(object):
 
 def _make_response(status_code):
     return mock.Mock(status_code=status_code, spec=["status_code"])
-
-
-def _make_transport(*status_codes):
-    transport = mock.Mock(spec=["request"])
-    responses = [_make_response(status_code) for status_code in status_codes]
-    transport.request.side_effect = responses
-    return transport, responses
