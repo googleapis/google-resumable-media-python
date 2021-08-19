@@ -4,6 +4,13 @@
 
 [1]: https://pypi.org/project/google-resumable-media/#history
 
+## [2.0.0](https://www.github.com/googleapis/google-resumable-media-python/compare/v2.0.0-b1...v2.0.0) (2021-08-19)
+
+
+### Bug Fixes
+
+* retry ConnectionError and similar errors that occur mid-download ([#251](https://www.github.com/googleapis/google-resumable-media-python/issues/251)) ([bb3ec13](https://www.github.com/googleapis/google-resumable-media-python/commit/bb3ec13f5dbc0e26795cebce957247ecbb525f7b))
+
 ## [2.0.0b1](https://www.github.com/googleapis/google-resumable-media-python/compare/v1.3.3...v2.0.0b1) (2021-08-02)
 
 
