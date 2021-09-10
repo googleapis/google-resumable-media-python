@@ -198,14 +198,9 @@ class Test_wait_and_retry(object):
     @mock.patch("time.sleep")
     @mock.patch("random.randint")
     def test_success_with_retry(self, randint_mock, sleep_mock):
-        randint_mock.side_effect = [125, 625, 375]
+        randint_mock.side_effect = [125, 625, 375, 0, 500, 500]
 
-        status_codes = (
-            http.client.INTERNAL_SERVER_ERROR,
-            http.client.BAD_GATEWAY,
-            http.client.SERVICE_UNAVAILABLE,
-            http.client.NOT_FOUND,
-        )
+        status_codes = common.RETRYABLE + (http.client.NOT_FOUND,)
         responses = [_make_response(status_code) for status_code in status_codes]
 
         def raise_response():
@@ -222,16 +217,19 @@ class Test_wait_and_retry(object):
         assert ret_val.status_code == status_codes[-1]
         assert status_codes[-1] not in common.RETRYABLE
 
-        assert func.call_count == 4
-        assert func.mock_calls == [mock.call()] * 4
+        assert func.call_count == 7
+        assert func.mock_calls == [mock.call()] * 7
 
-        assert randint_mock.call_count == 3
-        assert randint_mock.mock_calls == [mock.call(0, 1000)] * 3
+        assert randint_mock.call_count == 6
+        assert randint_mock.mock_calls == [mock.call(0, 1000)] * 6
 
-        assert sleep_mock.call_count == 3
+        assert sleep_mock.call_count == 6
         sleep_mock.assert_any_call(1.125)
         sleep_mock.assert_any_call(2.625)
         sleep_mock.assert_any_call(4.375)
+        sleep_mock.assert_any_call(8.000)
+        sleep_mock.assert_any_call(16.500)
+        sleep_mock.assert_any_call(32.500)
 
     @mock.patch("time.sleep")
     @mock.patch("random.randint")
@@ -364,7 +362,7 @@ class Test_wait_and_retry(object):
         status_codes = (
             http.client.SERVICE_UNAVAILABLE,
             http.client.GATEWAY_TIMEOUT,
-            common.TOO_MANY_REQUESTS,
+            http.client.REQUEST_TIMEOUT,
             http.client.INTERNAL_SERVER_ERROR,
             http.client.SERVICE_UNAVAILABLE,
             http.client.BAD_GATEWAY,
@@ -412,7 +410,7 @@ class Test_wait_and_retry(object):
             http.client.INTERNAL_SERVER_ERROR,
             http.client.SERVICE_UNAVAILABLE,
             http.client.BAD_GATEWAY,
-            common.TOO_MANY_REQUESTS,
+            http.client.REQUEST_TIMEOUT,
         )
         responses = [_make_response(status_code) for status_code in status_codes]
 
