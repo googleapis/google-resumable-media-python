@@ -198,7 +198,7 @@ class Test_wait_and_retry(object):
     @mock.patch("time.sleep")
     @mock.patch("random.randint")
     def test_success_with_retry(self, randint_mock, sleep_mock):
-        randint_mock.side_effect = [125, 625, 375, 0, 500, 500]
+        randint_mock.side_effect = [25 * idx for idx, _ in enumerate(common.RETRYABLE)]
 
         status_codes = common.RETRYABLE + (http.client.NOT_FOUND,)
         responses = [_make_response(status_code) for status_code in status_codes]
@@ -217,19 +217,19 @@ class Test_wait_and_retry(object):
         assert ret_val.status_code == status_codes[-1]
         assert status_codes[-1] not in common.RETRYABLE
 
-        assert func.call_count == 7
-        assert func.mock_calls == [mock.call()] * 7
+        assert func.call_count == len(status_codes)
+        assert func.mock_calls == [mock.call()] * len(status_codes)
 
-        assert randint_mock.call_count == 6
-        assert randint_mock.mock_calls == [mock.call(0, 1000)] * 6
+        assert randint_mock.call_count == len(status_codes) - 1
+        assert randint_mock.mock_calls == [mock.call(0, 1000)] * (len(status_codes) - 1)
 
-        assert sleep_mock.call_count == 6
-        sleep_mock.assert_any_call(1.125)
-        sleep_mock.assert_any_call(2.625)
-        sleep_mock.assert_any_call(4.375)
-        sleep_mock.assert_any_call(8.000)
-        sleep_mock.assert_any_call(16.500)
-        sleep_mock.assert_any_call(32.500)
+        assert sleep_mock.call_count == len(status_codes) - 1
+
+        wait = 1
+        multiplier = 2
+        for randint in randint_mock.side_effect:
+            wait = wait * multiplier
+            sleep_mock.assert_any_call(wait + randint)
 
     @mock.patch("time.sleep")
     @mock.patch("random.randint")
