@@ -384,10 +384,13 @@ def _get_connection_error_classes():
     unavailable."""
 
     import requests.exceptions
+    import urllib3.exceptions
 
     return (
         requests.exceptions.ConnectionError,
         requests.exceptions.ChunkedEncodingError,
+        urllib3.exceptions.ProtocolError,
+        ConnectionError,  # Python 3.x only, superclass of ConnectionResetError.
     )
 
 
