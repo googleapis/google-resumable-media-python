@@ -161,7 +161,14 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             request_kwargs["stream"] = True
 
         # Wrap the request business logic in a function to be retried.
+        is_retry = False
         def retriable_request():
+
+            nonlocal is_retry
+            if is_retry and self._stream is not None:
+                self._stream.seek(0)
+            is_retry = True
+
             result = transport.request(method, url, **request_kwargs)
 
             self._process_response(result)
@@ -288,7 +295,14 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
         method, url, payload, headers = self._prepare_request()
 
         # Wrap the request business logic in a function to be retried.
+        is_retry = False
         def retriable_request():
+
+            nonlocal is_retry
+            if is_retry and self._stream is not None:
+                self._stream.seek(0)
+            is_retry = True
+
             # NOTE: We assume "payload is None" but pass it along anyway.
             result = transport.request(
                 method,
