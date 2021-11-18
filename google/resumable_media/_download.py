@@ -139,6 +139,24 @@ class Download(DownloadBase):
             media_url, stream=stream, start=start, end=end, headers=headers
         )
         self.checksum = checksum
+        self._bytes_downloaded = 0
+        self._expected_checksum = None
+        self._checksum_object = None
+
+    @property
+    def bytes_downloaded(self):
+        """int: Number of bytes that have been downloaded."""
+        return self._bytes_downloaded
+
+    @property
+    def expected_checksum(self):
+        """str: The expected checksum of the response detected from the ``X-Goog-Hash`` header."""
+        return self._expected_checksum
+
+    @property
+    def checksum_object(self):
+        """object: The checksum object for the appropriate checksum type."""
+        return self._checksum_object
 
     def _prepare_request(self):
         """Prepare the contents of an HTTP request.

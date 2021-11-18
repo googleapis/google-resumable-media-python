@@ -86,12 +86,22 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                 checksum doesn't agree with server-computed checksum.
         """
 
-        # `_get_expected_checksum()` may return None even if a checksum was
-        # requested, in which case it will emit an info log _MISSING_CHECKSUM.
-        # If an invalid checksum type is specified, this will raise ValueError.
-        expected_checksum, checksum_object = _helpers._get_expected_checksum(
-            response, self._get_headers, self.media_url, checksum_type=self.checksum
-        )
+        # Retrieve the expected checksum only once for the download request,
+        # then compute and validate the checksum when the full download completes.
+        # Retried requests are range requests, and there's no way to detect
+        # data corruption for that byte range alone.
+        if self.expected_checksum is None and self.checksum_object is None:
+            # `_get_expected_checksum()` may return None even if a checksum was
+            # requested, in which case it will emit an info log _MISSING_CHECKSUM.
+            # If an invalid checksum type is specified, this will raise ValueError.
+            expected_checksum, checksum_object = _helpers._get_expected_checksum(
+                response, self._get_headers, self.media_url, checksum_type=self.checksum
+            )
+            self._expected_checksum = expected_checksum
+            self._checksum_object = checksum_object
+        else:
+            expected_checksum = self.expected_checksum
+            checksum_object = self.checksum_object
 
         with response:
             # NOTE: In order to handle compressed streams gracefully, we try
@@ -104,6 +114,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             )
             for chunk in body_iter:
                 self._stream.write(chunk)
+                self._bytes_downloaded += len(chunk)
                 local_checksum_object.update(chunk)
 
         if expected_checksum is not None:
@@ -162,6 +173,12 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
 
         # Wrap the request business logic in a function to be retried.
         def retriable_request():
+            # To restart an interrupted download, read from the offset of last byte
+            # received using a range request, and set object generation query param.
+            if self.bytes_downloaded > 0:
+                _download.add_bytes_range(self.bytes_downloaded, self.end, self._headers)
+                request_kwargs["headers"] = self._headers
+
             result = transport.request(method, url, **request_kwargs)
 
             self._process_response(result)
