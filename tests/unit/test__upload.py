@@ -427,8 +427,7 @@ class TestResumableUpload(object):
         return data, headers
 
     def test__prepare_initiate_request(self):
-        data, headers = self._prepare_initiate_request_helper(
-        )
+        data, headers = self._prepare_initiate_request_helper()
         expected_headers = {
             "content-type": JSON_TYPE,
             "x-upload-content-length": "{:d}".format(len(data)),
