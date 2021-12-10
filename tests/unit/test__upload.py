@@ -427,11 +427,21 @@ class TestResumableUpload(object):
         return data, headers
 
     def test__prepare_initiate_request(self):
-        data, headers = self._prepare_initiate_request_helper()
+        data, headers = self._prepare_initiate_request_helper(
+        )
         expected_headers = {
             "content-type": JSON_TYPE,
             "x-upload-content-length": "{:d}".format(len(data)),
             "x-upload-content-type": BASIC_CONTENT,
+        }
+        assert headers == expected_headers
+
+    def test_prepare_initiate_request_with_goog_sig(self):
+        _, headers = self._prepare_initiate_request_helper(
+            upload_headers = { 'x-goog-signature': 'samplesig' }
+        )
+        expected_headers = {
+            "content-type": BASIC_CONTENT
         }
         assert headers == expected_headers
 
