@@ -171,6 +171,12 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
         if self._stream is not None:
             request_kwargs["stream"] = True
 
+        # Check if object generation is specified in the media_url request
+        # to delete: call helper_method and assign self._object_generation
+        generation_from_url = _download.query_param_in_media_url(url, "generation")
+        if generation_from_url:
+            self._object_generation = int(generation_from_url)
+
         # Wrap the request business logic in a function to be retried.
         def retriable_request():
             # To restart an interrupted download, read from the offset of last byte
@@ -179,7 +185,23 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                 _download.add_bytes_range(self.bytes_downloaded, self.end, self._headers)
                 request_kwargs["headers"] = self._headers
 
+                # Set object generation query param to ensure the same object content is requested
+                if self._object_generation and not generation_from_url:
+                    # do something: call helper method to generate new url
+                    query_param = [("generation", self._object_generation)]
+                    base_url = url
+                    url = _download.add_query_parameters(base_url, query_param)
+                # if self._object_generation is not None:
+                #     generation_query = "&generation={}".format(self._object_generation)
+                #     url += generation_query
+
             result = transport.request(method, url, **request_kwargs)
+
+            # If a generation hasn't been specified, and this is the first response we get, let's record the
+            # generation. In future requests we'll use this generation as a precondition to avoid data races.
+            if self._object_generation is None:
+                self._object_generation = _helpers._parse_generation_header(result, self._get_headers)
+            # import pdb; pdb.set_trace()
 
             self._process_response(result)
 

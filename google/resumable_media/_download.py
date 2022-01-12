@@ -18,6 +18,13 @@
 import http.client
 import re
 
+from urllib.parse import parse_qs
+from urllib.parse import parse_qsl
+from urllib.parse import urlencode
+from urllib.parse import urlsplit
+from urllib.parse import urlunsplit
+
+
 from google.resumable_media import _helpers
 from google.resumable_media import common
 
@@ -142,6 +149,7 @@ class Download(DownloadBase):
         self._bytes_downloaded = 0
         self._expected_checksum = None
         self._checksum_object = None
+        self._object_generation = None
 
     @property
     def bytes_downloaded(self):
@@ -571,3 +579,39 @@ def _check_for_zero_content_range(response, get_status_code, get_headers):
         if content_range == _ZERO_CONTENT_RANGE_HEADER:
             return True
     return False
+
+
+def query_param_in_media_url(media_url, query_param):
+    """Retrieve query parameter specified in media url.
+
+    Args:
+        media_url (str): The URL containing the media to be downloaded.
+        query_param (str): The query parameter name to retrieve.
+
+    Returns:
+        str: The query parameter value from the media url if exists, else None.
+    """
+
+    _, _, _, query, _ = urlsplit(media_url)
+    queries = parse_qs(query)
+    return queries.get(query_param, None)
+
+
+def add_query_parameters(media_url, name_value_pairs):
+    """Add query parameters to a base url.
+
+    Args:
+        media_url (str): The URL containing the media to be downloaded.
+        name_value_pairs (list[tuple[str, str]): Names and values of the query parameters to add.
+
+    Returns:
+        str: URL with additional query strings appended.
+    """
+
+    if len(name_value_pairs) == 0:
+        return media_url
+
+    scheme, netloc, path, query, frag = urlsplit(media_url)
+    query = parse_qsl(query)
+    query.extend(name_value_pairs)
+    return urlunsplit((scheme, netloc, path, urlencode(query), frag))
