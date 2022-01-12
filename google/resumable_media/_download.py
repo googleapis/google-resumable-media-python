@@ -581,20 +581,24 @@ def _check_for_zero_content_range(response, get_status_code, get_headers):
     return False
 
 
-def query_param_in_media_url(media_url, query_param):
-    """Retrieve query parameter specified in media url.
+def generation_in_media_url(media_url):
+    """Retrieve the object generation query param specified in media url.
 
     Args:
         media_url (str): The URL containing the media to be downloaded.
-        query_param (str): The query parameter name to retrieve.
 
     Returns:
-        str: The query parameter value from the media url if exists, else None.
+        long: The object generation from the media url if exists, else None.
     """
 
     _, _, _, query, _ = urlsplit(media_url)
-    queries = parse_qs(query)
-    return queries.get(query_param, None)
+    query_params = parse_qs(query)
+    object_generation = query_params.get("generation", None)
+
+    if object_generation is not None:
+        return int(object_generation)
+
+    return object_generation
 
 
 def add_query_parameters(media_url, name_value_pairs):
