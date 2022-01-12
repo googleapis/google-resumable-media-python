@@ -34,6 +34,7 @@ _SLOW_CRC32C_WARNING = (
     "which will be used if it is installed."
 )
 _HASH_HEADER = "x-goog-hash"
+_GENERATION_HEADER = "x-goog-generation"
 _MISSING_CHECKSUM = """\
 No {checksum_type} checksum was returned from the service while downloading {}
 (which happens for composite objects), so client-side content integrity
@@ -300,6 +301,27 @@ def _get_checksum_object(checksum_type):
         return None
     else:
         raise ValueError("checksum must be ``'md5'``, ``'crc32c'`` or ``None``")
+
+
+def _parse_generation_header(response, get_headers):
+    """Parses the generation header from an ``X-Goog-Generation`` value.
+
+    Args:
+        response (~requests.Response): The HTTP response object.
+        get_headers (callable: response->dict): returns response headers.
+
+
+    Returns:
+        Optional[long]: The object generation from the response, if it
+        can be detected from the ``X-Goog-Generation`` header; otherwise, None.
+    """
+    headers = get_headers(response)
+    object_generation = headers.get(_GENERATION_HEADER, None)
+
+    if object_generation:
+        return int(object_generation)
+
+    return object_generation
 
 
 class _DoNothingHash(object):
