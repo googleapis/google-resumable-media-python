@@ -161,7 +161,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             ValueError: If the current :class:`Download` has already
                 finished.
         """
-        method, url, payload, headers = self._prepare_request()
+        method, _, payload, headers = self._prepare_request()
         # NOTE: We assume "payload is None" but pass it along anyway.
         request_kwargs = {
             "data": payload,
@@ -172,10 +172,12 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             request_kwargs["stream"] = True
 
         # Assign object generation if generation is specified in the media url
-        self._object_generation = _download.generation_in_media_url(url)
+        self._object_generation = _download.generation_in_media_url(self.media_url)
 
         # Wrap the request business logic in a function to be retried.
         def retriable_request():
+            url = self.media_url
+
             # To restart an interrupted download, read from the offset of last byte
             # received using a range request, and set object generation query param.
             if self.bytes_downloaded > 0:
