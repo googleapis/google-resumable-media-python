@@ -596,7 +596,7 @@ def generation_in_media_url(media_url):
     object_generation = query_params.get("generation", None)
 
     if object_generation is not None:
-        return int(object_generation)
+        return int(object_generation[0])
 
     return object_generation
 
