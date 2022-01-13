@@ -172,7 +172,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             request_kwargs["stream"] = True
 
         # Assign object generation if generation is specified in the media url
-        self._object_generation = _download.generation_in_media_url(self.media_url)
+        self._object_generation = _helpers._get_generation_from_url(self.media_url)
 
         # Wrap the request business logic in a function to be retried.
         def retriable_request():
@@ -189,10 +189,10 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                 # Set object generation query param to ensure the same object content is requested.
                 if (
                     self._object_generation is not None
-                    and _download.generation_in_media_url(self.media_url) is None
+                    and _helpers._get_generation_from_url(self.media_url) is None
                 ):
                     query_param = [("generation", self._object_generation)]
-                    url = _download.add_query_parameters(self.media_url, query_param)
+                    url = _helpers.add_query_parameters(self.media_url, query_param)
 
             result = transport.request(method, url, **request_kwargs)
 

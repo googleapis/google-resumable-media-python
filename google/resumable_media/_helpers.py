@@ -22,6 +22,12 @@ import logging
 import random
 import warnings
 
+from urllib.parse import parse_qs
+from urllib.parse import parse_qsl
+from urllib.parse import urlencode
+from urllib.parse import urlsplit
+from urllib.parse import urlunsplit
+
 from google.resumable_media import common
 
 
@@ -323,6 +329,46 @@ def _parse_generation_header(response, get_headers):
         return int(object_generation)
 
     return object_generation
+
+
+def _get_generation_from_url(media_url):
+    """Retrieve the object generation query param specified in the media url.
+
+    Args:
+        media_url (str): The URL containing the media to be downloaded.
+
+    Returns:
+        long: The object generation from the media url if exists; otherwise, None.
+    """
+
+    _, _, _, query, _ = urlsplit(media_url)
+    query_params = parse_qs(query)
+    object_generation = query_params.get("generation", None)
+
+    if object_generation is not None:
+        return int(object_generation[0])
+
+    return object_generation
+
+
+def add_query_parameters(media_url, name_value_pairs):
+    """Add query parameters to a base url.
+
+    Args:
+        media_url (str): The URL containing the media to be downloaded.
+        name_value_pairs (list[tuple[str, str]]): Names and values of the query parameters to add.
+
+    Returns:
+        str: URL with additional query strings appended.
+    """
+
+    if len(name_value_pairs) == 0:
+        return media_url
+
+    scheme, netloc, path, query, frag = urlsplit(media_url)
+    query = parse_qsl(query)
+    query.extend(name_value_pairs)
+    return urlunsplit((scheme, netloc, path, urlencode(query), frag))
 
 
 def _is_decompressive_transcoding(response, get_headers):

@@ -18,13 +18,6 @@
 import http.client
 import re
 
-from urllib.parse import parse_qs
-from urllib.parse import parse_qsl
-from urllib.parse import urlencode
-from urllib.parse import urlsplit
-from urllib.parse import urlunsplit
-
-
 from google.resumable_media import _helpers
 from google.resumable_media import common
 
@@ -579,43 +572,3 @@ def _check_for_zero_content_range(response, get_status_code, get_headers):
         if content_range == _ZERO_CONTENT_RANGE_HEADER:
             return True
     return False
-
-
-def generation_in_media_url(media_url):
-    """Retrieve the object generation query param specified in media url.
-
-    Args:
-        media_url (str): The URL containing the media to be downloaded.
-
-    Returns:
-        long: The object generation from the media url if exists, else None.
-    """
-
-    _, _, _, query, _ = urlsplit(media_url)
-    query_params = parse_qs(query)
-    object_generation = query_params.get("generation", None)
-
-    if object_generation is not None:
-        return int(object_generation[0])
-
-    return object_generation
-
-
-def add_query_parameters(media_url, name_value_pairs):
-    """Add query parameters to a base url.
-
-    Args:
-        media_url (str): The URL containing the media to be downloaded.
-        name_value_pairs (list[tuple[str, str]): Names and values of the query parameters to add.
-
-    Returns:
-        str: URL with additional query strings appended.
-    """
-
-    if len(name_value_pairs) == 0:
-        return media_url
-
-    scheme, netloc, path, query, frag = urlsplit(media_url)
-    query = parse_qsl(query)
-    query.extend(name_value_pairs)
-    return urlunsplit((scheme, netloc, path, urlencode(query), frag))
