@@ -181,7 +181,9 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             # To restart an interrupted download, read from the offset of last byte
             # received using a range request, and set object generation query param.
             if self.bytes_downloaded > 0:
-                _download.add_bytes_range(self.bytes_downloaded, self.end, self._headers)
+                _download.add_bytes_range(
+                    self.bytes_downloaded, self.end, self._headers
+                )
                 request_kwargs["headers"] = self._headers
 
                 # Set object generation query param to ensure the same object content is requested.
@@ -197,11 +199,18 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             # If a generation hasn't been specified, and this is the first response we get, let's record the
             # generation. In future requests we'll specify the generation query param to avoid data races.
             if self._object_generation is None:
-                self._object_generation = _helpers._parse_generation_header(result, self._get_headers)
+                self._object_generation = _helpers._parse_generation_header(
+                    result, self._get_headers
+                )
 
             self._process_response(result)
 
+            # With decompressive transcoding, GCS serves back the whole file regardless of the range request,
+            # thus we reset the stream position to the start of the stream.
+            # See more: https://cloud.google.com/storage/docs/transcoding#range,
             if self._stream is not None:
+                if _helpers._is_decompressive_transcoding(result, self._get_headers):
+                    self._stream.seek(0)
                 self._write_to_stream(result)
 
             return result

@@ -33,6 +33,7 @@ _SLOW_CRC32C_WARNING = (
     "implementation. Python 3 has a faster implementation, `google-crc32c`, "
     "which will be used if it is installed."
 )
+_CONTENT_ENCODING_HEADER = "Content-Encoding"
 _HASH_HEADER = "x-goog-hash"
 _GENERATION_HEADER = "x-goog-generation"
 _MISSING_CHECKSUM = """\
@@ -322,6 +323,21 @@ def _parse_generation_header(response, get_headers):
         return int(object_generation)
 
     return object_generation
+
+
+def _is_decompressive_transcoding(response, get_headers):
+    """Returns True if the object was served decompressed and the "Content-Encoding" header is "gzip".
+       See more at: https://cloud.google.com/storage/docs/transcoding#transcoding_and_gzip
+
+    Args:
+        response (~requests.Response): The HTTP response object.
+        get_headers (callable: response->dict): returns response headers.
+
+    Returns:
+        bool: Returns True if the "Content-Encoding" header is "gzip"; otherwise, False.
+    """
+    headers = get_headers(response)
+    return headers.get(_CONTENT_ENCODING_HEADER) == "gzip"
 
 
 class _DoNothingHash(object):
