@@ -144,21 +144,6 @@ class Download(DownloadBase):
         self._checksum_object = None
         self._object_generation = None
 
-    @property
-    def bytes_downloaded(self):
-        """int: Number of bytes that have been downloaded."""
-        return self._bytes_downloaded
-
-    @property
-    def expected_checksum(self):
-        """str: The expected checksum of the response detected from the ``X-Goog-Hash`` header."""
-        return self._expected_checksum
-
-    @property
-    def checksum_object(self):
-        """object: The checksum object for the appropriate checksum type."""
-        return self._checksum_object
-
     def _prepare_request(self):
         """Prepare the contents of an HTTP request.
 

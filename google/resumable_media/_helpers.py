@@ -40,8 +40,8 @@ _SLOW_CRC32C_WARNING = (
     "which will be used if it is installed."
 )
 _CONTENT_ENCODING_HEADER = "Content-Encoding"
-_HASH_HEADER = "x-goog-hash"
 _GENERATION_HEADER = "x-goog-generation"
+_HASH_HEADER = "x-goog-hash"
 _MISSING_CHECKSUM = """\
 No {checksum_type} checksum was returned from the service while downloading {}
 (which happens for composite objects), so client-side content integrity
@@ -317,7 +317,6 @@ def _parse_generation_header(response, get_headers):
         response (~requests.Response): The HTTP response object.
         get_headers (callable: response->dict): returns response headers.
 
-
     Returns:
         Optional[long]: The object generation from the response, if it
         can be detected from the ``X-Goog-Generation`` header; otherwise, None.
@@ -325,10 +324,10 @@ def _parse_generation_header(response, get_headers):
     headers = get_headers(response)
     object_generation = headers.get(_GENERATION_HEADER, None)
 
-    if object_generation:
+    if object_generation is None:
+        return None
+    else:
         return int(object_generation)
-
-    return object_generation
 
 
 def _get_generation_from_url(media_url):
@@ -345,10 +344,10 @@ def _get_generation_from_url(media_url):
     query_params = parse_qs(query)
     object_generation = query_params.get("generation", None)
 
-    if object_generation is not None:
+    if object_generation is None:
+        return None
+    else:
         return int(object_generation[0])
-
-    return object_generation
 
 
 def add_query_parameters(media_url, name_value_pairs):
