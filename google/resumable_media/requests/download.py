@@ -172,7 +172,8 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             request_kwargs["stream"] = True
 
         # Assign object generation if generation is specified in the media url.
-        self._object_generation = _helpers._get_generation_from_url(self.media_url)
+        if self._object_generation is None:
+            self._object_generation = _helpers._get_generation_from_url(self.media_url)
 
         # Wrap the request business logic in a function to be retried.
         def retriable_request():
@@ -211,6 +212,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             if self._stream is not None:
                 if _helpers._is_decompressive_transcoding(result, self._get_headers):
                     self._stream.seek(0)
+                    self._bytes_downloaded = 0
                 self._write_to_stream(result)
 
             return result
@@ -349,7 +351,8 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
         }
 
         # Assign object generation if generation is specified in the media url.
-        self._object_generation = _helpers._get_generation_from_url(self.media_url)
+        if self._object_generation is None:
+            self._object_generation = _helpers._get_generation_from_url(self.media_url)
 
         # Wrap the request business logic in a function to be retried.
         def retriable_request():
@@ -388,6 +391,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
             if self._stream is not None:
                 if _helpers._is_decompressive_transcoding(result, self._get_headers):
                     self._stream.seek(0)
+                    self._bytes_downloaded = 0
                 self._write_to_stream(result)
 
             return result
