@@ -84,9 +84,7 @@ class UploadBase(object):
         self.upload_url = upload_url
         if headers is None:
             headers = {}
-        version = pkg_resources.get_distribution('google-resumable-media').version
-        headers['User-Agent'] = "google-resumable-media-python/{}".format(version)
-        self._headers = headers
+        self._headers = _helpers._base_headers(headers)
         self._finished = False
         self._retry_strategy = common.RetryStrategy()
 

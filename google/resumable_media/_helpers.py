@@ -20,6 +20,7 @@ import base64
 import hashlib
 import logging
 import random
+import pkg_resources
 import warnings
 
 from google.resumable_media import common
@@ -43,6 +44,12 @@ _LOGGER = logging.getLogger(__name__)
 
 def do_nothing():
     """Simple default callback."""
+
+
+def _base_headers(headers):
+    version = pkg_resources.get_distribution('google-resumable-media').version
+    headers['User-Agent'] = "google-resumable-media-python/{}".format(version)
+    return headers
 
 
 def header_required(response, name, get_headers, callback=do_nothing):
