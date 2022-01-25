@@ -260,11 +260,13 @@ class TestMultipartUpload(object):
     def test__prepare_request_with_headers(self):
         headers = {"best": "shirt", "worst": "hat"}
         new_headers, multipart_type = self._prepare_request_helper(headers=headers)
-        expected_headers = _base_headers({
-            "best": "shirt",
-            "content-type": multipart_type,
-            "worst": "hat",
-        })
+        expected_headers = _base_headers(
+            {
+                "best": "shirt",
+                "content-type": multipart_type,
+                "worst": "hat",
+            }
+        )
         assert new_headers == expected_headers
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
@@ -276,9 +278,11 @@ class TestMultipartUpload(object):
         headers, multipart_type = self._prepare_request_helper(
             checksum=checksum, expected_checksum=checksums[checksum]
         )
-        assert headers == _base_headers({
-            "content-type": multipart_type,
-        })
+        assert headers == _base_headers(
+            {
+                "content-type": multipart_type,
+            }
+        )
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     def test__prepare_request_with_checksum_overwrite(self, checksum):
@@ -291,9 +295,11 @@ class TestMultipartUpload(object):
             expected_checksum=checksums[checksum],
             test_overwrite=True,
         )
-        assert headers == _base_headers({
-            "content-type": multipart_type,
-        })
+        assert headers == _base_headers(
+            {
+                "content-type": multipart_type,
+            }
+        )
 
     def test_transmit(self):
         upload = _upload.MultipartUpload(MULTIPART_URL)

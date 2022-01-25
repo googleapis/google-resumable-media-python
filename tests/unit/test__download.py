@@ -119,7 +119,9 @@ class TestDownload(object):
         assert method == "GET"
         assert url == EXAMPLE_URL
         assert payload is None
-        assert new_headers == _base_headers({"range": "bytes=11-111", "spoonge": "borb"})
+        assert new_headers == _base_headers(
+            {"range": "bytes=11-111", "spoonge": "borb"}
+        )
 
     def test__process_response(self):
         download = _download.Download(EXAMPLE_URL)

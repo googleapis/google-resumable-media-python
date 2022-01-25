@@ -47,8 +47,8 @@ def do_nothing():
 
 
 def _base_headers(headers):
-    version = pkg_resources.get_distribution('google-resumable-media').version
-    headers['User-Agent'] = "google-resumable-media-python/{}".format(version)
+    version = pkg_resources.get_distribution("google-resumable-media").version
+    headers["User-Agent"] = "google-resumable-media-python/{}".format(version)
     return headers
 
 
