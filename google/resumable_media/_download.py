@@ -16,6 +16,7 @@
 
 
 import http.client
+import pkg_resources
 import re
 
 from google.resumable_media import _helpers
@@ -58,6 +59,8 @@ class DownloadBase(object):
         self.end = end
         if headers is None:
             headers = {}
+        version = pkg_resources.get_distribution('google-resumable-media').version
+        headers['User-Agent'] = "google-resumable-media-python/{}".format(version)
         self._headers = headers
         self._finished = False
         self._retry_strategy = common.RetryStrategy()

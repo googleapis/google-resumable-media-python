@@ -16,6 +16,7 @@ import http.client
 import io
 
 import mock
+import pkg_resources
 import pytest  # type: ignore
 
 from google.resumable_media import _download
@@ -26,6 +27,9 @@ EXAMPLE_URL = (
     "https://www.googleapis.com/download/storage/v1/b/{BUCKET}/o/{OBJECT}?alt=media"
 )
 
+def _headers_with_agent(headers):
+    version = pkg_resources.get_distribution('google-resumable-media').version
+    return { **headers, 'User-Agent': "google-resumable-media-python/{}".format(version)}
 
 class TestDownloadBase(object):
     def test_constructor_defaults(self):
@@ -34,7 +38,7 @@ class TestDownloadBase(object):
         assert download._stream is None
         assert download.start is None
         assert download.end is None
-        assert download._headers == {}
+        assert download._headers == _headers_with_agent({})
         assert not download._finished
         _check_retry_strategy(download)
 
@@ -53,7 +57,7 @@ class TestDownloadBase(object):
         assert download._stream is mock.sentinel.stream
         assert download.start == start
         assert download.end == end
-        assert download._headers is headers
+        assert download._headers is _headers_with_agent(headers)
         assert not download._finished
         _check_retry_strategy(download)
 
@@ -102,14 +106,14 @@ class TestDownload(object):
         assert method1 == "GET"
         assert url1 == EXAMPLE_URL
         assert payload1 is None
-        assert headers1 == {}
+        assert headers1 == _headers_with_agent({})
 
         download2 = _download.Download(EXAMPLE_URL, start=53)
         method2, url2, payload2, headers2 = download2._prepare_request()
         assert method2 == "GET"
         assert url2 == EXAMPLE_URL
         assert payload2 is None
-        assert headers2 == {"range": "bytes=53-"}
+        assert headers2 == _headers_with_agent({"range": "bytes=53-"})
 
     def test__prepare_request_with_headers(self):
         headers = {"spoonge": "borb"}
@@ -118,7 +122,7 @@ class TestDownload(object):
         assert method == "GET"
         assert url == EXAMPLE_URL
         assert payload is None
-        assert new_headers is headers
+        assert new_headers is _headers_with_agent(headers)
         assert headers == {"range": "bytes=11-111", "spoonge": "borb"}
 
     def test__process_response(self):
@@ -171,7 +175,7 @@ class TestChunkedDownload(object):
         assert download.chunk_size == chunk_size
         assert download.start == 0
         assert download.end is None
-        assert download._headers == {}
+        assert download._headers == _headers_with_agent({})
         assert not download._finished
         _check_retry_strategy(download)
         assert download._stream is stream
@@ -288,7 +292,7 @@ class TestChunkedDownload(object):
         assert method1 == "GET"
         assert url1 == EXAMPLE_URL
         assert payload1 is None
-        assert headers1 == {"range": "bytes=0-2047"}
+        assert headers1 == _headers_with_agent({"range": "bytes=0-2047"})
 
         download2 = _download.ChunkedDownload(
             EXAMPLE_URL, chunk_size, None, start=19991
@@ -298,7 +302,7 @@ class TestChunkedDownload(object):
         assert method2 == "GET"
         assert url2 == EXAMPLE_URL
         assert payload2 is None
-        assert headers2 == {"range": "bytes=19991-20100"}
+        assert headers2 == _headers_with_agent({"range": "bytes=19991-20100"})
 
     def test__prepare_request_with_headers(self):
         chunk_size = 2048
@@ -310,7 +314,7 @@ class TestChunkedDownload(object):
         assert method == "GET"
         assert url == EXAMPLE_URL
         assert payload is None
-        assert new_headers is headers
+        assert new_headers is _headers_with_agent(headers)
         expected = {"patrizio": "Starf-ish", "range": "bytes=0-2047"}
         assert headers == expected
 
