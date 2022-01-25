@@ -16,7 +16,6 @@
 
 
 import http.client
-import pkg_resources
 import re
 
 from google.resumable_media import _helpers

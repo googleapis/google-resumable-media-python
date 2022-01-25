@@ -16,7 +16,6 @@ import http.client
 import io
 
 import mock
-import pkg_resources
 import pytest  # type: ignore
 
 from google.resumable_media import _download

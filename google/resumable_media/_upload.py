@@ -24,7 +24,6 @@ Supported here are:
 import http.client
 import json
 import os
-import pkg_resources
 import random
 import re
 import sys
