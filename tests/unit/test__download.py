@@ -57,7 +57,7 @@ class TestDownloadBase(object):
         assert download._stream is mock.sentinel.stream
         assert download.start == start
         assert download.end == end
-        assert download._headers is _headers_with_agent(headers)
+        assert download._headers == _headers_with_agent(headers)
         assert not download._finished
         _check_retry_strategy(download)
 
@@ -122,8 +122,8 @@ class TestDownload(object):
         assert method == "GET"
         assert url == EXAMPLE_URL
         assert payload is None
-        assert new_headers is _headers_with_agent(headers)
-        assert headers == {"range": "bytes=11-111", "spoonge": "borb"}
+        assert new_headers == _headers_with_agent(headers)
+        assert headers == _headers_with_agent({"range": "bytes=11-111", "spoonge": "borb"})
 
     def test__process_response(self):
         download = _download.Download(EXAMPLE_URL)
@@ -314,9 +314,9 @@ class TestChunkedDownload(object):
         assert method == "GET"
         assert url == EXAMPLE_URL
         assert payload is None
-        assert new_headers is _headers_with_agent(headers)
+        assert new_headers == _headers_with_agent(headers)
         expected = {"patrizio": "Starf-ish", "range": "bytes=0-2047"}
-        assert headers == expected
+        assert headers == _headers_with_agent(expected)
 
     def test__make_invalid(self):
         download = _download.ChunkedDownload(EXAMPLE_URL, 512, None)

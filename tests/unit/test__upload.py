@@ -17,6 +17,7 @@ import io
 import sys
 
 import mock
+import pkg_resources
 import pytest  # type: ignore
 
 from google.resumable_media import _helpers
@@ -34,11 +35,16 @@ JSON_TYPE = "application/json; charset=UTF-8"
 JSON_TYPE_LINE = b"content-type: application/json; charset=UTF-8\r\n"
 
 
+def _headers_with_agent(headers):
+    version = pkg_resources.get_distribution('google-resumable-media').version
+    return { **headers, 'User-Agent': "google-resumable-media-python/{}".format(version)}
+
+
 class TestUploadBase(object):
     def test_constructor_defaults(self):
         upload = _upload.UploadBase(SIMPLE_URL)
         assert upload.upload_url == SIMPLE_URL
-        assert upload._headers == {}
+        assert upload._headers == _headers_with_agent({})
         assert not upload._finished
         _check_retry_strategy(upload)
 
@@ -46,7 +52,7 @@ class TestUploadBase(object):
         headers = {"spin": "doctors"}
         upload = _upload.UploadBase(SIMPLE_URL, headers=headers)
         assert upload.upload_url == SIMPLE_URL
-        assert upload._headers is headers
+        assert upload._headers == _headers_with_agent(headers)
         assert not upload._finished
         _check_retry_strategy(upload)
 
@@ -139,7 +145,7 @@ class TestSimpleUpload(object):
         assert method == "POST"
         assert url == SIMPLE_URL
         assert payload == data
-        assert headers == {"content-type": content_type}
+        assert headers == _headers_with_agent({"content-type": content_type})
 
     def test__prepare_request_with_headers(self):
         headers = {"x-goog-cheetos": "spicy"}
@@ -151,9 +157,9 @@ class TestSimpleUpload(object):
         assert method == "POST"
         assert url == SIMPLE_URL
         assert payload == data
-        assert new_headers is headers
+        assert new_headers == _headers_with_agent(headers)
         expected = {"content-type": content_type, "x-goog-cheetos": "spicy"}
-        assert headers == expected
+        assert headers == _headers_with_agent(expected)
 
     def test_transmit(self):
         upload = _upload.SimpleUpload(SIMPLE_URL)
@@ -167,7 +173,7 @@ class TestMultipartUpload(object):
     def test_constructor_defaults(self):
         upload = _upload.MultipartUpload(MULTIPART_URL)
         assert upload.upload_url == MULTIPART_URL
-        assert upload._headers == {}
+        assert upload._headers == _headers_with_agent({})
         assert upload._checksum_type is None
         assert not upload._finished
         _check_retry_strategy(upload)
@@ -176,7 +182,7 @@ class TestMultipartUpload(object):
         headers = {"spin": "doctors"}
         upload = _upload.MultipartUpload(MULTIPART_URL, headers=headers, checksum="md5")
         assert upload.upload_url == MULTIPART_URL
-        assert upload._headers is headers
+        assert upload._headers == _headers_with_agent(headers)
         assert upload._checksum_type == "md5"
         assert not upload._finished
         _check_retry_strategy(upload)
@@ -255,17 +261,17 @@ class TestMultipartUpload(object):
 
     def test__prepare_request(self):
         headers, multipart_type = self._prepare_request_helper()
-        assert headers == {"content-type": multipart_type}
+        assert headers == _headers_with_agent({"content-type": multipart_type})
 
     def test__prepare_request_with_headers(self):
         headers = {"best": "shirt", "worst": "hat"}
         new_headers, multipart_type = self._prepare_request_helper(headers=headers)
-        assert new_headers is headers
-        expected_headers = {
+        assert new_headers == _headers_with_agent(headers)
+        expected_headers = _headers_with_agent({
             "best": "shirt",
             "content-type": multipart_type,
             "worst": "hat",
-        }
+        })
         assert expected_headers == headers
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
@@ -277,9 +283,9 @@ class TestMultipartUpload(object):
         headers, multipart_type = self._prepare_request_helper(
             checksum=checksum, expected_checksum=checksums[checksum]
         )
-        assert headers == {
+        assert headers == _headers_with_agent({
             "content-type": multipart_type,
-        }
+        })
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     def test__prepare_request_with_checksum_overwrite(self, checksum):
@@ -292,9 +298,9 @@ class TestMultipartUpload(object):
             expected_checksum=checksums[checksum],
             test_overwrite=True,
         )
-        assert headers == {
+        assert headers == _headers_with_agent({
             "content-type": multipart_type,
-        }
+        })
 
     def test_transmit(self):
         upload = _upload.MultipartUpload(MULTIPART_URL)
@@ -309,7 +315,7 @@ class TestResumableUpload(object):
         chunk_size = ONE_MB
         upload = _upload.ResumableUpload(RESUMABLE_URL, chunk_size)
         assert upload.upload_url == RESUMABLE_URL
-        assert upload._headers == {}
+        assert upload._headers == _headers_with_agent({})
         assert not upload._finished
         _check_retry_strategy(upload)
         assert upload._chunk_size == chunk_size
@@ -435,7 +441,7 @@ class TestResumableUpload(object):
             "x-upload-content-length": "{:d}".format(len(data)),
             "x-upload-content-type": BASIC_CONTENT,
         }
-        assert headers == expected_headers
+        assert headers == _headers_with_agent(expected_headers)
 
     def test_prepare_initiate_request_with_signed_url(self):
         signed_urls = [
@@ -450,7 +456,7 @@ class TestResumableUpload(object):
                 "content-type": BASIC_CONTENT,
                 "x-upload-content-length": "{:d}".format(len(data)),
             }
-            assert headers == expected_headers
+            assert headers == _headers_with_agent(expected_headers)
 
     def test__prepare_initiate_request_with_headers(self):
         headers = {"caviar": "beluga", "top": "quark"}
@@ -464,7 +470,7 @@ class TestResumableUpload(object):
             "x-upload-content-length": "{:d}".format(len(data)),
             "x-upload-content-type": BASIC_CONTENT,
         }
-        assert new_headers == expected_headers
+        assert new_headers == _headers_with_agent(expected_headers)
 
     def test__prepare_initiate_request_known_size(self):
         total_bytes = 25
@@ -475,7 +481,7 @@ class TestResumableUpload(object):
             "x-upload-content-length": "{:d}".format(total_bytes),
             "x-upload-content-type": BASIC_CONTENT,
         }
-        assert headers == expected_headers
+        assert headers == _headers_with_agent(expected_headers)
 
     def test__prepare_initiate_request_unknown_size(self):
         _, headers = self._prepare_initiate_request_helper(stream_final=False)
@@ -483,7 +489,7 @@ class TestResumableUpload(object):
             "content-type": "application/json; charset=UTF-8",
             "x-upload-content-type": BASIC_CONTENT,
         }
-        assert headers == expected_headers
+        assert headers == _headers_with_agent(expected_headers)
 
     def test__prepare_initiate_request_already_initiated(self):
         upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
@@ -960,7 +966,7 @@ class TestResumableUpload(object):
         assert payload is None
         assert headers == {"content-range": "bytes */*"}
         # Make sure headers are untouched.
-        assert upload._headers == {}
+        assert upload._headers == _headers_with_agent({})
 
     def test__prepare_recover_request_with_headers(self):
         headers = {"lake": "ocean"}
@@ -975,7 +981,7 @@ class TestResumableUpload(object):
         # Make sure the ``_headers`` are not incorporated.
         assert "lake" not in new_headers
         # Make sure headers are untouched.
-        assert upload._headers == {"lake": "ocean"}
+        assert upload._headers == _headers_with_agent({"lake": "ocean"})
 
     def test__process_recover_response_bad_status(self):
         upload = _upload.ResumableUpload(RESUMABLE_URL, ONE_MB)
