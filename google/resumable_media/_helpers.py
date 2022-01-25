@@ -21,6 +21,7 @@ import hashlib
 import logging
 import random
 import pkg_resources
+import platform
 import warnings
 
 from google.resumable_media import common
@@ -48,7 +49,8 @@ def do_nothing():
 
 def _base_headers(headers):
     version = pkg_resources.get_distribution("google-resumable-media").version
-    headers["User-Agent"] = "google-resumable-media-python/{}".format(version)
+    headers["User-Agent"] = "gcloud-python/{}-resumable-media".format(version)
+    headers["X-Goog-Api-Client"] = "gl-python/" + platform.python_version() + " gccl/{}"
     return headers
 
 
