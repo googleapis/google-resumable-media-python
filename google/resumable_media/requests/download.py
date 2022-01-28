@@ -192,7 +192,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                     self._object_generation is not None
                     and _helpers._get_generation_from_url(self.media_url) is None
                 ):
-                    query_param = [("generation", self._object_generation)]
+                    query_param = {"generation": self._object_generation}
                     url = _helpers.add_query_parameters(self.media_url, query_param)
 
             result = transport.request(method, url, **request_kwargs)
@@ -371,7 +371,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
                     self._object_generation is not None
                     and _helpers._get_generation_from_url(self.media_url) is None
                 ):
-                    query_param = [("generation", self._object_generation)]
+                    query_param = {"generation": self._object_generation}
                     url = _helpers.add_query_parameters(self.media_url, query_param)
 
             result = transport.request(method, url, **request_kwargs)

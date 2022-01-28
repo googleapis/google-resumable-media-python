@@ -461,25 +461,25 @@ class Test__get_generation_from_url(object):
 
 class Test__add_query_parameters(object):
     def test_w_empty_list(self):
-        query_params = []
+        query_params = {}
         MEDIA_URL = "https://storage.googleapis.com/storage/v1/b/my-bucket/o/my-object"
         new_url = _helpers.add_query_parameters(MEDIA_URL, query_params)
         assert new_url == MEDIA_URL
 
     def test_wo_existing_qs(self):
-        query_params = [("one", "One"), ("two", "Two")]
+        query_params = {"one": "One", "two": "Two"}
         MEDIA_URL = "https://storage.googleapis.com/storage/v1/b/my-bucket/o/my-object"
         expected = "&".join(
-            ["{}={}".format(name, value) for name, value in query_params]
+            ["{}={}".format(name, value) for name, value in query_params.items()]
         )
         new_url = _helpers.add_query_parameters(MEDIA_URL, query_params)
         assert new_url == "{}?{}".format(MEDIA_URL, expected)
 
     def test_w_existing_qs(self):
-        query_params = [("one", "One"), ("two", "Two")]
+        query_params = {"one": "One", "two": "Two"}
         MEDIA_URL = "https://storage.googleapis.com/storage/v1/b/my-bucket/o/my-object?alt=media"
         expected = "&".join(
-            ["{}={}".format(name, value) for name, value in query_params]
+            ["{}={}".format(name, value) for name, value in query_params.items()]
         )
         new_url = _helpers.add_query_parameters(MEDIA_URL, query_params)
         assert new_url == "{}&{}".format(MEDIA_URL, expected)

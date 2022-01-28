@@ -23,7 +23,6 @@ import random
 import warnings
 
 from urllib.parse import parse_qs
-from urllib.parse import parse_qsl
 from urllib.parse import urlencode
 from urllib.parse import urlsplit
 from urllib.parse import urlunsplit
@@ -350,24 +349,25 @@ def _get_generation_from_url(media_url):
         return int(object_generation[0])
 
 
-def add_query_parameters(media_url, name_value_pairs):
+def add_query_parameters(media_url, query_params):
     """Add query parameters to a base url.
 
     Args:
         media_url (str): The URL containing the media to be downloaded.
-        name_value_pairs (list[tuple[str, str]]): Names and values of the query parameters to add.
+        query_params (dict): Names and values of the query parameters to add.
 
     Returns:
         str: URL with additional query strings appended.
     """
 
-    if len(name_value_pairs) == 0:
+    if len(query_params) == 0:
         return media_url
 
     scheme, netloc, path, query, frag = urlsplit(media_url)
-    query = parse_qsl(query)
-    query.extend(name_value_pairs)
-    return urlunsplit((scheme, netloc, path, urlencode(query), frag))
+    params = parse_qs(query)
+    new_params = {**params, **query_params}
+    query = urlencode(new_params, doseq=True)
+    return urlunsplit((scheme, netloc, path, query, frag))
 
 
 def _is_decompressive_transcoding(response, get_headers):
