@@ -621,12 +621,11 @@ class TestResumableUpload(object):
         new_headers = self._prepare_request_helper(headers)
         assert new_headers is not headers
         expected_headers = {
+            "cannot": "touch this",
             "content-range": "bytes 0-32/33",
             "content-type": BASIC_CONTENT,
         }
         assert new_headers == expected_headers
-        # Make sure the ``_headers`` are not incorporated.
-        assert "cannot" not in new_headers
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
     def test__prepare_request_with_checksum(self, checksum):
