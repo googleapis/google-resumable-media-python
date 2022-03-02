@@ -617,11 +617,11 @@ class TestResumableUpload(object):
         assert headers == expected_headers
 
     def test__prepare_request_success_with_headers(self):
-        headers = {"cannot": "touch this"}
+        headers = {"keep": "this"}
         new_headers = self._prepare_request_helper(headers)
         assert new_headers is not headers
         expected_headers = {
-            "cannot": "touch this",
+            "keep": "this",
             "content-range": "bytes 0-32/33",
             "content-type": BASIC_CONTENT,
         }
