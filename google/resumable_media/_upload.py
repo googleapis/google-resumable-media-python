@@ -468,9 +468,10 @@ class ResumableUpload(UploadBase):
         parse_result = urllib.parse.urlparse(self.upload_url)
         parsed_query = urllib.parse.parse_qs(parse_result.query)
         if "x-goog-signature" in parsed_query or "X-Goog-Signature" in parsed_query:
-            headers = {_CONTENT_TYPE_HEADER: content_type}
+            headers = {**self._headers, _CONTENT_TYPE_HEADER: content_type}
         else:
             headers = {
+                **self._headers,
                 _CONTENT_TYPE_HEADER: "application/json; charset=UTF-8",
                 "x-upload-content-type": content_type,
             }
@@ -484,7 +485,6 @@ class ResumableUpload(UploadBase):
             content_length = "{:d}".format(self._total_bytes)
             headers["x-upload-content-length"] = content_length
 
-        headers.update(self._headers)
         payload = json.dumps(metadata).encode("utf-8")
         return _POST, self.upload_url, payload, headers
 
