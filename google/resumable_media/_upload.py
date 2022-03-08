@@ -468,8 +468,10 @@ class ResumableUpload(UploadBase):
         parse_result = urllib.parse.urlparse(self.upload_url)
         parsed_query = urllib.parse.parse_qs(parse_result.query)
         if "x-goog-signature" in parsed_query or "X-Goog-Signature" in parsed_query:
+            # Deconstruct **self._headers first so that content type defined here takes priority
             headers = {**self._headers, _CONTENT_TYPE_HEADER: content_type}
         else:
+            # Deconstruct **self._headers first so that content type defined here takes priority
             headers = {
                 **self._headers,
                 _CONTENT_TYPE_HEADER: "application/json; charset=UTF-8",
