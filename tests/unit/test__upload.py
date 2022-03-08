@@ -454,7 +454,11 @@ class TestResumableUpload(object):
 
     def test__prepare_initiate_request_with_headers(self):
         # content-type header should be overwritten, the rest should stay
-        headers = {"caviar": "beluga", "top": "quark", "content-type": "application/xhtml"}
+        headers = {
+            "caviar": "beluga",
+            "top": "quark",
+            "content-type": "application/xhtml",
+        }
         data, new_headers = self._prepare_initiate_request_helper(
             upload_headers=headers
         )
