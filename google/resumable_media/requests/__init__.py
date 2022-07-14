@@ -629,6 +629,8 @@ transmitted in chunks until completion:
 
 .. doctest:: resumable-transmit
 
+   from http import HTTPStatus
+
    >>> response0 = upload.transmit_next_chunk(transport)
    >>> response0
    <Response [HTTPStatus.PERMANENT_REDIRECT]>
