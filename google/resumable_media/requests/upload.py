@@ -519,20 +519,20 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
     def recover(self, transport):
         """Recover from a failure and check the status of the current upload.
 
-                This will verify the progress with the server and make sure the
-                current upload is in a valid state before :meth:`transmit_next_chunk`
-                can be used again. See https://cloud.google.com/storage/docs/performing-resumable-uploads#status-check
-                for more information.
+        This will verify the progress with the server and make sure the
+        current upload is in a valid state before :meth:`transmit_next_chunk`
+        can be used again. See https://cloud.google.com/storage/docs/performing-resumable-uploads#status-check
+        for more information.
 
-                This method can be used when a :class:`ResumableUpload` is in an
-                :attr:`~ResumableUpload.invalid` state due to a request failure.
+        This method can be used when a :class:`ResumableUpload` is in an
+        :attr:`~ResumableUpload.invalid` state due to a request failure.
 
-                Args:
-                    transport (~requests.Session): A ``requests`` object which can
-                        make authenticated requests.
+        Args:
+            transport (~requests.Session): A ``requests`` object which can
+                make authenticated requests.
 
-                Returns:
-                    ~requests.Response: The HTTP response returned by ``transport``.
+        Returns:
+            ~requests.Response: The HTTP response returned by ``transport``.
         """
         timeout = (
             _request_helpers._DEFAULT_CONNECT_TIMEOUT,
