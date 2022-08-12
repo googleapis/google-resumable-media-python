@@ -39,7 +39,7 @@ def unit(session):
     )
 
     # Install all test dependencies, then install this package in-place.
-    session.install("mock", "pytest", "pytest-cov", "pytest-asyncio<=0.14.0")
+    session.install("mock", "pytest", "pytest-cov", "pytest-asyncio")
     session.install(GOOGLE_AUTH, "-c", constraints_path)
     session.install("-e", ".[requests,aiohttp]", "-c", constraints_path)
 
@@ -229,7 +229,7 @@ def system(session):
 
     # Run py.test against the async system tests.
     if session.python.startswith("3"):
-        session.install("pytest-asyncio<=0.14.0")
+        session.install("pytest-asyncio")
         session.run(
             "py.test", "-s", os.path.join("tests_async", "system"), *session.posargs
         )
