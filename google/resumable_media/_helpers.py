@@ -32,6 +32,7 @@ from google.resumable_media import common
 
 RANGE_HEADER = "range"
 CONTENT_RANGE_HEADER = "content-range"
+CONTENT_ENCODING_HEADER = "content-encoding"
 
 _SLOW_CRC32C_WARNING = (
     "Currently using crcmod in pure python form. This is a slow "
@@ -372,16 +373,20 @@ def add_query_parameters(media_url, query_params):
 
 
 def _is_decompressive_transcoding(response, get_headers):
-    """Returns True if the object was served decompressed and the "x-goog-stored-content-encoding"
-    header is "gzip". See more at: https://cloud.google.com/storage/docs/transcoding#transcoding_and_gzip
+    """Returns True if the object was served decompressed. This happens when the
+    "x-goog-stored-content-encoding" header is "gzip" and "content-encoding" header
+    is not "gzip". See more at: https://cloud.google.com/storage/docs/transcoding#transcoding_and_gzip
     Args:
         response (~requests.Response): The HTTP response object.
         get_headers (callable: response->dict): returns response headers.
     Returns:
-        bool: Returns True if the "x-goog-stored-content-encoding" header is "gzip"; otherwise, False.
+        bool: Returns True if decompressive transcoding has occurred; otherwise, False.
     """
     headers = get_headers(response)
-    return headers.get(_STORED_CONTENT_ENCODING_HEADER) == "gzip"
+    return (
+        headers.get(_STORED_CONTENT_ENCODING_HEADER) == "gzip"
+        and headers.get(CONTENT_ENCODING_HEADER) != "gzip"
+    )
 
 
 class _DoNothingHash(object):

@@ -441,6 +441,14 @@ class Test__is_decompressive_transcoding(object):
         response = _mock_response(headers=headers)
         assert _helpers._is_decompressive_transcoding(response, _get_headers) is False
 
+    def test_gzip_w_content_encoding_in_headers(self):
+        headers = {
+            _helpers._STORED_CONTENT_ENCODING_HEADER: "gzip",
+            _helpers.CONTENT_ENCODING_HEADER: "gzip",
+        }
+        response = _mock_response(headers=headers)
+        assert _helpers._is_decompressive_transcoding(response, _get_headers) is False
+
 
 class Test__get_generation_from_url(object):
 
