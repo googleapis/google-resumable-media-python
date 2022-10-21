@@ -91,7 +91,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             local_checksum_object.update(chunk)
 
         # Don't validate the checksum for partial responses.
-        if expected_checksum is not None and response.status != 206:
+        if expected_checksum is not None and response.status != http.client.PARTIAL_CONTENT:
             actual_checksum = sync_helpers.prepare_checksum_digest(
                 checksum_object.digest()
             )
@@ -215,7 +215,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
             checksum_object.update(chunk)
 
         # Don't validate the checksum for partial responses.
-        if expected_checksum is not None and response.status != 206:
+        if expected_checksum is not None and response.status != http.client.PARTIAL_CONTENT:
             actual_checksum = sync_helpers.prepare_checksum_digest(
                 checksum_object.digest()
             )
