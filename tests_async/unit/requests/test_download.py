@@ -102,9 +102,13 @@ class TestDownload(object):
 
     @pytest.mark.asyncio
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
-    async def test__write_to_stream_no_checksum_validation_for_partial_response(self, checksum):
+    async def test__write_to_stream_no_checksum_validation_for_partial_response(
+        self, checksum
+    ):
         stream = io.BytesIO()
-        download = download_mod.Download(sync_test.EXAMPLE_URL, stream=stream, checksum=checksum)
+        download = download_mod.Download(
+            sync_test.EXAMPLE_URL, stream=stream, checksum=checksum
+        )
 
         chunk1 = b"first chunk"
         response = _mock_response(status=http.client.PARTIAL_CONTENT, chunks=[chunk1])

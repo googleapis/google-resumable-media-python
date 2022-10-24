@@ -115,12 +115,16 @@ class TestDownload(object):
         )
 
     @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
-    def test__write_to_stream_no_checksum_validation_for_partial_response(self, checksum):
+    def test__write_to_stream_no_checksum_validation_for_partial_response(
+        self, checksum
+    ):
         stream = io.BytesIO()
         download = download_mod.Download(EXAMPLE_URL, stream=stream, checksum=checksum)
 
         chunk1 = b"first chunk"
-        response = _mock_response(status_code=http.client.PARTIAL_CONTENT, chunks=[chunk1])
+        response = _mock_response(
+            status_code=http.client.PARTIAL_CONTENT, chunks=[chunk1]
+        )
 
         # Make sure that the checksum is not validated.
         with mock.patch(
