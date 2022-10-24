@@ -15,6 +15,7 @@
 """Support for downloading media from Google APIs."""
 
 import urllib3.response  # type: ignore
+import http
 
 from google._async_resumable_media import _download
 from google._async_resumable_media import _helpers
