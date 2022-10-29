@@ -118,7 +118,7 @@ class TestDownload(object):
             "google.resumable_media._helpers.prepare_checksum_digest",
             return_value=None,
         ) as prepare_checksum_digest:
-            ret_val = await download._write_to_stream(response)
+            await download._write_to_stream(response)
             assert not prepare_checksum_digest.called
 
         assert not download.finished
