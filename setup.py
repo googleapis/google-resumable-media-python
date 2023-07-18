@@ -25,13 +25,12 @@ with open(os.path.join(PACKAGE_ROOT, 'README.rst')) as file_obj:
 
 REQUIREMENTS = [
     'google-crc32c >= 1.0, < 2.0dev',
-    'google-auth >= 1.22.0, < 2.0dev',
 ]
 EXTRAS_REQUIRE = {
     'requests': [
         'requests >= 2.18.0, < 3.0.0dev',
     ],
-    'aiohttp': 'aiohttp >= 3.6.2, < 4.0.0dev'
+    'aiohttp': ['aiohttp >= 3.6.2, < 4.0.0dev', 'google-auth >= 1.22.0, < 2.0dev']
 }
 
 setuptools.setup(
