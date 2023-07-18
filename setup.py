@@ -43,7 +43,7 @@ setuptools.setup(
     scripts=[],
     url='https://github.com/googleapis/google-resumable-media-python',
     packages=setuptools.find_namespace_packages(
-        exclude=("tests*")
+        exclude=("tests*", "docs*")
     ),
     license='Apache 2.0',
     platforms='Posix; MacOS X; Windows',
