@@ -72,6 +72,7 @@ _MPU_INITIATE_QUERY = "?uploads"
 _MPU_PART_QUERY_TEMPLATE = "?partNumber={part}&uploadId={upload_id}"
 _S3_COMPAT_XML_NAMESPACE = "{http://s3.amazonaws.com/doc/2006-03-01/}"
 _UPLOAD_ID_NODE = "UploadId"
+_FINAL_QUERY_TEMPLATE = "?uploadId={upload_id}"
 
 class UploadBase(object):
     """Base class for upload helpers.
@@ -961,7 +962,7 @@ class XMLMPUContainer(UploadBase):
         """
         _helpers.require_status_code(
             response,
-            (http.client.OK, http.client.CREATED),
+            (http.client.OK,),
             self._get_status_code
         )
         root = ElementTree.fromstring(response.text)
@@ -994,7 +995,9 @@ class XMLMPUContainer(UploadBase):
         raise NotImplementedError("This implementation is virtual.")
 
     def _prepare_finalize_request(self):
-        _FINAL_QUERY_TEMPLATE = "?uploadId={upload_id}"
+        if self.upload_id is None:
+            raise ValueError("This upload has not yet been initiated.")
+
         final_query = _FINAL_QUERY_TEMPLATE.format(upload_id=self._upload_id)
         finalize_url = self.upload_url + final_query # fixme urlparse?
         final_xml_root = ElementTree.Element("CompleteMultipartUpload")
@@ -1066,7 +1069,6 @@ class XMLMPUPart(UploadBase):
         self._part_number = part_number
         self._etag = None
         self._checksum_type = checksum
-        self._actual_checksum = None
         self._checksum_object = None
 
     @property
@@ -1130,7 +1132,6 @@ class XMLMPUPart(UploadBase):
         self._checksum_object = _helpers._get_checksum_object(self._checksum_type)
         if self._checksum_object is not None:
             self._checksum_object.update(payload)
-            self._actual_checksum = _helpers.prepare_checksum_digest(self._checksum_object.digest())
 
         part_query = _MPU_PART_QUERY_TEMPLATE.format(part=self._part_number, upload_id=self._upload_id)
         upload_url = self.upload_url + part_query
@@ -1204,6 +1205,7 @@ class XMLMPUPart(UploadBase):
         remote_checksum = _helpers._get_uploaded_checksum_from_headers(response, self._get_headers, self._checksum_type)
 
         if remote_checksum is None:
+            metadata_key = _helpers._get_metadata_key(self._checksum_type)
             raise common.InvalidResponse(
                 response,
                 _UPLOAD_METADATA_NO_APPROPRIATE_CHECKSUM_MESSAGE.format(metadata_key),
