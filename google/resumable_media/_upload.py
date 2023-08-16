@@ -74,6 +74,7 @@ _S3_COMPAT_XML_NAMESPACE = "{http://s3.amazonaws.com/doc/2006-03-01/}"
 _UPLOAD_ID_NODE = "UploadId"
 _FINAL_QUERY_TEMPLATE = "?uploadId={upload_id}"
 
+
 class UploadBase(object):
     """Base class for upload helpers.
 
@@ -911,7 +912,12 @@ class XMLMPUContainer(UploadBase):
     def upload_id(self):
         return self._upload_id
 
-    def _prepare_initiate_request(self, content_type): # FIXME: figure out metadata in headers or add custom headers
+    def register_part(self, part_number, etag):
+        self._parts[part_number] = etag
+
+    def _prepare_initiate_request(
+        self, content_type
+    ):  # FIXME: figure out metadata in headers or add custom headers
         """Prepare the contents of HTTP request to initiate upload.
 
         This is everything that must be done before a request that doesn't
@@ -940,7 +946,9 @@ class XMLMPUContainer(UploadBase):
 
         self._content_type = content_type
 
-        initiate_url = self.upload_url + _MPU_INITIATE_QUERY # FIXME: consider switch to urlparse
+        initiate_url = (
+            self.upload_url + _MPU_INITIATE_QUERY
+        )  # FIXME: consider switch to urlparse
 
         return _POST, initiate_url, None, self._headers
 
@@ -960,11 +968,7 @@ class XMLMPUContainer(UploadBase):
 
         .. _sans-I/O: https://sans-io.readthedocs.io/
         """
-        _helpers.require_status_code(
-            response,
-            (http.client.OK,),
-            self._get_status_code
-        )
+        _helpers.require_status_code(response, (http.client.OK,), self._get_status_code)
         root = ElementTree.fromstring(response.text)
         self._upload_id = root.find(_S3_COMPAT_XML_NAMESPACE + _UPLOAD_ID_NODE).text
 
@@ -999,21 +1003,18 @@ class XMLMPUContainer(UploadBase):
             raise ValueError("This upload has not yet been initiated.")
 
         final_query = _FINAL_QUERY_TEMPLATE.format(upload_id=self._upload_id)
-        finalize_url = self.upload_url + final_query # fixme urlparse?
+        finalize_url = self.upload_url + final_query  # fixme urlparse?
         final_xml_root = ElementTree.Element("CompleteMultipartUpload")
         for part_number, etag in self._parts.items():
-            part = ElementTree.SubElement(final_xml_root, "Part") # put in a loop
+            part = ElementTree.SubElement(final_xml_root, "Part")  # put in a loop
             ElementTree.SubElement(part, "PartNumber").text = str(part_number)
             ElementTree.SubElement(part, "ETag").text = etag
         payload = ElementTree.tostring(final_xml_root)
         return _POST, finalize_url, payload, self._headers
 
     def _process_finalize_response(self, response):
-        _helpers.require_status_code(
-            response,
-            (http.client.OK,),
-            self._get_status_code
-        )
+        _helpers.require_status_code(response, (http.client.OK,), self._get_status_code)
+        self._finished = True
 
     def finalize(
         self,
@@ -1060,7 +1061,17 @@ class XMLMPUPart(UploadBase):
         # FIXME
     """
 
-    def __init__(self, upload_url, upload_id, filename, start, end, part_number, headers=None, checksum=None):
+    def __init__(
+        self,
+        upload_url,
+        upload_id,
+        filename,
+        start,
+        end,
+        part_number,
+        headers=None,
+        checksum=None,
+    ):
         super().__init__(upload_url, headers=headers)
         self._filename = filename
         self._start = start
@@ -1095,7 +1106,6 @@ class XMLMPUPart(UploadBase):
     def end(self):
         return self._end
 
-
     def _prepare_upload_request(self):
         """Prepare the contents of HTTP request to upload a part.
 
@@ -1125,7 +1135,7 @@ class XMLMPUPart(UploadBase):
         if self.finished:
             raise ValueError("This part has already been uploaded.")
 
-        with open(self._filename, 'br') as f:
+        with open(self._filename, "br") as f:
             f.seek(self._start)
             payload = f.read(self._end - self._start)
 
@@ -1133,7 +1143,9 @@ class XMLMPUPart(UploadBase):
         if self._checksum_object is not None:
             self._checksum_object.update(payload)
 
-        part_query = _MPU_PART_QUERY_TEMPLATE.format(part=self._part_number, upload_id=self._upload_id)
+        part_query = _MPU_PART_QUERY_TEMPLATE.format(
+            part=self._part_number, upload_id=self._upload_id
+        )
         upload_url = self.upload_url + part_query
         return _PUT, upload_url, payload, self._headers
 
@@ -1154,7 +1166,7 @@ class XMLMPUPart(UploadBase):
 
         .. _sans-I/O: https://sans-io.readthedocs.io/
         """
-        status_code = _helpers.require_status_code(
+        _helpers.require_status_code(
             response,
             (http.client.OK,),
             self._get_status_code,
@@ -1162,8 +1174,9 @@ class XMLMPUPart(UploadBase):
 
         self._validate_checksum(response)
 
-        etag = _helpers.header_required(response, 'etag', self._get_headers)
+        etag = _helpers.header_required(response, "etag", self._get_headers)
         self._etag = etag
+        self._finished = True
 
     def upload(
         self,
@@ -1202,7 +1215,9 @@ class XMLMPUPart(UploadBase):
         if self._checksum_type is None:
             return
 
-        remote_checksum = _helpers._get_uploaded_checksum_from_headers(response, self._get_headers, self._checksum_type)
+        remote_checksum = _helpers._get_uploaded_checksum_from_headers(
+            response, self._get_headers, self._checksum_type
+        )
 
         if remote_checksum is None:
             metadata_key = _helpers._get_metadata_key(self._checksum_type)

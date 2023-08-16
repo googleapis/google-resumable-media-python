@@ -556,6 +556,7 @@ class ResumableUpload(_request_helpers.RequestsMixin, _upload.ResumableUpload):
             retriable_request, self._get_status_code, self._retry_strategy
         )
 
+
 class XMLMPUContainer(_request_helpers.RequestsMixin, _upload.XMLMPUContainer):
     """Initiate and close an upload using the XML MPU API.
 
@@ -597,7 +598,7 @@ class XMLMPUContainer(_request_helpers.RequestsMixin, _upload.XMLMPUContainer):
             _request_helpers._DEFAULT_READ_TIMEOUT,
         ),
     ):
-        
+
         method, url, payload, headers = self._prepare_initiate_request(
             content_type,
         )
@@ -636,6 +637,7 @@ class XMLMPUContainer(_request_helpers.RequestsMixin, _upload.XMLMPUContainer):
         return _request_helpers.wait_and_retry(
             retriable_request, self._get_status_code, self._retry_strategy
         )
+
 
 class XMLMPUPart(_request_helpers.RequestsMixin, _upload.XMLMPUPart):
     def upload(
