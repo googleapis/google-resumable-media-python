@@ -620,7 +620,10 @@ class XMLMPUContainer(_request_helpers.RequestsMixin, _upload.XMLMPUContainer):
     def finalize(
         self,
         transport,
-        timeout=None,
+        timeout=(
+            _request_helpers._DEFAULT_CONNECT_TIMEOUT,
+            _request_helpers._DEFAULT_READ_TIMEOUT,
+        ),
     ):
         method, url, payload, headers = self._prepare_finalize_request()
 
@@ -643,7 +646,10 @@ class XMLMPUPart(_request_helpers.RequestsMixin, _upload.XMLMPUPart):
     def upload(
         self,
         transport,
-        timeout=None,
+        timeout=(
+            _request_helpers._DEFAULT_CONNECT_TIMEOUT,
+            _request_helpers._DEFAULT_READ_TIMEOUT,
+        ),
     ):
         """Upload the part.
 

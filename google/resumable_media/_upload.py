@@ -72,7 +72,7 @@ _MPU_INITIATE_QUERY = "?uploads"
 _MPU_PART_QUERY_TEMPLATE = "?partNumber={part}&uploadId={upload_id}"
 _S3_COMPAT_XML_NAMESPACE = "{http://s3.amazonaws.com/doc/2006-03-01/}"
 _UPLOAD_ID_NODE = "UploadId"
-_FINAL_QUERY_TEMPLATE = "?uploadId={upload_id}"
+_MPU_FINAL_QUERY_TEMPLATE = "?uploadId={upload_id}"
 
 
 class UploadBase(object):
@@ -1002,7 +1002,7 @@ class XMLMPUContainer(UploadBase):
         if self.upload_id is None:
             raise ValueError("This upload has not yet been initiated.")
 
-        final_query = _FINAL_QUERY_TEMPLATE.format(upload_id=self._upload_id)
+        final_query = _MPU_FINAL_QUERY_TEMPLATE.format(upload_id=self._upload_id)
         finalize_url = self.upload_url + final_query  # fixme urlparse?
         final_xml_root = ElementTree.Element("CompleteMultipartUpload")
         for part_number, etag in self._parts.items():
@@ -1049,7 +1049,8 @@ class XMLMPUPart(UploadBase):
 
     In order to avoid concurrency issues with the container object, the
     uploading of individual parts is handled separately by multiple objects
-    of this class.
+    of this class. Once a part is uploaded, it can be registered with the
+    container with `container.register_part(part.part_number, part.etag)`.
 
     MPUs are sometimes referred to as "Multipart Uploads", which is ambiguous
     given the JSON multipart upload, so the abbreviation "MPU" will be used
@@ -1058,7 +1059,18 @@ class XMLMPUPart(UploadBase):
     See: https://cloud.google.com/storage/docs/multipart-uploads
 
     Args:
-        # FIXME
+            transport (object): An object which can make authenticated
+                requests.
+            content_type (str): The content type of the resource, e.g. a JPEG
+                image has content type ``image/jpeg``.
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
+
     """
 
     def __init__(
@@ -1128,7 +1140,6 @@ class XMLMPUPart(UploadBase):
 
         Raises:
             ValueError: If the current upload has finished.
-            ValueError: If the current upload has not been initiated.
 
         .. _sans-I/O: https://sans-io.readthedocs.io/
         """

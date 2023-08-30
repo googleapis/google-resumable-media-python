@@ -496,13 +496,10 @@ class Test__add_query_parameters(object):
 def test__get_uploaded_checksum_from_headers_error_handling():
     response = _mock_response({})
 
-    def _get_headers(response):
-        return response.headers
-
     with pytest.raises(ValueError):
-        _helpers._get_uploaded_checksum_from_headers(response, _get_headers, "invalid")
+        _helpers._get_uploaded_checksum_from_headers(response, lambda r: r.headers, "invalid")
     assert (
-        _helpers._get_uploaded_checksum_from_headers(response, _get_headers, None)
+        _helpers._get_uploaded_checksum_from_headers(response, lambda r: r.headers, None)
         is None
     )
 

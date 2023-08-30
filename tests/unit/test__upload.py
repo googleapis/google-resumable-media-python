@@ -1379,7 +1379,11 @@ def test_xml_mpu_part(filename):
     part._process_upload_response(response)
     assert part.etag == ETAG
 
-    # Test _validate_checksum invalid response
+def test_xml_mpu_part_invalid_response(filename):
+    PART_NUMBER = 1
+    START = 0
+    END = 256
+
     part = _upload.XMLMPUPart(
         EXAMPLE_XML_UPLOAD_URL,
         UPLOAD_ID,
@@ -1395,7 +1399,11 @@ def test_xml_mpu_part(filename):
     with pytest.raises(common.InvalidResponse):
         part._process_upload_response(response)
 
-    # Test _validate_checksum data corruption
+def test_xml_mpu_part_checksum_failure(filename):
+    PART_NUMBER = 1
+    START = 0
+    END = 256
+
     part = _upload.XMLMPUPart(
         EXAMPLE_XML_UPLOAD_URL,
         UPLOAD_ID,
@@ -1414,7 +1422,11 @@ def test_xml_mpu_part(filename):
     with pytest.raises(common.DataCorruption):
         part._process_upload_response(response)
 
-    # Test _validate_checksum success
+def test_xml_mpu_part_checksum_success(filename):
+    PART_NUMBER = 1
+    START = 0
+    END = 256
+
     part = _upload.XMLMPUPart(
         EXAMPLE_XML_UPLOAD_URL,
         UPLOAD_ID,
@@ -1429,7 +1441,7 @@ def test_xml_mpu_part(filename):
     part._prepare_upload_request()
     response = _make_xml_response(
         headers={"etag": ETAG, "x-goog-hash": "md5=pOUFGnohRRFFd24NztFuFw=="}
-    )  # Example md5 checksum but not the correct one
+    )
     part._process_upload_response(response)
     assert part.etag == ETAG
     assert part.finished
