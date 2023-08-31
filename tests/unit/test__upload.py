@@ -1287,7 +1287,7 @@ def test_xml_mpu_container_initiate(filename):
     assert verb == _upload._POST
     assert url == EXAMPLE_XML_UPLOAD_URL + _upload._MPU_INITIATE_QUERY
     assert not body
-    assert headers == EXAMPLE_HEADERS
+    assert headers == {**EXAMPLE_HEADERS, "content-type": BASIC_CONTENT}
 
     _fix_up_virtual(container)
     response = _make_xml_response(
