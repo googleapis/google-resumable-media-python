@@ -15,7 +15,7 @@
 import http.client
 import io
 import json
-import pytest
+import pytest  # type: ignore
 import tempfile
 from unittest import mock
 
