@@ -1314,7 +1314,7 @@ def test_xml_mpu_container_finalize(filename):
     )
     verb, url, body, headers = container._prepare_finalize_request()
     assert verb == _upload._POST
-    final_query = _upload._FINAL_QUERY_TEMPLATE.format(upload_id=UPLOAD_ID)
+    final_query = _upload._MPU_FINAL_QUERY_TEMPLATE.format(upload_id=UPLOAD_ID)
     assert url == EXAMPLE_XML_UPLOAD_URL + final_query
     assert headers == EXAMPLE_HEADERS
     assert b"CompleteMultipartUpload" in body
@@ -1335,6 +1335,8 @@ def test_xml_mpu_part(filename):
     PART_NUMBER = 1
     START = 0
     END = 256
+    ETAG = PARTS[1]
+
     part = _upload.XMLMPUPart(
         EXAMPLE_XML_UPLOAD_URL,
         UPLOAD_ID,
@@ -1374,7 +1376,6 @@ def test_xml_mpu_part(filename):
     assert payload == FILE_DATA[START:END]
 
     _fix_up_virtual(part)
-    ETAG = PARTS[1]
     response = _make_xml_response(headers={"etag": ETAG})
     part._process_upload_response(response)
     assert part.etag == ETAG
@@ -1383,6 +1384,7 @@ def test_xml_mpu_part_invalid_response(filename):
     PART_NUMBER = 1
     START = 0
     END = 256
+    ETAG = PARTS[1]
 
     part = _upload.XMLMPUPart(
         EXAMPLE_XML_UPLOAD_URL,
@@ -1403,6 +1405,7 @@ def test_xml_mpu_part_checksum_failure(filename):
     PART_NUMBER = 1
     START = 0
     END = 256
+    ETAG = PARTS[1]
 
     part = _upload.XMLMPUPart(
         EXAMPLE_XML_UPLOAD_URL,
@@ -1426,6 +1429,7 @@ def test_xml_mpu_part_checksum_success(filename):
     PART_NUMBER = 1
     START = 0
     END = 256
+    ETAG = PARTS[1]
 
     part = _upload.XMLMPUPart(
         EXAMPLE_XML_UPLOAD_URL,
