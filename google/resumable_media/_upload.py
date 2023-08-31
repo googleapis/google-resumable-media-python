@@ -899,6 +899,8 @@ class XMLMPUContainer(UploadBase):
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
+        upload_id (Optional(int)): The ID of the upload from the initialization
+            response.
     """
 
     def __init__(self, upload_url, filename, headers=None, upload_id=None, parts=None):
@@ -913,11 +915,27 @@ class XMLMPUContainer(UploadBase):
         return self._upload_id
 
     def register_part(self, part_number, etag):
+        """Register an uploaded part by part number and corresponding etag.
+
+        XMLMPUPart objects represent individual parts, and their part number
+        and etag can be registered to the container object with this method
+        and therefore incorporated in the finalize() call to finish the upload.
+
+        This method accepts part_number and etag, but not XMLMPUPart objects
+        themselves, to reduce the complexity involved in running XMLMPUPart
+        uploads in separate processes.
+
+        Args:
+            part_number (int): The part number. Parts are assembled into the
+                final uploaded object with finalize() in order of their part
+                numbers.
+            etag (str): The etag included in the server response after upload.
+        """
         self._parts[part_number] = etag
 
     def _prepare_initiate_request(
         self, content_type
-    ):  # FIXME: figure out metadata in headers or add custom headers
+    ):
         """Prepare the contents of HTTP request to initiate upload.
 
         This is everything that must be done before a request that doesn't
@@ -948,12 +966,12 @@ class XMLMPUContainer(UploadBase):
 
         initiate_url = (
             self.upload_url + _MPU_INITIATE_QUERY
-        )  # FIXME: consider switch to urlparse
+        )
 
         return _POST, initiate_url, None, self._headers
 
     def _process_initiate_response(self, response):
-        """Process the response from an HTTP request that initiated upload.
+        """Process the response from an HTTP request that initiated the upload.
 
         This is everything that must be done after a request that doesn't
         require network I/O (or other I/O). This is based on the `sans-I/O`_
@@ -964,7 +982,11 @@ class XMLMPUContainer(UploadBase):
         parameter has been included, but we do not check.
 
         Args:
-            response (object): The HTTP response object (need headers).
+            response (object): The HTTP response object.
+
+        Raises:
+            ~google.resumable_media.common.InvalidResponse: If the status
+                code is not 200.
 
         .. _sans-I/O: https://sans-io.readthedocs.io/
         """
@@ -999,6 +1021,21 @@ class XMLMPUContainer(UploadBase):
         raise NotImplementedError("This implementation is virtual.")
 
     def _prepare_finalize_request(self):
+        """Prepare the contents of an HTTP request to finalize the upload.
+        
+        All of the parts must be registered before calling this method.
+
+        Returns:
+            Tuple[str, str, bytes, Mapping[str, str]]: The quadruple
+
+              * HTTP verb for the request (always POST)
+              * the URL for the request
+              * the body of the request
+              * headers for the request
+
+        Raises:
+            ValueError: If the upload has not been initiated.
+        """
         if self.upload_id is None:
             raise ValueError("This upload has not yet been initiated.")
 
@@ -1013,6 +1050,22 @@ class XMLMPUContainer(UploadBase):
         return _POST, finalize_url, payload, self._headers
 
     def _process_finalize_response(self, response):
+        """Process the response from an HTTP request that finalized the upload.
+
+        This is everything that must be done after a request that doesn't
+        require network I/O (or other I/O). This is based on the `sans-I/O`_
+        philosophy.
+
+        Args:
+            response (object): The HTTP response object.
+
+        Raises:
+            ~google.resumable_media.common.InvalidResponse: If the status
+                code is not 200.
+
+        .. _sans-I/O: https://sans-io.readthedocs.io/
+        """
+
         _helpers.require_status_code(response, (http.client.OK,), self._get_status_code)
         self._finished = True
 
@@ -1169,7 +1222,6 @@ class XMLMPUPart(UploadBase):
 
         Args:
             response (object): The HTTP response object.
-            part_number (int): The (1-indexed) number of the part.
 
         Raises:
             ~google.resumable_media.common.InvalidResponse: If the status

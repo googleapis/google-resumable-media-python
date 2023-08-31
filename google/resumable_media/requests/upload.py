@@ -587,6 +587,8 @@ class XMLMPUContainer(_request_helpers.RequestsMixin, _upload.XMLMPUContainer):
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
+        upload_id (Optional(int)): The ID of the upload from the initialization
+            response.
     """
 
     def initiate(
@@ -598,6 +600,24 @@ class XMLMPUContainer(_request_helpers.RequestsMixin, _upload.XMLMPUContainer):
             _request_helpers._DEFAULT_READ_TIMEOUT,
         ),
     ):
+        """Initiate an MPU and record the upload ID.
+
+        Args:
+            transport (object): An object which can make authenticated
+                requests.
+            content_type (str): The content type of the resource, e.g. a JPEG
+                image has content type ``image/jpeg``.
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
+
+        Returns:
+            ~requests.Response: The HTTP response returned by ``transport``.
+        """
 
         method, url, payload, headers = self._prepare_initiate_request(
             content_type,
@@ -625,6 +645,22 @@ class XMLMPUContainer(_request_helpers.RequestsMixin, _upload.XMLMPUContainer):
             _request_helpers._DEFAULT_READ_TIMEOUT,
         ),
     ):
+        """Finalize an MPU request with all the parts.
+
+        Args:
+            transport (object): An object which can make authenticated
+                requests.
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
+
+        Returns:
+            ~requests.Response: The HTTP response returned by ``transport``.
+        """
         method, url, payload, headers = self._prepare_finalize_request()
 
         # Wrap the request business logic in a function to be retried.
@@ -663,6 +699,9 @@ class XMLMPUPart(_request_helpers.RequestsMixin, _upload.XMLMPUPart):
 
                 Can also be passed as a tuple (connect_timeout, read_timeout).
                 See :meth:`requests.Session.request` documentation for details.
+
+        Returns:
+            ~requests.Response: The HTTP response returned by ``transport``.
         """
         method, url, payload, headers = self._prepare_upload_request()
 
