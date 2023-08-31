@@ -247,7 +247,7 @@ class MultipartUpload(UploadBase):
         upload_url (str): The URL where the content will be uploaded.
         headers (Optional[Mapping[str, str]]): Extra headers that should
             be sent with the request, e.g. headers for encrypted data.
-        checksum Optional([str]): The type of checksum to compute to verify
+        checksum (Optional([str])): The type of checksum to compute to verify
             the integrity of the object. The request metadata will be amended
             to include the computed value. Using this option will override a
             manually-set checksum value. Supported values are "md5", "crc32c"
@@ -352,10 +352,8 @@ class ResumableUpload(UploadBase):
         upload_url (str): The URL where the resumable upload will be initiated.
         chunk_size (int): The size of each chunk used to upload the resource.
         headers (Optional[Mapping[str, str]]): Extra headers that should
-            be sent with the :meth:`initiate` request, e.g. headers for
-            encrypted data. These **will not** be sent with
-            :meth:`transmit_next_chunk` or :meth:`recover` requests.
-        checksum Optional([str]): The type of checksum to compute to verify
+            be sent with every request.
+        checksum (Optional([str])): The type of checksum to compute to verify
             the integrity of the object. After the upload is complete, the
             server-computed checksum of the resulting object will be read
             and google.resumable_media.common.DataCorruption will be raised on
@@ -893,21 +891,19 @@ class XMLMPUContainer(UploadBase):
         upload_url (str): The URL of the object (without query parameters). The
             initiate, PUT, and finalization requests will all use this URL, with
             varying query parameters.
+        filename (str): The name (path) of the file to upload.
         headers (Optional[Mapping[str, str]]): Extra headers that should
-            be sent with the :meth:`initiate` request, e.g. headers for
-            encrypted data. These headers will be propagated to individual
-            XMLMPUPart objects spawned from this container as well.
+            be sent with every request.
 
     Attributes:
         upload_url (str): The URL where the content will be uploaded.
-        upload_id (Optional(int)): The ID of the upload from the initialization
+        upload_id (Optional(str)): The ID of the upload from the initialization
             response.
     """
 
     def __init__(self, upload_url, filename, headers=None, upload_id=None):
         super().__init__(upload_url, headers=headers)
         self._filename = filename
-        self._content_type = None
         self._upload_id = upload_id
         self._parts = {}
 
@@ -961,11 +957,13 @@ class XMLMPUContainer(UploadBase):
         if self.upload_id is not None:
             raise ValueError("This upload has already been initiated.")
 
-        self._content_type = content_type
-
         initiate_url = self.upload_url + _MPU_INITIATE_QUERY
 
-        return _POST, initiate_url, None, self._headers
+        headers = {
+            **self._headers,
+            _CONTENT_TYPE_HEADER: content_type,
+        }
+        return _POST, initiate_url, None, headers
 
     def _process_initiate_response(self, response):
         """Process the response from an HTTP request that initiated the upload.
@@ -1176,18 +1174,29 @@ class XMLMPUPart(UploadBase):
     See: https://cloud.google.com/storage/docs/multipart-uploads
 
     Args:
-            transport (object): An object which can make authenticated
-                requests.
-            content_type (str): The content type of the resource, e.g. a JPEG
-                image has content type ``image/jpeg``.
-            timeout (Optional[Union[float, Tuple[float, float]]]):
-                The number of seconds to wait for the server response.
-                Depending on the retry strategy, a request may be repeated
-                several times using the same timeout each time.
+        upload_url (str): The URL of the object (without query parameters).
+        upload_id (str): The ID of the upload from the initialization response.
+        filename (str): The name (path) of the file to upload.
+        start (int): The byte index of the beginning of the part.
+        end (int): The byte index of the end of the part.
+        part_number (int): The part number. Part numbers will be assembled in
+            sequential order when the container is finalized.
+        headers (Optional[Mapping[str, str]]): Extra headers that should
+            be sent with every request.
+        checksum (Optional([str])): The type of checksum to compute to verify
+            the integrity of the object. The request headers will be amended
+            to include the computed value. Supported values are "md5", "crc32c"
+            and None. The default is None.
 
-                Can also be passed as a tuple (connect_timeout, read_timeout).
-                See :meth:`requests.Session.request` documentation for details.
-
+    Attributes:
+        upload_url (str): The URL of the object (without query parameters).
+        upload_id (str): The ID of the upload from the initialization response.
+        filename (str): The name (path) of the file to upload.
+        start (int): The byte index of the beginning of the part.
+        end (int): The byte index of the end of the part.
+        part_number (int): The part number. Part numbers will be assembled in
+            sequential order when the container is finalized.
+        etag (Optional(str)): The etag returned by the service after upload.
     """
 
     def __init__(
