@@ -498,10 +498,7 @@ def test__get_uploaded_checksum_from_headers_error_handling():
 
     with pytest.raises(ValueError):
         _helpers._get_uploaded_checksum_from_headers(response, None, "invalid")
-    assert (
-        _helpers._get_uploaded_checksum_from_headers(response, None, None)
-        is None
-    )
+    assert _helpers._get_uploaded_checksum_from_headers(response, None, None) is None
 
 
 def _mock_response(headers):
