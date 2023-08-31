@@ -1380,6 +1380,7 @@ def test_xml_mpu_part(filename):
     part._process_upload_response(response)
     assert part.etag == ETAG
 
+
 def test_xml_mpu_part_invalid_response(filename):
     PART_NUMBER = 1
     START = 0
@@ -1400,6 +1401,7 @@ def test_xml_mpu_part_invalid_response(filename):
     response = _make_xml_response(headers={"etag": ETAG})
     with pytest.raises(common.InvalidResponse):
         part._process_upload_response(response)
+
 
 def test_xml_mpu_part_checksum_failure(filename):
     PART_NUMBER = 1
@@ -1424,6 +1426,7 @@ def test_xml_mpu_part_checksum_failure(filename):
     )  # Example md5 checksum but not the correct one
     with pytest.raises(common.DataCorruption):
         part._process_upload_response(response)
+
 
 def test_xml_mpu_part_checksum_success(filename):
     PART_NUMBER = 1
