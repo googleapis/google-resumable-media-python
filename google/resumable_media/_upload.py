@@ -56,6 +56,7 @@ _STREAM_READ_PAST_TEMPLATE = (
     "{:d} bytes have been read from the stream, which exceeds "
     "the expected total {:d}."
 )
+_DELETE = "DELETE"
 _POST = "POST"
 _PUT = "PUT"
 _UPLOAD_CHECKSUM_MISMATCH_MESSAGE = (
@@ -903,12 +904,12 @@ class XMLMPUContainer(UploadBase):
             response.
     """
 
-    def __init__(self, upload_url, filename, headers=None, upload_id=None, parts=None):
+    def __init__(self, upload_url, filename, headers=None, upload_id=None):
         super().__init__(upload_url, headers=headers)
         self._filename = filename
         self._content_type = None
         self._upload_id = upload_id
-        self._parts = parts if parts is not None else {}
+        self._parts = {}
 
     @property
     def upload_id(self):
@@ -1036,7 +1037,7 @@ class XMLMPUContainer(UploadBase):
             raise ValueError("This upload has not yet been initiated.")
 
         final_query = _MPU_FINAL_QUERY_TEMPLATE.format(upload_id=self._upload_id)
-        finalize_url = self.upload_url + final_query  # fixme urlparse?
+        finalize_url = self.upload_url + final_query
         final_xml_root = ElementTree.Element("CompleteMultipartUpload")
         for part_number, etag in self._parts.items():
             part = ElementTree.SubElement(final_xml_root, "Part")  # put in a loop
@@ -1071,6 +1072,73 @@ class XMLMPUContainer(UploadBase):
         timeout=None,
     ):
         """Finalize an MPU request with all the parts.
+
+        Args:
+            transport (object): An object which can make authenticated
+                requests.
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
+
+        Raises:
+            NotImplementedError: Always, since virtual.
+        """
+        raise NotImplementedError("This implementation is virtual.")
+
+    def _prepare_cancel_request(self):
+        """Prepare the contents of an HTTP request to cancel the upload.
+
+        Returns:
+            Tuple[str, str, bytes, Mapping[str, str]]: The quadruple
+
+              * HTTP verb for the request (always POST)
+              * the URL for the request
+              * the body of the request
+              * headers for the request
+
+        Raises:
+            ValueError: If the upload has not been initiated.
+        """
+        if self.upload_id is None:
+            raise ValueError("This upload has not yet been initiated.")
+
+        cancel_query = _MPU_FINAL_QUERY_TEMPLATE.format(upload_id=self._upload_id)
+        cancel_url = self.upload_url + cancel_query
+        return _DELETE, cancel_url, None, self._headers
+
+    def _process_cancel_response(self, response):
+        """Process the response from an HTTP request that canceled the upload.
+
+        This is everything that must be done after a request that doesn't
+        require network I/O (or other I/O). This is based on the `sans-I/O`_
+        philosophy.
+
+        Args:
+            response (object): The HTTP response object.
+
+        Raises:
+            ~google.resumable_media.common.InvalidResponse: If the status
+                code is not 204.
+
+        .. _sans-I/O: https://sans-io.readthedocs.io/
+        """
+
+        _helpers.require_status_code(
+            response, (http.client.NO_CONTENT,), self._get_status_code
+        )
+
+    def cancel(
+        self,
+        transport,
+        timeout=None,
+    ):
+        """Cancel an MPU request and permanently delete any uploaded parts.
+
+        This cannot be undone.
 
         Args:
             transport (object): An object which can make authenticated

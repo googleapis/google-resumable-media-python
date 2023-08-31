@@ -368,8 +368,20 @@ def test_mpu_container():
 
     assert container._parts == PARTS
 
+    transport = mock.Mock(spec=["request"])
+    transport.request.return_value = _make_response()
     container.finalize(transport)
     assert container.finished
+
+
+def test_mpu_container_cancel():
+    container = upload_mod.XMLMPUContainer(
+        EXAMPLE_XML_UPLOAD_URL, filename, upload_id=UPLOAD_ID
+    )
+
+    transport = mock.Mock(spec=["request"])
+    transport.request.return_value = _make_response(status_code=204)
+    container.cancel(transport)
 
 
 def test_mpu_part(filename):

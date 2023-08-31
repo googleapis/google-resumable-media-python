@@ -1264,8 +1264,8 @@ def test_xml_mpu_container_constructor_and_properties(filename):
         filename,
         headers=EXAMPLE_HEADERS,
         upload_id=UPLOAD_ID,
-        parts=PARTS,
     )
+    container._parts = PARTS
     assert container.upload_url == EXAMPLE_XML_UPLOAD_URL
     assert container.upload_id == UPLOAD_ID
     assert container._headers == EXAMPLE_HEADERS
@@ -1310,8 +1310,8 @@ def test_xml_mpu_container_finalize(filename):
         filename,
         headers=EXAMPLE_HEADERS,
         upload_id=UPLOAD_ID,
-        parts=PARTS,
     )
+    container._parts = PARTS
     verb, url, body, headers = container._prepare_finalize_request()
     assert verb == _upload._POST
     final_query = _upload._MPU_FINAL_QUERY_TEMPLATE.format(upload_id=UPLOAD_ID)
@@ -1329,6 +1329,33 @@ def test_xml_mpu_container_finalize(filename):
 
     with pytest.raises(NotImplementedError):
         container.finalize(None)
+
+
+def test_xml_mpu_container_cancel(filename):
+    container = _upload.XMLMPUContainer(EXAMPLE_XML_UPLOAD_URL, filename)
+    with pytest.raises(ValueError):
+        container._prepare_cancel_request()
+
+    container = _upload.XMLMPUContainer(
+        EXAMPLE_XML_UPLOAD_URL,
+        filename,
+        headers=EXAMPLE_HEADERS,
+        upload_id=UPLOAD_ID,
+    )
+    container._parts = PARTS
+    verb, url, body, headers = container._prepare_cancel_request()
+    assert verb == _upload._DELETE
+    final_query = _upload._MPU_FINAL_QUERY_TEMPLATE.format(upload_id=UPLOAD_ID)
+    assert url == EXAMPLE_XML_UPLOAD_URL + final_query
+    assert headers == EXAMPLE_HEADERS
+    assert not body
+
+    _fix_up_virtual(container)
+    response = _make_xml_response(status_code=204)
+    container._process_cancel_response(response)
+
+    with pytest.raises(NotImplementedError):
+        container.cancel(None)
 
 
 def test_xml_mpu_part(filename):

@@ -677,6 +677,48 @@ class XMLMPUContainer(_request_helpers.RequestsMixin, _upload.XMLMPUContainer):
             retriable_request, self._get_status_code, self._retry_strategy
         )
 
+    def cancel(
+        self,
+        transport,
+        timeout=(
+            _request_helpers._DEFAULT_CONNECT_TIMEOUT,
+            _request_helpers._DEFAULT_READ_TIMEOUT,
+        ),
+    ):
+        """Cancel an MPU request and permanently delete any uploaded parts.
+
+        This cannot be undone.
+
+        Args:
+            transport (object): An object which can make authenticated
+                requests.
+            timeout (Optional[Union[float, Tuple[float, float]]]):
+                The number of seconds to wait for the server response.
+                Depending on the retry strategy, a request may be repeated
+                several times using the same timeout each time.
+
+                Can also be passed as a tuple (connect_timeout, read_timeout).
+                See :meth:`requests.Session.request` documentation for details.
+
+        Returns:
+            ~requests.Response: The HTTP response returned by ``transport``.
+        """
+        method, url, payload, headers = self._prepare_cancel_request()
+
+        # Wrap the request business logic in a function to be retried.
+        def retriable_request():
+            result = transport.request(
+                method, url, data=payload, headers=headers, timeout=timeout
+            )
+
+            self._process_cancel_response(result)
+
+            return result
+
+        return _request_helpers.wait_and_retry(
+            retriable_request, self._get_status_code, self._retry_strategy
+        )
+
 
 class XMLMPUPart(_request_helpers.RequestsMixin, _upload.XMLMPUPart):
     def upload(

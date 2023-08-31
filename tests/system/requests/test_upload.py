@@ -741,3 +741,36 @@ def test_XMLMPU_with_bad_checksum(authorized_transport, bucket, checksum):
         utils.retry_transient_errors(authorized_transport.delete)(
             upload_url + "?uploadId=" + str(container.upload_id)
         )
+
+
+def test_XMLMPU_cancel(authorized_transport, bucket):
+    with open(ICO_FILE, "rb") as file_obj:
+        actual_contents = file_obj.read()
+
+    blob_name = os.path.basename(ICO_FILE)
+    check_does_not_exist(authorized_transport, blob_name)
+
+    # Create the actual upload object.
+    upload_url = utils.XML_UPLOAD_URL_TEMPLATE.format(bucket=bucket, blob=blob_name)
+    container = resumable_requests.XMLMPUContainer(upload_url, blob_name)
+    # Initiate
+    container.initiate(authorized_transport, ICO_CONTENT_TYPE)
+    assert container.upload_id
+
+    part = resumable_requests.XMLMPUPart(
+        upload_url,
+        container.upload_id,
+        ICO_FILE,
+        0,
+        len(actual_contents),
+        1,
+    )
+    part.upload(authorized_transport)
+    assert part.etag
+
+    container.register_part(1, part.etag)
+    container.cancel(authorized_transport)
+
+    # Validate the cancel worked by expecting a 404 on finalize.
+    with pytest.raises(resumable_media.InvalidResponse):
+        container.finalize(authorized_transport)
