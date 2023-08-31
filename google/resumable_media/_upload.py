@@ -933,9 +933,7 @@ class XMLMPUContainer(UploadBase):
         """
         self._parts[part_number] = etag
 
-    def _prepare_initiate_request(
-        self, content_type
-    ):
+    def _prepare_initiate_request(self, content_type):
         """Prepare the contents of HTTP request to initiate upload.
 
         This is everything that must be done before a request that doesn't
@@ -964,9 +962,7 @@ class XMLMPUContainer(UploadBase):
 
         self._content_type = content_type
 
-        initiate_url = (
-            self.upload_url + _MPU_INITIATE_QUERY
-        )
+        initiate_url = self.upload_url + _MPU_INITIATE_QUERY
 
         return _POST, initiate_url, None, self._headers
 
@@ -1022,7 +1018,7 @@ class XMLMPUContainer(UploadBase):
 
     def _prepare_finalize_request(self):
         """Prepare the contents of an HTTP request to finalize the upload.
-        
+
         All of the parts must be registered before calling this method.
 
         Returns:
