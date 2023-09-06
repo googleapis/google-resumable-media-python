@@ -1093,7 +1093,7 @@ class XMLMPUContainer(UploadBase):
         Returns:
             Tuple[str, str, bytes, Mapping[str, str]]: The quadruple
 
-              * HTTP verb for the request (always POST)
+              * HTTP verb for the request (always DELETE)
               * the URL for the request
               * the body of the request
               * headers for the request
