@@ -601,7 +601,8 @@ def _add_decoder(response_raw, checksum):
     if encoding == "gzip":
         response_raw._decoder = _GzipDecoder(checksum)
         return _helpers._DoNothingHash()
-    elif encoding == "br" and _BrotliDecoder:  # Only activate if brotli is installed
+    # Only activate if brotli is installed
+    elif encoding == "br" and _BrotliDecoder:  # type: ignore
         response_raw._decoder = _BrotliDecoder(checksum)
         return _helpers._DoNothingHash()
     else:
@@ -675,4 +676,4 @@ if hasattr(urllib3.response, "BrotliDecoder"):
             return self._decoder.flush()
 
 else:  # pragma: NO COVER
-    _BrotliDecoder = None  # pragma: NO COVER
+    _BrotliDecoder = None  # type: ignore # pragma: NO COVER
