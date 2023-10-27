@@ -584,7 +584,7 @@ def _add_decoder(response_raw, checksum):
     This is so that we can intercept the compressed bytes before they are
     decoded.
 
-    Only patches if the content encoding is ``gzip``.
+    Only patches if the content encoding is ``gzip`` or ``br``.
 
     Args:
         response_raw (urllib3.response.HTTPResponse): The raw response for
