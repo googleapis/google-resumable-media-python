@@ -44,6 +44,14 @@ Error writing to stream while handling a gzip-compressed file download.
 Please restart the download.
 """
 
+_RESPONSE_HEADERS_INFO = """\
+
+The X-Goog-Stored-Content-Length is {}. The X-Goog-Stored-Content-Encoding is {}.
+
+The download request read {} bytes of data.
+If the download was incomplete, please check the network connection and restart the download.
+"""
+
 
 class Download(_request_helpers.RequestsMixin, _download.Download):
     """Helper to manage downloading a resource from a Google API.
@@ -138,6 +146,13 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                     actual_checksum,
                     checksum_type=self.checksum.upper(),
                 )
+                headers = self._get_headers(response)
+                x_goog_encoding = headers.get("x-goog-stored-content-encoding")
+                x_goog_length = headers.get("x-goog-stored-content-length")
+                add_msg = _RESPONSE_HEADERS_INFO.format(
+                    x_goog_length, x_goog_encoding, self._bytes_downloaded
+                )
+                msg += add_msg
                 raise common.DataCorruption(response, msg)
 
     def consume(
@@ -327,6 +342,13 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
                     actual_checksum,
                     checksum_type=self.checksum.upper(),
                 )
+                headers = self._get_headers(response)
+                x_goog_encoding = headers.get("x-goog-stored-content-encoding")
+                x_goog_length = headers.get("x-goog-stored-content-length")
+                add_msg = _RESPONSE_HEADERS_INFO.format(
+                    x_goog_length, x_goog_encoding, self._bytes_downloaded
+                )
+                msg += add_msg
                 raise common.DataCorruption(response, msg)
 
     def consume(

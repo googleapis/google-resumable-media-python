@@ -105,7 +105,11 @@ class TestDownload(object):
         msg = download_mod._CHECKSUM_MISMATCH.format(
             EXAMPLE_URL, bad_checksum, good_checksum, checksum_type=checksum.upper()
         )
-        assert error.args[0] == msg
+        assert msg in error.args[0]
+        assert (
+            f"The download request read {download._bytes_downloaded} bytes of data."
+            in error.args[0]
+        )
 
         # Check mocks.
         response.__enter__.assert_called_once_with()
@@ -285,7 +289,11 @@ class TestDownload(object):
         msg = download_mod._CHECKSUM_MISMATCH.format(
             EXAMPLE_URL, bad_checksum, good_checksum, checksum_type=checksum.upper()
         )
-        assert error.args[0] == msg
+        assert msg in error.args[0]
+        assert (
+            f"The download request read {download._bytes_downloaded} bytes of data."
+            in error.args[0]
+        )
 
         # Check mocks.
         transport.request.assert_called_once_with(
@@ -544,7 +552,11 @@ class TestRawDownload(object):
         msg = download_mod._CHECKSUM_MISMATCH.format(
             EXAMPLE_URL, bad_checksum, good_checksum, checksum_type=checksum.upper()
         )
-        assert error.args[0] == msg
+        assert msg in error.args[0]
+        assert (
+            f"The download request read {download._bytes_downloaded} bytes of data."
+            in error.args[0]
+        )
 
         # Check mocks.
         response.__enter__.assert_called_once_with()
@@ -699,7 +711,11 @@ class TestRawDownload(object):
         msg = download_mod._CHECKSUM_MISMATCH.format(
             EXAMPLE_URL, bad_checksum, good_checksum, checksum_type=checksum.upper()
         )
-        assert error.args[0] == msg
+        assert msg in error.args[0]
+        assert (
+            f"The download request read {download._bytes_downloaded} bytes of data."
+            in error.args[0]
+        )
 
         # Check mocks.
         transport.request.assert_called_once_with(
