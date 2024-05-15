@@ -171,6 +171,25 @@ class TestDownload(object):
         error = exc_info.value
         assert error.args[0] == "checksum must be ``'md5'``, ``'crc32c'`` or ``None``"
 
+    def test__write_to_stream_incomplete_read(self):
+        stream = io.BytesIO()
+        download = download_mod.Download(EXAMPLE_URL, stream=stream)
+
+        chunk1 = b"first chunk"
+        mock_full_content_length = len(chunk1) + 123
+        headers = {"x-goog-stored-content-length": mock_full_content_length}
+        response = _mock_response(chunks=[chunk1], headers=headers)
+
+        with pytest.raises(ConnectionError) as exc_info:
+            download._write_to_stream(response)
+
+        assert not download.finished
+        error = exc_info.value
+        assert (
+            f"The download request read {download._bytes_downloaded} bytes of data."
+            in error.args[0]
+        )
+
     def _consume_helper(
         self,
         stream=None,
@@ -588,6 +607,25 @@ class TestRawDownload(object):
 
         error = exc_info.value
         assert error.args[0] == "checksum must be ``'md5'``, ``'crc32c'`` or ``None``"
+
+    def test__write_to_stream_incomplete_read(self):
+        stream = io.BytesIO()
+        download = download_mod.RawDownload(EXAMPLE_URL, stream=stream)
+
+        chunk1 = b"first chunk"
+        mock_full_content_length = len(chunk1) + 123
+        headers = {"x-goog-stored-content-length": mock_full_content_length}
+        response = _mock_raw_response(chunks=[chunk1], headers=headers)
+
+        with pytest.raises(ConnectionError) as exc_info:
+            download._write_to_stream(response)
+
+        assert not download.finished
+        error = exc_info.value
+        assert (
+            f"The download request read {download._bytes_downloaded} bytes of data."
+            in error.args[0]
+        )
 
     def _consume_helper(
         self,

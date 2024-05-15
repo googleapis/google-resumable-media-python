@@ -133,6 +133,23 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                 self._bytes_downloaded += len(chunk)
                 local_checksum_object.update(chunk)
 
+        headers = self._get_headers(response)
+        x_goog_encoding = headers.get("x-goog-stored-content-encoding")
+        x_goog_length = headers.get("x-goog-stored-content-length")
+        headers_msg = _RESPONSE_HEADERS_INFO.format(
+            x_goog_length, x_goog_encoding, self._bytes_downloaded
+        )
+        # If the download is finalized, check completion by comparing
+        # bytes downloaded to the response header x-goog-stored-content-length.
+        # The library will attempt to trigger a retry by raising a
+        # connection error, if the download seems to be incomplete.
+        if (
+            response.status_code != http.client.PARTIAL_CONTENT
+            and x_goog_length
+            and self._bytes_downloaded < int(x_goog_length)
+            and not _helpers._is_decompressive_transcoding(response, self._get_headers)
+        ):
+            raise ConnectionError(headers_msg)
         # Don't validate the checksum for partial responses.
         if (
             expected_checksum is not None
@@ -146,13 +163,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                     actual_checksum,
                     checksum_type=self.checksum.upper(),
                 )
-                headers = self._get_headers(response)
-                x_goog_encoding = headers.get("x-goog-stored-content-encoding")
-                x_goog_length = headers.get("x-goog-stored-content-length")
-                add_msg = _RESPONSE_HEADERS_INFO.format(
-                    x_goog_length, x_goog_encoding, self._bytes_downloaded
-                )
-                msg += add_msg
+                msg += headers_msg
                 raise common.DataCorruption(response, msg)
 
     def consume(
@@ -328,6 +339,23 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
                 checksum_object.update(chunk)
             response._content_consumed = True
 
+        headers = self._get_headers(response)
+        x_goog_encoding = headers.get("x-goog-stored-content-encoding")
+        x_goog_length = headers.get("x-goog-stored-content-length")
+        headers_msg = _RESPONSE_HEADERS_INFO.format(
+            x_goog_length, x_goog_encoding, self._bytes_downloaded
+        )
+        # If the download is finalized, check completion by comparing
+        # bytes downloaded to the response header x-goog-stored-content-length.
+        # The library will attempt to trigger a retry by raising a
+        # connection error, if the download seems to be incomplete.
+        if (
+            response.status_code != http.client.PARTIAL_CONTENT
+            and x_goog_length
+            and self._bytes_downloaded < int(x_goog_length)
+            and not _helpers._is_decompressive_transcoding(response, self._get_headers)
+        ):
+            raise ConnectionError(headers_msg)
         # Don't validate the checksum for partial responses.
         if (
             expected_checksum is not None
@@ -342,13 +370,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
                     actual_checksum,
                     checksum_type=self.checksum.upper(),
                 )
-                headers = self._get_headers(response)
-                x_goog_encoding = headers.get("x-goog-stored-content-encoding")
-                x_goog_length = headers.get("x-goog-stored-content-length")
-                add_msg = _RESPONSE_HEADERS_INFO.format(
-                    x_goog_length, x_goog_encoding, self._bytes_downloaded
-                )
-                msg += add_msg
+                msg += headers_msg
                 raise common.DataCorruption(response, msg)
 
     def consume(
