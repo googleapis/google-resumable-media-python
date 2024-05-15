@@ -136,7 +136,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
         headers = self._get_headers(response)
         x_goog_encoding = headers.get("x-goog-stored-content-encoding")
         x_goog_length = headers.get("x-goog-stored-content-length")
-        headers_msg = _RESPONSE_HEADERS_INFO.format(
+        content_length_msg = _RESPONSE_HEADERS_INFO.format(
             x_goog_length, x_goog_encoding, self._bytes_downloaded
         )
         # If the download is finalized, check completion by comparing
@@ -147,9 +147,9 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
             response.status_code != http.client.PARTIAL_CONTENT
             and x_goog_length
             and self._bytes_downloaded < int(x_goog_length)
-            and not _helpers._is_decompressive_transcoding(response, self._get_headers)
+            and x_goog_encoding != "gzip"
         ):
-            raise ConnectionError(headers_msg)
+            raise ConnectionError(content_length_msg)
         # Don't validate the checksum for partial responses.
         if (
             expected_checksum is not None
@@ -163,7 +163,7 @@ class Download(_request_helpers.RequestsMixin, _download.Download):
                     actual_checksum,
                     checksum_type=self.checksum.upper(),
                 )
-                msg += headers_msg
+                msg += content_length_msg
                 raise common.DataCorruption(response, msg)
 
     def consume(
@@ -342,7 +342,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
         headers = self._get_headers(response)
         x_goog_encoding = headers.get("x-goog-stored-content-encoding")
         x_goog_length = headers.get("x-goog-stored-content-length")
-        headers_msg = _RESPONSE_HEADERS_INFO.format(
+        content_length_msg = _RESPONSE_HEADERS_INFO.format(
             x_goog_length, x_goog_encoding, self._bytes_downloaded
         )
         # If the download is finalized, check completion by comparing
@@ -353,9 +353,9 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
             response.status_code != http.client.PARTIAL_CONTENT
             and x_goog_length
             and self._bytes_downloaded < int(x_goog_length)
-            and not _helpers._is_decompressive_transcoding(response, self._get_headers)
+            and x_goog_encoding != "gzip"
         ):
-            raise ConnectionError(headers_msg)
+            raise ConnectionError(content_length_msg)
         # Don't validate the checksum for partial responses.
         if (
             expected_checksum is not None
@@ -370,7 +370,7 @@ class RawDownload(_request_helpers.RawRequestsMixin, _download.Download):
                     actual_checksum,
                     checksum_type=self.checksum.upper(),
                 )
-                msg += headers_msg
+                msg += content_length_msg
                 raise common.DataCorruption(response, msg)
 
     def consume(
