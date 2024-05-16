@@ -171,13 +171,17 @@ class TestDownload(object):
         error = exc_info.value
         assert error.args[0] == "checksum must be ``'md5'``, ``'crc32c'`` or ``None``"
 
-    def test__write_to_stream_incomplete_read(self):
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
+    def test__write_to_stream_incomplete_read(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.Download(EXAMPLE_URL, stream=stream)
+        download = download_mod.Download(EXAMPLE_URL, stream=stream, checksum=checksum)
 
         chunk1 = b"first chunk"
         mock_full_content_length = len(chunk1) + 123
         headers = {"x-goog-stored-content-length": mock_full_content_length}
+        bad_checksum = "d3JvbmcgbiBtYWRlIHVwIQ=="
+        header_value = "crc32c={bad},md5={bad}".format(bad=bad_checksum)
+        headers[_helpers._HASH_HEADER] = header_value
         response = _mock_response(chunks=[chunk1], headers=headers)
 
         with pytest.raises(ConnectionError) as exc_info:
@@ -608,13 +612,19 @@ class TestRawDownload(object):
         error = exc_info.value
         assert error.args[0] == "checksum must be ``'md5'``, ``'crc32c'`` or ``None``"
 
-    def test__write_to_stream_incomplete_read(self):
+    @pytest.mark.parametrize("checksum", ["md5", "crc32c"])
+    def test__write_to_stream_incomplete_read(self, checksum):
         stream = io.BytesIO()
-        download = download_mod.RawDownload(EXAMPLE_URL, stream=stream)
+        download = download_mod.RawDownload(
+            EXAMPLE_URL, stream=stream, checksum=checksum
+        )
 
         chunk1 = b"first chunk"
         mock_full_content_length = len(chunk1) + 123
         headers = {"x-goog-stored-content-length": mock_full_content_length}
+        bad_checksum = "d3JvbmcgbiBtYWRlIHVwIQ=="
+        header_value = "crc32c={bad},md5={bad}".format(bad=bad_checksum)
+        headers[_helpers._HASH_HEADER] = header_value
         response = _mock_raw_response(chunks=[chunk1], headers=headers)
 
         with pytest.raises(ConnectionError) as exc_info:
