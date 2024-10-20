@@ -12,58 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import os
-
 import setuptools
 
 
-PACKAGE_ROOT = os.path.abspath(os.path.dirname(__file__))
-
-with open(os.path.join(PACKAGE_ROOT, 'README.rst')) as file_obj:
-    README = file_obj.read()
-
-
-REQUIREMENTS = [
-    'google-crc32c >= 1.0, < 2.0dev',
-]
-EXTRAS_REQUIRE = {
-    'requests': [
-        'requests >= 2.18.0, < 3.0.0dev',
-    ],
-    'aiohttp': ['aiohttp >= 3.6.2, < 4.0.0dev', 'google-auth >= 1.22.0, < 2.0dev']
-}
-
-setuptools.setup(
-    name='google-resumable-media',
-    version = "2.7.2",
-    description='Utilities for Google Media Downloads and Resumable Uploads',
-    author='Google Cloud Platform',
-    author_email='googleapis-publisher@google.com',
-    long_description=README,
-    scripts=[],
-    url='https://github.com/googleapis/google-resumable-media-python',
-    packages=setuptools.find_namespace_packages(
-        exclude=("tests*", "docs*")
-    ),
-    license='Apache 2.0',
-    platforms='Posix; MacOS X; Windows',
-    include_package_data=True,
-    zip_safe=False,
-    install_requires=REQUIREMENTS,
-    extras_require=EXTRAS_REQUIRE,
-    python_requires='>= 3.7',
-    classifiers=[
-        'Development Status :: 5 - Production/Stable',
-        'Intended Audience :: Developers',
-        'License :: OSI Approved :: Apache Software License',
-        'Operating System :: OS Independent',
-        'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
-        'Programming Language :: Python :: 3.12',
-        'Topic :: Internet',
-    ],
-)
+setuptools.setup()
