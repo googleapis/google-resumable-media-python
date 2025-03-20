@@ -4,6 +4,14 @@
 
 [1]: https://pypi.org/project/google-resumable-media/#history
 
+## [2.7.3](https://github.com/googleapis/google-resumable-media-python/compare/v2.7.2...v2.7.3) (2025-03-20)
+
+
+### Bug Fixes
+
+* Remove setup.cfg configuration for creating universal wheels ([#484](https://github.com/googleapis/google-resumable-media-python/issues/484)) ([75dbecf](https://github.com/googleapis/google-resumable-media-python/commit/75dbecf8d140483da27dffc970e2e87338e71432))
+* Resolve issue where pre-release versions of dependencies are installed ([#481](https://github.com/googleapis/google-resumable-media-python/issues/481)) ([23dafcf](https://github.com/googleapis/google-resumable-media-python/commit/23dafcf3f216a090a0d0c6941048c7da13cbe496))
+
 ## [2.7.2](https://github.com/googleapis/google-resumable-media-python/compare/v2.7.1...v2.7.2) (2024-08-07)
 
 
