@@ -31,6 +31,13 @@ UNIT_TEST_PYTHON_VERSIONS = ["3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13"
 # Error if a python version is missing
 nox.options.error_on_missing_interpreters = True
 
+nox.options.sessions = [
+    "system",
+    "blacken",
+    "mypy",
+    "doctest",
+]
+
 
 @nox.session(python=UNIT_TEST_PYTHON_VERSIONS)
 def unit(session):
