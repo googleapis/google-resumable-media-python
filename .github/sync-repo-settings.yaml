@@ -17,7 +17,7 @@ permissionRules:
     permission: admin
   - team: yoshi-python
     permission: push
-  - team: cloud-storage-dpe
+  - team: gcs-sdk-team
     permission: push
   - team: python-samples-owners
     permission: push
