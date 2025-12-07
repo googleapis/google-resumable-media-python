@@ -667,17 +667,24 @@ class _GzipDecoder(urllib3.response.GzipDecoder):
         super().__init__()
         self._checksum = checksum
 
-    def decompress(self, data):
+    def decompress(self, data, max_length=None):
         """Decompress the bytes.
 
         Args:
             data (bytes): The compressed bytes to be decompressed.
+            max_length (optional[int]): The maximum number of bytes to decompress.
+                This parameter is required for compatibility with urllib3>=2.6.0
+                and is passed to the underlying urllib3 decoder.
 
         Returns:
             bytes: The decompressed bytes from ``data``.
         """
         self._checksum.update(data)
-        return super().decompress(data)
+        try:
+            return super().decompress(data, max_length=max_length)
+        except TypeError:
+            # FB for urllib3 <2.6.0
+            return super().decompress(data)
 
 
 # urllib3.response.BrotliDecoder might not exist depending on whether brotli is
@@ -703,17 +710,24 @@ if hasattr(urllib3.response, "BrotliDecoder"):
             self._decoder = urllib3.response.BrotliDecoder()
             self._checksum = checksum
 
-        def decompress(self, data):
+        def decompress(self, data, max_length=None):
             """Decompress the bytes.
 
             Args:
                 data (bytes): The compressed bytes to be decompressed.
+                max_length (optional[int]): The maximum number of bytes to decompress.
+                This parameter is required for compatibility with urllib3>=2.6.0
+                and is passed to the underlying urllib3 decoder.
 
             Returns:
                 bytes: The decompressed bytes from ``data``.
             """
             self._checksum.update(data)
-            return self._decoder.decompress(data)
+            try:
+                return self._decoder.decompress(data, max_length=max_length)
+            except TypeError:
+                # FB for urllib3 <2.6.0
+                return self._decoder.decompress(data)
 
         def flush(self):
             return self._decoder.flush()
