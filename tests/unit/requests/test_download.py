@@ -1364,6 +1364,7 @@ class Test_BrotliDecoder(object):
         decoder._decoder = mock.Mock(spec=[])
         assert decoder.has_unconsumed_tail is False
 
+
 def _mock_response(status_code=http.client.OK, chunks=(), headers=None):
     if headers is None:
         headers = {}
