@@ -774,9 +774,7 @@ class Test_GzipDecoder(object):
 
             assert result == b"decompressed"
             md5_hash.update.assert_called_once_with(data)
-            mock_super_decompress.assert_called_once_with(
-                data, max_length=10
-            )
+            mock_super_decompress.assert_called_once_with(data, max_length=10)
 
 
 class AsyncIter:

@@ -465,8 +465,6 @@ class _GzipDecoder(urllib3.response.GzipDecoder):
         """
         self._checksum.update(data)
         try:
-            return super(_GzipDecoder, self).decompress(
-                data, max_length=max_length
-            )
+            return super(_GzipDecoder, self).decompress(data, max_length=max_length)
         except TypeError:
             return super(_GzipDecoder, self).decompress(data)
